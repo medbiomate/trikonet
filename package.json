@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "server.js",
   "description": "Trikonet Frontend Web Application",
   "scripts": {
-    "dev": "node dev-server.mjs",
-    "start": "node dev-server.mjs",
-    "check": "node --check app.js && node --check detail-pages.js"
+    "dev": "node server.js",
+    "start": "node server.js",
+    "check": "node --check app.js && node --check detail-pages.js && node --check server.js"
   }
 }
