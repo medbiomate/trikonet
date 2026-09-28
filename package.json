@@ -1,0 +1,12 @@
+{
+  "name": "trikonet-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Trikonet Frontend Web Application",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "start": "node dev-server.mjs",
+    "check": "node --check app.js && node --check detail-pages.js"
+  }
+}

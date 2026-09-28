@@ -1,0 +1,70 @@
+.detail-exact .detail-hero-inner,.detail-exact .detail-grid{max-width:1240px}.detail-exact .detail-hero{min-height:241px}.detail-exact .detail-logo{width:100px;height:100px}.detail-exact .detail-title h1{font-size:26px;line-height:1.3}.detail-exact .detail-meta{gap:24px;margin-bottom:8px}.detail-exact .detail-pill{display:inline-block;border-radius:16px;background:#f3dfe3;color:#a50009;padding:1px 20px;font-size:14px;line-height:24px}.detail-exact .detail-grid{grid-template-columns:minmax(0,796px) minmax(0,383px);gap:30px;padding-top:50px}.detail-exact .job-description h2{font-size:18px;line-height:23px;margin-bottom:20px}.detail-exact .wordpress-content{font-size:15px;line-height:26.25px;color:#656e77}.detail-exact .wordpress-content p{margin:0 0 18px}.detail-exact .overview{background:#f5f7fc;border-radius:8px;padding:30px;margin-bottom:30px}.detail-exact .overview dl{gap:27px 15px}.detail-exact .overview dd span{line-height:1.65}.detail-exact .detail-company-box{background:#f5f7fc;border-radius:8px;padding:30px;text-align:center}.detail-exact .detail-company-box>img{width:90px;height:90px;object-fit:cover;border-radius:8px}.detail-exact .detail-company-box>h3{font-size:18px;font-weight:500;margin:12px 0 2px}.detail-exact .profile-link{display:inline-block;color:#b00008;margin-bottom:24px}.detail-exact .company-facts{text-align:left;border-top:1px solid #e4e7ef;padding-top:18px}.detail-exact .company-facts h4{font-size:16px;font-weight:500;margin:18px 0 4px}.detail-exact .company-facts p{margin:0;color:#656e77;overflow-wrap:anywhere}.detail-exact .company-facts a{color:#b00008}.detail-exact .detail-tags{margin-top:30px;color:#666}.detail-exact .share{display:flex;gap:20px;align-items:center}.detail-exact .share h3{font-size:18px;font-weight:500}.detail-exact .share a{color:#b00008}.detail-exact .related-list{margin-top:40px}.detail-exact .related-list>h3,.detail-exact .related-heading h3{font-size:18px;font-weight:500;margin:0 0 25px}.detail-exact .related-heading{display:flex;justify-content:space-between;align-items:center}.detail-exact .related-heading a{color:#b00008}.detail-exact .detail-job-row{border:1px solid #e5e7eb;border-radius:8px;display:flex;align-items:flex-start;gap:20px;padding:28px 30px;margin:0 0 20px;position:relative}.detail-exact .detail-job-row>img{width:50px;height:50px;object-fit:cover;border-radius:8px}.detail-exact .detail-job-row-main h3{font-size:18px;font-weight:500;margin:0 0 4px}.detail-exact .detail-job-row-main p{color:#68717b;margin:0 0 12px}.detail-exact .detail-bookmark{margin-left:auto;color:#a50009}.detail-exact .employer-hero{min-height:236px}.detail-exact .employer-hero .detail-hero-inner{align-items:center}.detail-exact .employer-info{background:#f5f7fc;padding:30px}.detail-exact .employer-info dl{display:block}.detail-exact .employer-info dd{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 22px}.detail-exact .employer-info dd span{text-align:right}.detail-exact .show-phone{border:0;border-radius:3px;background:#a50009;color:white;font-size:11px;padding:3px 10px;margin-left:5px}.detail-exact .review-section{margin-top:45px;border-top:1px solid #e5e7eb;padding-top:25px}.detail-exact .review-section h3{font-size:18px;font-weight:500}.detail-exact .review-section textarea{width:100%;height:120px;border:1px solid #dce0e5;border-radius:8px;padding:14px;display:block;margin:15px 0}.detail-exact .detail-empty{padding:100px 20px}
+@media(max-width:1100px){.detail-exact .detail-grid{grid-template-columns:1fr}.detail-exact .detail-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:20px}.detail-exact .overview{margin-bottom:0}.detail-exact .employer-info dd span{text-align:right}}
+@media(max-width:700px){.detail-exact .detail-sidebar{grid-template-columns:1fr}.detail-exact .detail-hero-inner{padding-left:20px;padding-right:20px}.detail-exact .detail-grid{padding:35px 20px}.detail-exact .detail-meta{gap:7px 15px}.detail-exact .detail-job-row{padding:18px;gap:12px}.detail-exact .detail-job-row-main h3{font-size:16px}.detail-exact .detail-bookmark{display:none}.detail-exact .employer-info dd{grid-template-columns:1fr}.detail-exact .employer-info dd span{text-align:left}}
+.detail-page + .footer{background:#202124}body:has(.detail-page) .topbar{background:#f2fbff}
+@media(min-width:701px){.detail-exact .employer-hero{min-height:266px}.detail-exact .employer-detail-grid{padding-top:20px}}
+
+/* Job overview uses consistent line icons instead of font-dependent symbols. */
+.detail-exact .detail-meta span { display: inline-flex; align-items: center; gap: 8px; }
+.detail-exact .detail-inline-icon { display: inline-block; width: 20px; height: 20px; flex: 0 0 20px; color: #697784; }
+.detail-exact .employer-hero .save .detail-inline-icon { width: 23px; height: 23px; color: #a50009; }
+.detail-exact .overview:not(.employer-info) dt {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 0;
+}
+.detail-exact .overview:not(.employer-info) dt::before {
+  content: "";
+  display: block;
+  width: 30px;
+  height: 30px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.detail-exact .overview:not(.employer-info) dt:nth-of-type(1)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23af0b10' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M7 3v4m10-4v4M3 10h18m-14 4h3m-3 3h3'/%3E%3C/svg%3E");
+}
+.detail-exact .overview:not(.employer-info) dt:nth-of-type(2)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23af0b10' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 5.5-8 11-8 11S4 15.5 4 10a8 8 0 1 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E");
+}
+.detail-exact .overview:not(.employer-info) dt:nth-of-type(3)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23af0b10' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 3h14M5 21h14M7 3c0 4 1 5 5 9-4 4-5 5-5 9m10-18c0 4-1 5-5 9 4 4 5 5 5 9'/%3E%3C/svg%3E");
+}
+.detail-exact .overview:not(.employer-info) dt:nth-of-type(4)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23af0b10' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='9' r='5'/%3E%3Cpath d='m8.5 13-1 8 4.5-2.5 4.5 2.5-1-8'/%3E%3C/svg%3E");
+}
+.detail-exact .overview:not(.employer-info) dt:nth-of-type(5)::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23af0b10' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2 9 10-5 10 5-10 5L2 9Zm4 3v5c4 3 8 3 12 0v-5m4-3v7'/%3E%3C/svg%3E");
+}
+.detail-exact .detail-logo-fallback {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #1e40af;
+  font-weight: 700;
+  font-size: 36px;
+  text-transform: uppercase;
+  flex: 0 0 100px;
+}
+.detail-exact .detail-job-logo-fallback {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #1e40af;
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+  flex: 0 0 50px;
+}
