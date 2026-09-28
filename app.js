@@ -143,7 +143,7 @@ const siteChrome=(()=>{try{return JSON.parse(localStorage.getItem('trikonet_site
 document.documentElement.style.setProperty('--footer-title-size',`${Number(siteChrome.footerTitleSize)||18}px`);
 const chromeMenu=(value,fallback)=>String(value||fallback).split('\n').map(line=>{const [label,url,depth]=line.split('|').map(v=>v.trim());return [label,url,Number(depth)||0]}).filter(item=>item[0]&&item[1]);
 function renderHeaderMenu(items){const groups=[];items.forEach(([label,url,depth])=>{if(depth&&groups.length)groups[groups.length-1].children.push([label,url]);else groups.push({label,url,children:[]})});return groups.map(item=>item.children.length?`<div class="nav-dropdown"><a href="${escapeAttr(item.url)}">${escapeAttr(item.label)} <span>⌄</span></a><div class="nav-submenu">${item.children.map(([label,url])=>`<a href="${escapeAttr(url)}">${escapeAttr(label)}</a>`).join('')}</div></div>`:`<a href="${escapeAttr(item.url)}">${escapeAttr(item.label)}</a>`).join('')}
-function header(){const nurseHeader=path==='/nurse-jobs-in-uae',menu=chromeMenu(siteChrome.headerMenu,'Home | /\nBlogs | /blog\nJobs | /jobs\nEmployers List | /employers\nContact Us | /contact\nAbout Us | /about');return `<header class="topbar${nurseHeader?' nurse-page-header':''} site-header-${escapeAttr(siteChrome.headerLayout||'classic')}" style="background:${escapeAttr(siteChrome.headerBg||'transparent')};color:${escapeAttr(siteChrome.headerText||'#202124')}"><div class="wrap nav"><a class="brand" href="/"><img src="${escapeAttr(siteChrome.headerLogo||'/assets/logo-black.png')}" alt="Trikonet logo"></a><button class="hamb" aria-label="Open navigation">☰</button><nav class="links">${renderHeaderMenu(menu)}</nav>${currentUser?`<a class="outline" href="/email-campaigns">Email campaigns</a><button class="outline" id="logoutBtn">Logout</button>`:`<a class="outline" href="/login-register" style="border-color:${escapeAttr(siteChrome.headerAccent||'#b00008')};color:${escapeAttr(siteChrome.headerAccent||'#b00008')}">Login / Register</a>`}<a class="outline" href="/submit-job" style="border-color:${escapeAttr(siteChrome.headerAccent||'#b00008')};color:${escapeAttr(siteChrome.headerAccent||'#b00008')}">Add Job</a></div></header>`}
+function header(){const nurseHeader=path==='/nurse-jobs-in-uae',menu=chromeMenu(siteChrome.headerMenu,'Home | /\nBlogs | /blog\nJobs | /jobs\nEmployers List | /employers\nContact Us | /contact\nAbout Us | /about');return `<header class="topbar${nurseHeader?' nurse-page-header':''} site-header-${escapeAttr(siteChrome.headerLayout||'classic')}" style="background:${escapeAttr(siteChrome.headerBg||'transparent')};color:${escapeAttr(siteChrome.headerText||'#202124')}"><div class="wrap nav"><a class="brand" href="/"><img src="${escapeAttr(siteChrome.headerLogo||'/assets/logo-black.png')}" alt="Trikonet logo"></a><button class="hamb" aria-label="Open navigation">☰</button><nav class="links">${renderHeaderMenu(menu)}</nav>${currentUser?`<a class="outline" href="/email-campaigns">Email campaigns</a><button class="outline" id="logoutBtn">Logout</button>`:`<a class="outline" href="/login" style="border-color:${escapeAttr(siteChrome.headerAccent||'#b00008')};color:${escapeAttr(siteChrome.headerAccent||'#b00008')}">Login / Register</a>`}<a class="outline" href="/submit-job" style="border-color:${escapeAttr(siteChrome.headerAccent||'#b00008')};color:${escapeAttr(siteChrome.headerAccent||'#b00008')}">Add Job</a></div></header>`}
 function footer(){const menu=chromeMenu(siteChrome.footerMenu,'About Us | /about\nContact Us | /contact\nTerms | /terms\nFAQ | /faq\nPrivacy Policy | /privacy-policy'),candidateMenu=chromeMenu(siteChrome.footerCandidateMenu,'Browse Jobs | /jobs\nJob Alerts | /alerts-jobs'),employerMenu=chromeMenu(siteChrome.footerEmployerMenu,'Employers List | /employers\nSubmit Job | /submit-job'),links=items=>items.map(([label,url])=>`<a href="${escapeAttr(url)}" style="color:${escapeAttr(siteChrome.footerLink||'#979797')}">${escapeAttr(label)}</a>`).join('');return `<footer class="footer site-footer-${escapeAttr(siteChrome.footerLayout||'columns')}" style="background:${escapeAttr(siteChrome.footerBg||'#202124')};color:${escapeAttr(siteChrome.footerText||'#ffffff')}"><div class="wrap footer-grid"><div><img src="${escapeAttr(siteChrome.footerLogo||'/assets/logo-white.png')}" alt="Trikonet"><p>${escapeAttr(siteChrome.footerEmail||'info@trikonet.com')}</p></div><div><h2>${escapeAttr(siteChrome.footerExploreTitle||'Explore')}</h2>${links(menu)}</div><div><h2>${escapeAttr(siteChrome.footerCandidateTitle||'For Candidates')}</h2>${links(candidateMenu)}</div><div><h2>${escapeAttr(siteChrome.footerEmployerTitle||'For Employers')}</h2>${links(employerMenu)}</div></div><div class="wrap footer-bottom">${escapeAttr(siteChrome.footerCopyright||'© 2026 Trikonet. All Right Reserved.')}</div></footer>`}
 const optionList=(items,placeholder,selected)=>`<option>${placeholder}</option>${(items||[]).map(item=>`<option value="${escapeAttr(item.name)}"${selected===item.name?' selected':''}>${item.name}</option>`).join('')}`;
 function searchBar(settings={}){const action=settings.action||(path==='/nurse-jobs-in-uae'?'/nurse-jobs-in-uae':'/jobs'),locationLabel=settings.location||'Country or City',categoryLabel=settings.category||'All Categories',selectedLocation=queryParams.get('location')||locationLabel,selectedCategory=queryParams.get('category')||categoryLabel;return `<form class="searchbar" action="${escapeAttr(action)}"><label class="field"><b>${icons.search}</b><input name="q" value="${escapeAttr(queryParams.get('q'))}" placeholder="${escapeAttr(settings.keyword||'Job Title, Keywords')}" aria-label="Job title"></label><label class="field"><b>${icons.pin}</b><select name="location" aria-label="Location">${optionList(data.taxonomies.locations,locationLabel,selectedLocation)}</select></label><label class="field"><select name="category" aria-label="Category">${optionList(data.taxonomies.categories,categoryLabel,selectedCategory)}</select></label><button class="primary">${escapeAttr(settings.button||'Find Jobs')}</button></form>`}
@@ -659,11 +659,267 @@ function decodeHtml(value){const box=document.createElement('textarea');box.inne
 function faq(){return `<main><section class="subhero"><h1>FAQ</h1></section><div class="content faq"><h2>History Of Trikonet</h2>${[['Who is Trikonet?','Trikonet is a job platform connecting job seekers with employment opportunities in the UAE and other Middle Eastern countries.'],['How The Trikonet Started?','Trikonet was founded after the success of Medbiomate highlighted the need for a broader job platform.'],['How are Trikonet and Medbiomate connected?','Both platforms share founders and a commitment to connecting qualified candidates with trusted opportunities.']].map(x=>`<details><summary>${x[0]}</summary><p>${x[1]}</p></details>`).join('')}</div></main>`}
 function contact(){return `<main><section class="subhero"><h1>Contact Us</h1></section><div class="content contact-grid"><div><h2>Get in touch</h2><p>Questions about jobs, employers or your Trikonet account? Send us a message.</p><p><b>Email</b><br>info@trikonet.com</p></div><form class="form-card" id="contact"><label>Name<input required></label><label>Email<input type="email" required></label><label>Message<textarea required></textarea></label><button class="primary">Send Message</button></form></div></main>`}
 function generic(){const title=path.split('/').filter(Boolean).map(s=>s.replaceAll('-',' ')).join(' / ')||'Trikonet';return `<main><section class="subhero"><h1>${title.replace(/\b\w/g,c=>c.toUpperCase())}</h1></section><div class="content"><p>This page keeps the existing Trikonet URL available in the local migration. Its content can be edited in the CMS.</p><a class="primary" href="/jobs">Browse Jobs</a></div></main>`}
-function accountPage(){if(currentUser)return `<main class="member-page"><section class="member-card"><h1>Welcome, ${escapeAttr(currentUser.name)}</h1><p>Your account is active. Create and resume email campaigns from your private workspace.</p><a class="primary" href="/email-campaigns">Open email campaigns</a></section></main>`;return `<main class="member-page"><div class="auth-grid"><form class="member-card" id="loginForm"><h1>Log in</h1><p>Access your saved templates, drafts, and campaign history.</p><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="primary">Log in</button><p class="form-message" aria-live="polite"></p></form><form class="member-card" id="registerForm"><h1>Create account</h1><p>Sign up to unlock email campaigns.</p><label>Name<input name="name" autocomplete="name" required></label><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" minlength="8" autocomplete="new-password" required></label><button class="primary">Sign up</button><p class="form-message" aria-live="polite"></p></form></div></main>`}
+function accountPage(forcedMode) {
+  if (currentUser) {
+    return `<main class="auth-page">
+      <div class="auth-dashboard-wrap">
+        <div class="dashboard-hero-card">
+          <div class="dashboard-user-info">
+            <div class="dashboard-avatar">${escapeAttr((currentUser.name || 'U').charAt(0).toUpperCase())}</div>
+            <div class="dashboard-user-text">
+              <h1>Welcome, ${escapeAttr(currentUser.name)}</h1>
+              <p>${escapeAttr(currentUser.email)} · <span style="color:#16a34a;font-weight:600;">Active Account</span></p>
+            </div>
+          </div>
+          <button class="outline" id="dashboardLogoutBtn" style="border-color:#e2e8f0;color:#64748b;padding:8px 18px;font-size:13px;border-radius:10px;">Sign Out</button>
+        </div>
+        <div class="dashboard-actions-grid">
+          <a class="dashboard-action-card" href="/email-campaigns">
+            <div class="dashboard-action-icon">✉</div>
+            <h3>Email Campaigns</h3>
+            <p>Compose, save, and manage your private email campaigns & candidate outreach.</p>
+          </a>
+          <a class="dashboard-action-card" href="/jobs">
+            <div class="dashboard-action-icon">💼</div>
+            <h3>Browse 13,600+ Jobs</h3>
+            <p>Explore verified openings across Abu Dhabi, Dubai, Sharjah, and other GCC hubs.</p>
+          </a>
+          <a class="dashboard-action-card" href="/employers">
+            <div class="dashboard-action-icon">🏢</div>
+            <h3>Top 2,700+ Employers</h3>
+            <p>Connect directly with leading healthcare, education, hospitality, and corporate firms.</p>
+          </a>
+          <a class="dashboard-action-card" href="/submit-job">
+            <div class="dashboard-action-icon">➕</div>
+            <h3>Post a Job Opening</h3>
+            <p>Publish a job listing to recruit qualified talent across the Middle East network.</p>
+          </a>
+        </div>
+      </div>
+    </main>`;
+  }
+
+  const isRegister = forcedMode === 'register' || path === '/register' || path === '/signup' || path === '/sign-up' || queryParams.get('tab') === 'register' || queryParams.get('mode') === 'signup';
+
+  return `<main class="auth-page">
+    <div class="auth-page-glow auth-page-glow-1"></div>
+    <div class="auth-page-glow-2"></div>
+
+    <div class="auth-wrapper">
+      <!-- Left Brand Showcase Panel -->
+      <aside class="auth-brand-panel">
+        <div class="auth-brand-header">
+          <a href="/" class="auth-brand-logo">
+            <img src="/assets/logo-white.png" alt="Trikonet">
+          </a>
+          <span class="auth-brand-tag">UAE Careers Platform</span>
+        </div>
+
+        <div class="auth-brand-body">
+          <h2 class="auth-brand-heading">Connecting Ambition With Opportunity Across the UAE & GCC.</h2>
+          <p class="auth-brand-desc">Your direct gateway to 13,600+ verified career vacancies from over 2,700 leading employers in education, healthcare, technology, and business.</p>
+
+          <div class="auth-features-list">
+            <div class="auth-feature-item">
+              <div class="auth-feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div class="auth-feature-text">
+                <strong>13,600+ Verified Jobs</strong>
+                <span>Direct vacancies updated daily across Abu Dhabi & Dubai</span>
+              </div>
+            </div>
+
+            <div class="auth-feature-item">
+              <div class="auth-feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
+              </div>
+              <div class="auth-feature-text">
+                <strong>2,700+ Top Employers</strong>
+                <span>Direct connections to schools, hospitals, and multinational firms</span>
+              </div>
+            </div>
+
+            <div class="auth-feature-item">
+              <div class="auth-feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              </div>
+              <div class="auth-feature-text">
+                <strong>Instant Career Alerts</strong>
+                <span>Save searches, track applications, and run email outreach</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-testimonial-card">
+          <div class="auth-stars">★★★★★</div>
+          <p class="auth-quote">“Applied to Gulf Education through Trikonet and secured my teaching contract in Abu Dhabi. Highly recommended!”</p>
+          <div class="auth-author">
+            <div class="auth-author-avatar">G</div>
+            <div class="auth-author-info">
+              <strong>Gulf Education Candidate</strong>
+              <span>Verified Placement · Abu Dhabi</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Form Panel -->
+      <section class="auth-form-panel">
+        <!-- Segmented Tab Navigation -->
+        <nav class="auth-tabs" role="tablist" aria-label="Authentication Options">
+          <a href="/login" class="auth-tab ${!isRegister ? 'active' : ''}" data-target="login" role="tab" aria-selected="${!isRegister}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span>Sign In</span>
+          </a>
+          <a href="/register" class="auth-tab ${isRegister ? 'active' : ''}" data-target="register" role="tab" aria-selected="${isRegister}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            <span>Create Account</span>
+          </a>
+        </nav>
+
+        <!-- SIGN IN VIEW -->
+        <div class="auth-view-login ${!isRegister ? 'active-view' : 'hidden-view'}" id="authViewLogin">
+          <header class="auth-heading">
+            <h1>Welcome Back</h1>
+            <p>Sign in to manage your saved jobs, email campaigns, and employer applications.</p>
+          </header>
+
+          <div class="auth-social-row">
+            <button type="button" class="auth-social-btn" onclick="alert('Google Sign-in: Please enter your credentials below.')">
+              <svg class="social-svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.02h3.87c2.26-2.09 3.67-5.17 3.67-9.11z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.02c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.12C3.26 21.3 7.37 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.61H1.28C.46 8.23 0 10.06 0 12s.46 3.77 1.28 5.39l3.99-3.12z"/><path fill="#EA4335" d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.28 6.61l3.99 3.12c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+              <span>Google</span>
+            </button>
+            <button type="button" class="auth-social-btn" onclick="alert('LinkedIn Sign-in: Please enter your credentials below.')">
+              <svg class="social-svg" viewBox="0 0 24 24"><path fill="#0A66C2" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+              <span>LinkedIn</span>
+            </button>
+          </div>
+
+          <div class="auth-divider"><span>or sign in with email</span></div>
+
+          <form id="loginForm" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="loginEmail">Email Address</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                <input type="email" id="loginEmail" name="email" placeholder="name@domain.com" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="label-row">
+                <label for="loginPassword">Password</label>
+                <a href="mailto:info@trikonet.com?subject=Trikonet%20Password%20Reset%20Request" class="forgot-link">Forgot password?</a>
+              </div>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input type="password" id="loginPassword" name="password" placeholder="••••••••" autocomplete="current-password" required>
+                <button type="button" class="toggle-password" data-target="loginPassword" aria-label="Toggle password visibility">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="auth-row-remember">
+              <label class="custom-check">
+                <input type="checkbox" name="remember" checked>
+                <span>Remember me on this browser</span>
+              </label>
+            </div>
+
+            <button type="submit" class="auth-submit-btn">
+              <span>Sign In</span>
+              <svg class="arrow-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+
+            <div class="form-message" aria-live="polite"></div>
+          </form>
+
+          <footer class="auth-footer-prompt">
+            <span>Don't have an account yet?</span>
+            <a href="/register" class="auth-switch-link" data-switch="register">Create an account for free →</a>
+          </footer>
+        </div>
+
+        <!-- CREATE ACCOUNT / SIGN UP VIEW -->
+        <div class="auth-view-register ${isRegister ? 'active-view' : 'hidden-view'}" id="authViewRegister">
+          <header class="auth-heading">
+            <h1>Create Your Account</h1>
+            <p>Join Trikonet to connect with employers, apply to vacancies, and manage career alerts.</p>
+          </header>
+
+          <div class="auth-social-row">
+            <button type="button" class="auth-social-btn" onclick="alert('Google Sign-up: Please fill in your name and email below.')">
+              <svg class="social-svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.02h3.87c2.26-2.09 3.67-5.17 3.67-9.11z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.02c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.12C3.26 21.3 7.37 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.61H1.28C.46 8.23 0 10.06 0 12s.46 3.77 1.28 5.39l3.99-3.12z"/><path fill="#EA4335" d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.28 6.61l3.99 3.12c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+              <span>Google</span>
+            </button>
+            <button type="button" class="auth-social-btn" onclick="alert('LinkedIn Sign-up: Please fill in your name and email below.')">
+              <svg class="social-svg" viewBox="0 0 24 24"><path fill="#0A66C2" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+              <span>LinkedIn</span>
+            </button>
+          </div>
+
+          <div class="auth-divider"><span>or register with email</span></div>
+
+          <form id="registerForm" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="regName">Full Name</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <input type="text" id="regName" name="name" placeholder="e.g. Sarah Mansoor" autocomplete="name" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="regEmail">Email Address</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                <input type="email" id="regEmail" name="email" placeholder="name@domain.com" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="regPassword">Password</label>
+              <div class="input-wrap">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input type="password" id="regPassword" name="password" minlength="8" placeholder="At least 8 characters" autocomplete="new-password" required>
+                <button type="button" class="toggle-password" data-target="regPassword" aria-label="Toggle password visibility">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <span class="input-hint">Must be at least 8 characters long.</span>
+            </div>
+
+            <div class="auth-row-remember">
+              <label class="custom-check">
+                <input type="checkbox" name="terms" required checked>
+                <span>I agree to Trikonet's <a href="/faq" target="_blank">Terms of Service</a> & <a href="/faq" target="_blank">Privacy Policy</a></span>
+              </label>
+            </div>
+
+            <button type="submit" class="auth-submit-btn">
+              <span>Create Free Account</span>
+              <svg class="arrow-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+
+            <div class="form-message" aria-live="polite"></div>
+          </form>
+
+          <footer class="auth-footer-prompt">
+            <span>Already have an account?</span>
+            <a href="/login" class="auth-switch-link" data-switch="login">Sign in here →</a>
+          </footer>
+        </div>
+      </section>
+    </div>
+  </main>`;
+}
 const emailTemplates=[['Job alert','New opportunities selected for you','<h2>New jobs for you</h2><p>We found new opportunities that match your profile.</p>'],['Application update','Your application status','<h2>Application update</h2><p>There is an update about your recent application.</p>'],['Welcome','Welcome to Trikonet','<h2>Welcome to Trikonet</h2><p>Your account is ready. Start exploring new opportunities.</p>']];
-function campaignsPage(){if(!currentUser)return `<main class="member-page"><section class="member-card locked"><span class="lock-icon">🔒</span><h1>Sign in to use email campaigns</h1><p>Create and edit templates, save drafts, resume later, and keep your sending history private to your account.</p><a class="primary" href="/login-register">Sign up or log in</a></section></main>`;return `<main class="campaign-page"><header class="campaign-heading"><div><span class="eyebrow">MEMBER FEATURE</span><h1>Email campaigns</h1><p>Compose from a template, save your work, and resume it anytime.</p></div><button class="primary" id="newCampaign">New email</button></header><div class="campaign-layout"><aside class="template-panel"><h2>Templates</h2>${emailTemplates.map((t,i)=>`<button class="template-choice" data-template="${i}"><b>${t[0]}</b><span>${t[1]}</span></button>`).join('')}</aside><section class="composer member-card"><form id="campaignForm"><input type="hidden" name="id"><label>Campaign name<input name="name" required placeholder="e.g. Dubai nurse jobs — September"></label><label>Recipients<textarea name="recipients" rows="2" placeholder="email@example.com, another@example.com"></textarea></label><label>Subject<input name="subject" required></label><label>Email content<div class="email-toolbar"><button type="button" data-command="bold"><b>B</b></button><button type="button" data-command="italic"><i>I</i></button><button type="button" data-command="insertUnorderedList">• List</button></div><div class="email-editor" contenteditable="true" role="textbox" aria-label="Email content"></div></label><div class="campaign-actions"><button class="primary" type="submit">Save draft</button><button class="outline" type="button" id="sendCampaign">Send email</button></div><p class="form-message" aria-live="polite"></p></form></section><aside class="draft-panel"><h2>Saved & history</h2>${emailCampaigns.length?emailCampaigns.map(c=>`<button class="draft-choice" data-id="${escapeAttr(c.id)}"><b>${escapeAttr(c.name||c.subject)}</b><span>${escapeAttr(c.status)} · ${new Date(c.updatedAt).toLocaleDateString()}</span></button>`).join(''):'<p>No saved drafts yet.</p>'}</aside></div></main>`}
+function campaignsPage(){if(!currentUser)return `<main class="member-page"><section class="member-card locked"><span class="lock-icon">🔒</span><h1>Sign in to use email campaigns</h1><p>Create and edit templates, save drafts, resume later, and keep your sending history private to your account.</p><a class="primary" href="/login">Sign up or log in</a></section></main>`;return `<main class="campaign-page"><header class="campaign-heading"><div><span class="eyebrow">MEMBER FEATURE</span><h1>Email campaigns</h1><p>Compose from a template, save your work, and resume it anytime.</p></div><button class="primary" id="newCampaign">New email</button></header><div class="campaign-layout"><aside class="template-panel"><h2>Templates</h2>${emailTemplates.map((t,i)=>`<button class="template-choice" data-template="${i}"><b>${t[0]}</b><span>${t[1]}</span></button>`).join('')}</aside><section class="composer member-card"><form id="campaignForm"><input type="hidden" name="id"><label>Campaign name<input name="name" required placeholder="e.g. Dubai nurse jobs — September"></label><label>Recipients<textarea name="recipients" rows="2" placeholder="email@example.com, another@example.com"></textarea></label><label>Subject<input name="subject" required></label><label>Email content<div class="email-toolbar"><button type="button" data-command="bold"><b>B</b></button><button type="button" data-command="italic"><i>I</i></button><button type="button" data-command="insertUnorderedList">• List</button></div><div class="email-editor" contenteditable="true" role="textbox" aria-label="Email content"></div></label><div class="campaign-actions"><button class="primary" type="submit">Save draft</button><button class="outline" type="button" id="sendCampaign">Send email</button></div><p class="form-message" aria-live="polite"></p></form></section><aside class="draft-panel"><h2>Saved & history</h2>${emailCampaigns.length?emailCampaigns.map(c=>`<button class="draft-choice" data-id="${escapeAttr(c.id)}"><b>${escapeAttr(c.name||c.subject)}</b><span>${escapeAttr(c.status)} · ${new Date(c.updatedAt).toLocaleDateString()}</span></button>`).join(''):'<p>No saved drafts yet.</p>'}</aside></div></main>`}
 function admin(){return `<div class="admin"><div class="admin-shell"><aside class="sidebar"><img src="/assets/logo-white.png" alt="Trikonet"><h3>Content Manager</h3><a class="active" href="/admin">Overview</a><a href="/admin#jobs">Jobs</a><a href="/admin#posts">Blogs</a><a href="/admin#pages">Pages</a><a href="/">View website</a></aside><main class="admin-main"><h1>Trikonet CMS</h1><p>Edit content while keeping the existing frontend and URLs intact.</p><div class="admin-grid"><section class="panel"><h2>Add job</h2><form id="jobForm"><label>Job title<input name="title" required></label><label>Company<input name="company" required></label><label>Slug<input name="slug" required placeholder="job-slug"></label><label>Location<input name="location" value="Dubai"></label><label>Category<input name="category" value="General"></label><button class="primary">Publish job</button></form></section><section class="panel"><h2>Add blog post</h2><form id="postForm"><label>Post title<input name="title" required></label><label>Category<select name="category"><option>career</option><option>health</option><option>insurance</option></select></label><label>Slug<input name="slug" required placeholder="post-slug"></label><label>Excerpt<textarea name="excerpt"></textarea></label><button class="primary">Publish post</button></form></section></div><section class="panel records"><h2>Published jobs</h2>${data.jobs.map(j=>`<div class="record"><span><b>${j.title}</b><br><small>/job/${j.slug}</small></span><span class="status">Published</span></div>`).join('')}<p><button class="outline" id="reset">Reset demo content</button></p></section></main></div></div>`}
-function render(){if(path.startsWith('/admin'))return renderAdmin(data);let body;if(path==='/')body=home();else if(path==='/login-register')body=accountPage();else if(path==='/email-campaigns')body=campaignsPage();else if(path==='/nurse-jobs-in-uae')body=nurseJobsPage();else if(path==='/jobs'||path==='/job-list'||path==='/job-openings')body=jobs();else if(path==='/employers')body=employers();else if(path.startsWith('/employer/')){const local=data.employers?.find(e=>e.local&&path===`/employer/${e.slug}`);body=renderEmployerDetail(local||wpRecord,path,profileJobs.length?profileJobs:data.jobs)}else if(path==='/about')body=about();else if(path==='/blog')body=blog();else if(path==='/faq')body=faq();else if(path==='/contact')body=contact();else if(path.startsWith('/job/')){const local=data.jobs.find(j=>j.local&&path===`/job/${j.slug}`);const employer=local?data.employers?.find(e=>e.slug===local.employerSlug||e.title===local.company):wpEmployer;body=renderJobDetail(local||wpRecord||data.jobs.find(j=>path.endsWith(j.slug)),employer,path)}else {const p=data.posts.find(p=>path.endsWith(`/${p.slug}`));body=p?post(p):generic()}return header()+body+footer()}
+function render(){if(path.startsWith('/admin'))return renderAdmin(data);let body;if(path==='/')body=home();else if(path==='/login'||path==='/signin'||path==='/sign-in'||path==='/login-register'||path==='/register'||path==='/signup'||path==='/sign-up')body=accountPage();else if(path==='/email-campaigns')body=campaignsPage();else if(path==='/nurse-jobs-in-uae')body=nurseJobsPage();else if(path==='/jobs'||path==='/job-list'||path==='/job-openings')body=jobs();else if(path==='/employers')body=employers();else if(path.startsWith('/employer/')){const local=data.employers?.find(e=>e.local&&path===`/employer/${e.slug}`);body=renderEmployerDetail(local||wpRecord,path,profileJobs.length?profileJobs:data.jobs)}else if(path==='/about')body=about();else if(path==='/blog')body=blog();else if(path==='/faq')body=faq();else if(path==='/contact')body=contact();else if(path.startsWith('/job/')){const local=data.jobs.find(j=>j.local&&path===`/job/${j.slug}`);const employer=local?data.employers?.find(e=>e.slug===local.employerSlug||e.title===local.company):wpEmployer;body=renderJobDetail(local||wpRecord||data.jobs.find(j=>path.endsWith(j.slug)),employer,path)}else {const p=data.posts.find(p=>path.endsWith(`/${p.slug}`));body=p?post(p):generic()}return header()+body+footer()}
 await Promise.all([loadLocalJobs(),loadLocalEmployers(),loadCounts(),loadWordPressRecord(),loadConnectedContent(),loadAccount()]);
 try{const savedPosts=JSON.parse(localStorage.getItem('trikonet_posts_cms')||'[]');data.posts=data.posts.map(post=>({...post,...(savedPosts.find(saved=>saved.slug===post.slug)||{})}))}catch{}
 document.querySelector('#app').innerHTML=render();
@@ -765,9 +1021,125 @@ const employerSave=document.querySelector('.employer-hero .save');
 if(employerSave)employerSave.innerHTML=detailSvg('bookmark');
 document.querySelector('.hamb')?.addEventListener('click',()=>document.querySelector('.links').classList.toggle('open'));
 document.querySelector('#logoutBtn')?.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/'});
-async function submitAuth(form,endpoint){const message=form.querySelector('.form-message');message.textContent='Please wait…';const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))}),result=await response.json();if(!response.ok){message.textContent=result.error||'Unable to continue.';return}location.href='/email-campaigns'}
+document.querySelector('#dashboardLogoutBtn')?.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/'});
+
+async function submitAuth(form,endpoint){
+  const message=form.querySelector('.form-message');
+  const submitBtn=form.querySelector('button[type="submit"]');
+  const origContent=submitBtn?submitBtn.innerHTML:'';
+  if(submitBtn){
+    submitBtn.disabled=true;
+    submitBtn.innerHTML=`<span>Please wait…</span>`;
+  }
+  if(message){
+    message.className='form-message';
+    message.textContent='Processing…';
+  }
+  try{
+    const response=await fetch(endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(Object.fromEntries(new FormData(form)))
+    });
+    const result=await response.json();
+    if(!response.ok){
+      if(message){
+        message.className='form-message error';
+        message.textContent=result.error||'Unable to continue.';
+      }
+      if(submitBtn){
+        submitBtn.disabled=false;
+        submitBtn.innerHTML=origContent;
+      }
+      return;
+    }
+    if(message){
+      message.className='form-message success';
+      message.textContent=endpoint.includes('register')?'Account created successfully! Redirecting…':'Welcome back! Redirecting…';
+    }
+    setTimeout(()=>{location.href='/email-campaigns'},500);
+  }catch(err){
+    if(message){
+      message.className='form-message error';
+      message.textContent='Connection error. Please try again.';
+    }
+    if(submitBtn){
+      submitBtn.disabled=false;
+      submitBtn.innerHTML=origContent;
+    }
+  }
+}
+
 document.querySelector('#loginForm')?.addEventListener('submit',event=>{event.preventDefault();submitAuth(event.currentTarget,'/api/auth/login')});
 document.querySelector('#registerForm')?.addEventListener('submit',event=>{event.preventDefault();submitAuth(event.currentTarget,'/api/auth/register')});
+
+function switchAuthView(mode){
+  const loginView=document.querySelector('#authViewLogin');
+  const registerView=document.querySelector('#authViewRegister');
+  const tabs=document.querySelectorAll('.auth-tab');
+  if(!loginView||!registerView)return;
+  if(mode==='register'){
+    loginView.classList.remove('active-view');
+    loginView.classList.add('hidden-view');
+    registerView.classList.remove('hidden-view');
+    registerView.classList.add('active-view');
+    tabs.forEach(t=>{
+      const isTarget=t.dataset.target==='register';
+      t.classList.toggle('active',isTarget);
+      t.setAttribute('aria-selected',String(isTarget));
+    });
+    history.pushState(null,'','/register');
+    document.title='Create Account — Trikonet';
+  }else{
+    registerView.classList.remove('active-view');
+    registerView.classList.add('hidden-view');
+    loginView.classList.remove('hidden-view');
+    loginView.classList.add('active-view');
+    tabs.forEach(t=>{
+      const isTarget=t.dataset.target==='login';
+      t.classList.toggle('active',isTarget);
+      t.setAttribute('aria-selected',String(isTarget));
+    });
+    history.pushState(null,'','/login');
+    document.title='Sign In — Trikonet';
+  }
+}
+
+document.querySelectorAll('.auth-tab').forEach(tab=>{
+  tab.addEventListener('click',e=>{
+    e.preventDefault();
+    switchAuthView(tab.dataset.target);
+  });
+});
+
+document.querySelectorAll('.auth-switch-link').forEach(link=>{
+  link.addEventListener('click',e=>{
+    e.preventDefault();
+    switchAuthView(link.dataset.switch);
+  });
+});
+
+document.querySelectorAll('.toggle-password').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const targetId=btn.dataset.target;
+    const input=document.getElementById(targetId);
+    if(!input)return;
+    const isPass=input.type==='password';
+    input.type=isPass?'text':'password';
+    btn.innerHTML=isPass
+      ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  });
+});
+
+window.addEventListener('popstate',()=>{
+  const newPath=location.pathname;
+  if(newPath==='/register'||newPath==='/signup'||newPath==='/sign-up'){
+    switchAuthView('register');
+  }else if(newPath==='/login'||newPath==='/signin'||newPath==='/sign-in'||newPath==='/login-register'){
+    switchAuthView('login');
+  }
+});
 const campaignForm=document.querySelector('#campaignForm'),campaignEditor=document.querySelector('.email-editor');
 function fillCampaign(c={}){if(!campaignForm)return;campaignForm.elements.id.value=c.id||'';campaignForm.elements.name.value=c.name||'';campaignForm.elements.recipients.value=Array.isArray(c.recipients)?c.recipients.join(', '):(c.recipients||'');campaignForm.elements.subject.value=c.subject||'';campaignEditor.innerHTML=c.html||'';campaignForm.querySelector('.form-message').textContent=''}
 document.querySelectorAll('.template-choice').forEach(button=>button.addEventListener('click',()=>{const template=emailTemplates[Number(button.dataset.template)];fillCampaign({name:template[0],subject:template[1],html:template[2]})}));
