@@ -83,13 +83,28 @@
   line-height: 1.5;
 }
 
-.detail-exact .detail-meta span {
+.detail-exact .detail-meta span,
+.detail-exact .detail-meta .detail-meta-link {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   color: #64748b;
   font-size: 14px;
   font-weight: 400;
+}
+
+.detail-exact .detail-meta .detail-meta-link {
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+.detail-exact .detail-meta .detail-meta-link:hover {
+  color: #b91c1c;
+}
+
+.detail-exact .detail-job-row-main h3 a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .detail-exact .detail-meta .meta-icon {

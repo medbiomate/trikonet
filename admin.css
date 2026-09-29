@@ -3794,6 +3794,12 @@ tr.modern-tax-tr:hover .modern-tax-row-actions,
   border: 1px solid #e2e8f0;
 }
 
+.pill-role-content-editor {
+  background: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #a5f3fc;
+}
+
 /* Modern Users Table - Pro SaaS Design */
 .modern-users-table {
   width: 100%;
@@ -3925,6 +3931,36 @@ tr.modern-tax-tr:hover .modern-tax-row-actions,
 .user-col-status {
   width: 110px;
   text-align: right;
+}
+
+.user-col-actions {
+  width: 105px;
+  text-align: right;
+}
+
+.user-delete-button {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff7f7;
+  color: #b91c1c;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.user-delete-button:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+.user-protected-label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* Empty State Styling */
@@ -8185,5 +8221,3 @@ mark.wp-highlight {
   background: #d97706;
   box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
 }
-
-

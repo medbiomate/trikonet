@@ -70,20 +70,21 @@ export const resolveJobDeadline = record => {
 const dateLabel = formatJobDate;
 const phoneMask = value => value ? `${value.slice(0,-3)}***` : '';
 const slugFromUrl = value => { try { return new URL(value).pathname; } catch { return '#'; } };
+const filterSlug = value => decode(value).trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 function jobCard([title,slug,category,location,type],logo='') {
   const cleanTitle = decode(title);
   const cleanCat = decode(category);
   const cleanLoc = decode(location);
   const meta = [
-    cleanCat ? `<span><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>${esc(cleanCat)}</span>` : '',
-    cleanLoc ? `<span><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(cleanLoc)}</span>` : ''
+    cleanCat ? `<a href="/category/${esc(filterSlug(cleanCat))}"><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>${esc(cleanCat)}</a>` : '',
+    cleanLoc ? `<a href="/job-location/${esc(filterSlug(cleanLoc))}"><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(cleanLoc)}</a>` : ''
   ].filter(Boolean).join('');
   const fallback = esc((cleanTitle || 'J').charAt(0));
   const logoHtml = logo
     ? `<img src="${esc(logo)}" alt="" onerror="this.outerHTML='<div class=&quot;detail-job-logo-fallback&quot;>${fallback}</div>'">`
     : `<div class="detail-job-logo-fallback">${fallback}</div>`;
-  return `<a class="detail-job-row" href="/job/${esc(slug)}">${logoHtml}<div class="detail-job-row-main"><h3>${esc(cleanTitle)}</h3>${meta ? `<p>${meta}</p>` : ''}<span class="detail-pill">${esc(type || 'Full Time')}</span></div><span class="detail-bookmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span></a>`;
+  return `<article class="detail-job-row"><a href="/job/${esc(slug)}" aria-label="View ${esc(cleanTitle)}">${logoHtml}</a><div class="detail-job-row-main"><h3><a href="/job/${esc(slug)}">${esc(cleanTitle)}</a></h3>${meta ? `<p>${meta}</p>` : ''}<span class="detail-pill">${esc(type || 'Full Time')}</span></div><span class="detail-bookmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span></article>`;
 }
 
 function relatedJobCard(record, employerLogo = '') {
@@ -333,8 +334,8 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   };
   const related = (relatedJobs || []).filter(item => item && item.slug !== record.slug && !isSameCompany(item)).slice(0, 4);
   const metaSpans = [
-    category ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${esc(category)}</span>` : '',
-    location ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(location)}</span>` : '',
+    category ? `<a class="detail-meta-link" href="/category/${esc(filterSlug(category))}"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${esc(category)}</a>` : '',
+    location ? `<a class="detail-meta-link" href="/job-location/${esc(filterSlug(location))}"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(location)}</a>` : '',
     date ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(date)}</span>` : ''
   ].filter(Boolean).join('');
 
@@ -344,7 +345,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   return `<main class="detail-page detail-exact">
     <section class="detail-hero">
       <div class="wrap detail-hero-inner">
-        <button class="detail-report-job-btn detail-report-corner-btn" type="button" id="openJobReportBtn" aria-label="Report this job">Report this job</button>
+        <button class="detail-report-job-btn detail-report-corner-btn" type="button" id="openJobReportBtn" aria-label="Report this job"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg><span>Report</span></button>
         <a href="${esc(employerPath)}" class="detail-logo-card">
           ${logo ? `<img class="detail-logo" src="${esc(logo)}" alt="${esc(company)}">` : `<div class="detail-logo-fallback">${esc((company || title || 'J').charAt(0))}</div>`}
         </a>

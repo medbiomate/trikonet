@@ -181,7 +181,8 @@
     text-align: center;
   }
 
-  .detail-exact .detail-hero:not(.employer-hero) .detail-meta span {
+  .detail-exact .detail-hero:not(.employer-hero) .detail-meta span,
+  .detail-exact .detail-hero:not(.employer-hero) .detail-meta .detail-meta-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;

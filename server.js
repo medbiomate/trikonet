@@ -867,6 +867,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static File Serving & SPA Fallback
+  if (path === '/sitmap.xml') {
+    res.writeHead(301, { Location: '/sitemap.xml', 'Cache-Control': 'no-store' });
+    return res.end();
+  }
   let target = normalize(join(root, path === '/' ? 'index.html' : path.slice(1)));
   if (!target.startsWith(root)) {
     res.writeHead(403);

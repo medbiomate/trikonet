@@ -1,12 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-<sitemap><loc>https://www.trikonet.com/page-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/job_listing-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/employer-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/post-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/job_listing_category-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/job_listing_location-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/employer_category-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
-<sitemap><loc>https://www.trikonet.com/employer_location-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-pages.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-posts.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-jobs.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-employers.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-job-categories.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-job-locations.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-employer-categories.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.trikonet.com/sitemap-employer-locations.xml</loc>
+    <lastmod>2026-09-29T15:48:39.379Z</lastmod>
+  </sitemap>
 </sitemapindex>

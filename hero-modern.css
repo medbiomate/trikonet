@@ -26,6 +26,73 @@
   .topbar .links>.nav-item{order:1}
 }
 
+/* How It Works: one complete, compact card per mobile slide. */
+@media (max-width: 850px) {
+  .how-it-works-section {
+    padding: 44px 0 52px !important;
+    overflow: hidden !important;
+  }
+  .how-it-works-section .section-title {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 20px !important;
+    padding: 0 16px !important;
+    text-align: center !important;
+  }
+  .how-it-works-section .section-title h2 {
+    margin: 0 0 6px !important;
+    font-size: 24px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -.02em !important;
+  }
+  .how-it-works-section .section-title p {
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+  .how-steps-wrap {
+    width: 100% !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  .how-steps-track {
+    width: 100% !important;
+    gap: 12px !important;
+    margin: 0 !important;
+    padding: 4px 0 12px !important;
+    scroll-padding: 0 !important;
+  }
+  .how-step-item {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 250px !important;
+    padding: 24px 20px !important;
+    justify-content: center !important;
+    border-radius: 16px !important;
+    scroll-snap-align: start !important;
+    box-sizing: border-box !important;
+  }
+  .how-step-icon {
+    width: 84px !important;
+    height: 84px !important;
+    margin: 0 auto 18px !important;
+  }
+  .how-step-icon img {
+    width: 76px !important;
+    height: 76px !important;
+  }
+  .how-step-title {
+    max-width: 260px !important;
+    font-size: 15px !important;
+    line-height: 1.4 !important;
+    font-weight: 650 !important;
+  }
+  .how-slider-dots {
+    margin-top: 12px !important;
+  }
+}
+
 @media (max-width:850px){
   #saveProfileHeroBtn{display:none!important}
   .candidate-profile-shell .profile-section-card{padding:16px 14px 20px!important;border-radius:14px!important}
@@ -1192,7 +1259,7 @@ main.detail-page {
 
   /* Hero Section Mobile */
   .hero-minimal {
-    padding: 36px 0 0 !important;
+    padding: 48px 0 0 !important;
   }
 
   .hero-minimal-wrap {
@@ -2040,10 +2107,10 @@ main.detail-page {
 }
 
 .footer-acc-links a {
-  font-size: 13.5px;
+  font-size: 12px;
   color: #9ca3af;
   text-decoration: none;
-  line-height: 1.55;
+  line-height: 1.45;
   display: inline-block;
   transition: all 0.18s ease;
 }
@@ -2220,7 +2287,7 @@ main.detail-page {
     content: '';
   }
   .footer-acc-header-col:first-child .footer-acc-header-title {
-    font-size: 15.5px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
   }
   .footer-acc-header-col:first-child .footer-acc-arrow-indicator {
@@ -2234,22 +2301,34 @@ main.detail-page {
   }
   .footer-acc-col-mobile-title {
     display: block !important;
-    font-size: 14px !important;
+    font-size: 12.5px !important;
     font-weight: 700 !important;
     color: #e2e8f0 !important;
-    margin: 18px 0 8px 0 !important;
+    margin: 16px 0 8px 0 !important;
   }
   .footer-acc-body-grid {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 14px !important;
     padding-bottom: 16px !important;
   }
+  .footer-acc-links {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px 14px !important;
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   .footer-acc-links li {
-    margin-bottom: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-width: 0 !important;
   }
   .footer-acc-links a {
-    font-size: 13.5px !important;
-    line-height: 1.5 !important;
+    font-size: 11.5px !important;
+    line-height: 1.38 !important;
+    display: block !important;
+    word-break: break-word !important;
   }
 
   /* Quick bar & copyright */
@@ -4115,7 +4194,9 @@ main.detail-page {
 }
 
 .detail-job-row-main > p { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; }
-.detail-job-row-main > p > span { display: inline-flex; align-items: center; gap: 7px; }
+.detail-job-row-main > p > span,
+.detail-job-row-main > p > a { display: inline-flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; }
+.detail-job-row-main > p > a:hover { color: #b00008; }
 .detail-row-meta-icon { width: 16px; height: 16px; flex: 0 0 16px; color: #718096; }
 .detail-bookmark svg { width: 20px; height: 20px; display: block; }
 
@@ -6323,4 +6404,102 @@ main.detail-page {
 @media (max-width:1100px){
   .topbar .links>.mobile-nav-actions{order:-1!important;margin:0 0 10px!important;padding:0 0 14px!important;border-top:0!important;border-bottom:1px solid #e8eef6!important}
   .topbar .links>.nav-item{order:1}
+}
+
+@media (max-width:850px){
+  .how-it-works-section{padding:44px 0 52px!important;overflow:hidden!important}
+  .how-it-works-section .section-title{display:block!important;width:100%!important;margin:0 0 20px!important;padding:0 16px!important;text-align:center!important}
+  .how-it-works-section .section-title h2{margin:0 0 6px!important;font-size:24px!important;line-height:1.2!important}
+  .how-it-works-section .section-title p{margin:0!important;font-size:14px!important;line-height:1.4!important}
+  .how-steps-wrap{width:100%!important;margin:0!important;overflow:hidden!important}
+  .how-steps-track{width:100%!important;gap:12px!important;margin:0!important;padding:4px 0 12px!important;scroll-padding:0!important}
+  .how-step-item{flex:0 0 100%!important;width:100%!important;max-width:none!important;min-height:250px!important;padding:24px 20px!important;justify-content:center!important;border-radius:16px!important;scroll-snap-align:start!important;box-sizing:border-box!important}
+  .how-step-icon{width:84px!important;height:84px!important;margin:0 auto 18px!important}
+  .how-step-icon img{width:76px!important;height:76px!important}
+  .how-step-title{max-width:260px!important;font-size:15px!important;line-height:1.4!important;font-weight:650!important}
+  .how-slider-dots{margin-top:12px!important}
+}
+
+/* Refined desktop How It Works layout. */
+@media (min-width: 851px) {
+  .how-it-works-section {
+    padding: 64px 0 72px !important;
+    background: #fff !important;
+  }
+  .how-it-works-section > .wrap {
+    max-width: 1180px !important;
+    padding-inline: 24px !important;
+  }
+  .how-it-works-section .section-title {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 34px !important;
+    text-align: center !important;
+  }
+  .how-it-works-section .section-title h2 {
+    margin: 0 0 8px !important;
+    color: #0f172a !important;
+    font-size: 34px !important;
+    font-weight: 750 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -.025em !important;
+  }
+  .how-it-works-section .section-title p {
+    margin: 0 !important;
+    color: #64748b !important;
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+  }
+  .how-steps-wrap {
+    margin: 0 !important;
+  }
+  .how-steps-track {
+    max-width: 1120px !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 22px !important;
+  }
+  .how-step-item {
+    position: relative !important;
+    min-height: 220px !important;
+    justify-content: center !important;
+    padding: 30px 24px 28px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e7edf4 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .04) !important;
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease !important;
+  }
+  .how-step-item::before {
+    content: "0" attr(data-step) !important;
+    position: absolute !important;
+    top: 16px !important;
+    left: 18px !important;
+    color: #b00008 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .08em !important;
+  }
+  .how-step-item[data-step="0"]::before { content: "01" !important; }
+  .how-step-item[data-step="1"]::before { content: "02" !important; }
+  .how-step-item[data-step="2"]::before { content: "03" !important; }
+  .how-step-item:hover {
+    transform: translateY(-4px) !important;
+    border-color: rgba(176, 0, 8, .22) !important;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, .08) !important;
+  }
+  .how-step-icon {
+    width: 82px !important;
+    height: 82px !important;
+    margin: 0 auto 16px !important;
+  }
+  .how-step-icon img {
+    width: 74px !important;
+    height: 74px !important;
+  }
+  .how-step-title {
+    max-width: 250px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    line-height: 1.45 !important;
+  }
 }

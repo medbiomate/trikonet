@@ -203,6 +203,7 @@ if(locationPathMatch&&!queryParams.get('location')){
   queryParams.set('location',decodeURIComponent(locationPathMatch[1]).replace(/-/g,' ').replace(/\b\w/g,char=>char.toUpperCase()));
 }
 const pageSize=30;
+const jobsPageSize=10;
 const escapeAttr=value=>String(value||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const icons={search:'⌕',pin:'⌖',bag:'▣'};
 let wpRecord=null,wpEmployer=null,profileJobs=[],orgJobs=[],categoryJobs=[],currentUser=null,emailCampaigns=[];
@@ -319,7 +320,7 @@ async function loadLocalJobs(){
     }
     const catSlug = isCategoryPage ? path.replace('/category/', '').split('/')[0].split('?')[0] : '';
     const catObj = isCategoryPage ? findCategoryBySlug(catSlug) : null;
-    const pageLimit = (path === '/nurse-jobs-in-uae' || isCategoryPage) ? 10 : pageSize;
+    const pageLimit = jobsPageSize;
     const filters=new URLSearchParams({per_page:String(pageLimit),page:String(currentPage)});
     if(path==='/nurse-jobs-in-uae'&&!queryParams.get('q'))filters.set('q','nurse');
     if(isCategoryPage && catObj && !queryParams.get('category')) filters.set('category', catObj.name);
@@ -343,10 +344,44 @@ async function loadLocalJobs(){
     ].filter(Boolean).join(' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').toLowerCase();
     const localSearchScore=job=>{const title=String(job.title||'').toLowerCase(),company=String(job.company||job.metas?._job_employer_name||'').toLowerCase(),text=localSearchText(job);if(title===normalizedQuery)return 100;if(title.startsWith(normalizedQuery))return 90;if(title.includes(normalizedQuery))return 80;if(company===normalizedQuery)return 75;if(company.includes(normalizedQuery))return 65;return text.includes(normalizedQuery)?40:20};
     const localFiltered=local.filter(job=>(!normalizedQuery||queryWords.every(word=>localSearchText(job).includes(word)))&&(!queryParams.get('location')||queryParams.get('location')==='Country or City'||(job.locations||[]).includes(queryParams.get('location')))&&(!targetCat||targetCat==='All Categories'||(job.categories||[]).some(c=>c.toLowerCase().includes(targetCat.toLowerCase())))&&(!queryParams.get('job_type')||(job.types||[]).includes(queryParams.get('job_type')))).sort((a,b)=>localSearchScore(b)-localSearchScore(a));
-    data.jobs=[...(currentPage===1?localFiltered.map(mapJob):[]),...wp.map(mapJob)];
+    data.jobs=[...(currentPage===1?localFiltered.map(mapJob):[]),...wp.map(mapJob)].slice(0,pageLimit);
   }catch{data.jobs=[]}
 }
-async function loadLocalEmployers(){try{if(!data.taxonomies?.employerCategories||data.taxonomies.employerCategories.length===0){try{const taxRes=await fetch('/api/wp/taxonomies');if(taxRes.ok)data.taxonomies=await taxRes.json();}catch{}}const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));const response=await fetch(`/api/wp/employer?${filters}`);const wp=response.ok?await response.json():[];data.employers=wp.map(record=>{const m=record.metas||{};return {title:record.title?.rendered||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}catch{data.employers=[]}}
+async function loadLocalEmployers(){
+  try{
+    if(!data.taxonomies?.employerCategories||data.taxonomies.employerCategories.length===0){
+      try{const taxRes=await fetch('/api/wp/taxonomies');if(taxRes.ok)data.taxonomies=await taxRes.json();}catch{}
+    }
+    const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
+    for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
+    const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers'),fetch('/api/local/jobs')]);
+    const wp=wpResponse.ok?await wpResponse.json():[];
+    const local=localResponse.ok?await localResponse.json():[];
+    const localJobs=localJobsResponse.ok?await localJobsResponse.json():[];
+    const normalizedKey=value=>String(value||'').trim().toLowerCase();
+    const localJobCounts=localJobs.reduce((counts,job)=>{
+      if((job.status||'publish')!=='publish'||job.filled===true)return counts;
+      const keys=new Set([normalizedKey(job.employerSlug),normalizedKey(job.company)].filter(Boolean));
+      keys.forEach(key=>counts.set(key,(counts.get(key)||0)+1));
+      return counts;
+    },new Map());
+    const mapWp=record=>{const m=record.metas||{};return {title:record.title?.rendered||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}};
+    const mapLocal=record=>({title:record.title||'',slug:record.slug||'',description:record.description||'',logo:record.logo||'',categories:Array.isArray(record.categories)?record.categories:[],locations:Array.isArray(record.locations)?record.locations:[],email:record.email||'',phone:record.phone||'',website:record.website||'',openJobs:Math.max(Number(record.openJobs)||0,localJobCounts.get(normalizedKey(record.slug))||0,localJobCounts.get(normalizedKey(record.title))||0),status:record.status||'publish',local:true,source:'local'});
+    const q=String(queryParams.get('q')||'').trim().toLowerCase();
+    const location=String(queryParams.get('location')||'').trim().toLowerCase();
+    const category=String(queryParams.get('category')||'').trim().toLowerCase();
+    const minJobs=Number(queryParams.get('min_jobs')||0);
+    const matches=employer=>{
+      const text=[employer.title,employer.description,employer.email,employer.website,...(employer.categories||[]),...(employer.locations||[])].filter(Boolean).join(' ').toLowerCase();
+      return (!q||text.includes(q))&&(!location||(employer.locations||[]).some(item=>String(item).toLowerCase().includes(location)))&&(!category||(employer.categories||[]).some(item=>String(item).toLowerCase().includes(category)))&&(!minJobs||Number(employer.openJobs||0)>=minJobs);
+    };
+    const wpMapped=wp.map(mapWp).filter(matches);
+    const localMatched=local.map(mapLocal).filter(item=>item.status==='publish').filter(matches);
+    const merged=[...(currentPage===1?localMatched:[]),...wpMapped];
+    data.employers=[...new Map(merged.map(item=>[item.slug||item.title.toLowerCase(),item])).values()].slice(0,pageSize);
+    data.employerResultTotal=q||location||category||minJobs?data.employers.length:Math.max(Number(data.counts?.employer||0)+localMatched.length,data.employers.length);
+  }catch{data.employers=[]}
+}
 async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20');if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
 function updateLiveJobCountUI(){
   const liveCount = (data.counts && data.counts.job_listing) ? data.counts.job_listing : 13621;
@@ -925,19 +960,21 @@ function footerQuickBar() {
 }
 
 function footer(){
-  const menu=chromeMenu(siteChrome.footerMenu,'About Us | /about\nContact Us | /contact\nTerms | /terms\nFAQ | /faq\nPrivacy Policy | /privacy-policy'),
-  candidateMenu=chromeMenu(siteChrome.footerCandidateMenu,'Browse Jobs | /jobs\nJob Alerts | /alerts-jobs'),
-  employerMenu=chromeMenu(siteChrome.footerEmployerMenu,'Employers List | /employers\nSubmit Job | /submit-job'),
-  links=items=>items.map(([label,url])=>`<a href="${escapeAttr(url)}" style="color:${escapeAttr(siteChrome.footerLink||'#979797')}">${escapeAttr(label)}</a>`).join('');
   return `<footer class="footer site-footer-columns site-footer-standard" style="background:#202124;color:#ffffff">
     <div class="wrap footer-grid">
       <div>
         <img src="${escapeAttr(resolveLogo(siteChrome.footerLogo,'/assets/logo-white.png'))}" alt="Trikonet">
         <p>${escapeAttr(siteChrome.footerEmail||'info@trikonet.com')}</p>
       </div>
-      <div><h2>${escapeAttr(siteChrome.footerExploreTitle||'Explore')}</h2>${links(menu)}</div>
-      <div><h2>${escapeAttr(siteChrome.footerCandidateTitle||'For Candidates')}</h2>${links(candidateMenu)}</div>
-      <div><h2>${escapeAttr(siteChrome.footerEmployerTitle||'For Employers')}</h2>${links(employerMenu)}</div>
+      <div class="footer-intro-cta">
+        <p class="footer-intro-kicker">CAREERS ACROSS THE UAE &amp; GCC</p>
+        <h2>Connect with the right opportunity.</h2>
+        <p>Discover verified roles or find qualified professionals for your growing team.</p>
+        <div class="footer-intro-actions">
+          <a href="/jobs">Browse Jobs</a>
+          <a href="/submit-job">Post a Job</a>
+        </div>
+      </div>
     </div>
     ${footerCategoriesAccordion()}
     ${footerQuickBar()}
@@ -980,7 +1017,9 @@ function customSelect(name, items, defaultLabel, selectedValue) {
   </div>`;
 }
 function searchBar(settings={}){const action=settings.action||(path==='/nurse-jobs-in-uae'?'/nurse-jobs-in-uae':'/jobs'),locationLabel=settings.location||'Country or City',categoryLabel=settings.category||'All Categories',selectedLocation=queryParams.get('location')||locationLabel,selectedCategory=queryParams.get('category')||categoryLabel;return `<form class="searchbar" action="${escapeAttr(action)}"><label class="field"><b>${icons.search}</b><input name="q" value="${escapeAttr(queryParams.get('q'))}" placeholder="${escapeAttr(settings.keyword||'Job Title, Keywords')}" aria-label="Job title"></label><label class="field"><b>${icons.pin}</b><select name="location" aria-label="Location">${optionList(data.taxonomies.locations,locationLabel,selectedLocation)}</select></label><label class="field"><select name="category" aria-label="Category">${optionList(data.taxonomies.categories,categoryLabel,selectedCategory)}</select></label><button class="primary">${escapeAttr(settings.button||'Find Jobs')}</button></form>`}
-const homeSectionAttrs=s=>`${s.className?` ${escapeAttr(s.className)}`:''}" style="${s.background?`background:${escapeAttr(s.background)};`:''}${s.textColor?`color:${escapeAttr(s.textColor)};`:''}`;
+const homeSectionClass=s=>(s&&s.className?` ${escapeAttr(s.className)}`:'');
+const homeSectionStyle=s=>{if(!s)return '';const styles=[s.background?`background:${escapeAttr(s.background)};`:'',s.textColor?`color:${escapeAttr(s.textColor)};`:''].filter(Boolean).join('');return styles?` style="${styles}"`:'';};
+const homeSectionAttrs=s=>`${homeSectionClass(s)}"${homeSectionStyle(s)}`;
 function homeHero(s={}){
   const heroTitle = (s.title && s.title !== 'Trying to Connect') ? s.title : 'Find your next <span class="hero-title-gradient">career move</span> in the UAE';
   
@@ -1001,7 +1040,7 @@ function homeHero(s={}){
     <div class="hero-minimal-wrap">
       <div class="hero-premium-pill">
         <span class="hero-pill-sparkle">✦</span>
-        <span>Verified Opportunities Across UAE & GCC</span>
+        <span>Verified Opportunities Across UAE &amp; GCC</span>
       </div>
 
       <h1 class="hero-minimal-title">${heroTitle}</h1>
@@ -1381,6 +1420,23 @@ function getRecentArticles() {
   return posts.slice(0, Math.max(10, Math.min(14, posts.length)));
 }
 
+function decodeArticleHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#8217;/g, '’')
+    .replace(/&#8216;/g, '‘')
+    .replace(/&#8220;/g, '“')
+    .replace(/&#8221;/g, '”')
+    .replace(/&#8211;/g, '–')
+    .replace(/&#8212;/g, '—')
+    .replace(/&nbsp;/g, ' ');
+}
+
 function articleSection(s = {}) {
   const slider = path === '/';
   const recentArticles = getRecentArticles();
@@ -1389,103 +1445,343 @@ function articleSection(s = {}) {
   return `
     <section class="recent-section${slider ? ' recent-slider' : ''}"${homeSectionAttrs(s)}>
       <div class="wrap">
-        <div class="section-title">
-          <h2>${escapeAttr(s.title || 'Recent Articles')}</h2>
-          <p>${escapeAttr(s.subtitle || 'Fresh job related content posted each day.')}</p>
-        </div>
-
-        <div class="articles-carousel-wrap">
-          ${slider ? `
-            <button type="button" class="carousel-arrow carousel-arrow-prev article-arrow-prev" aria-label="Previous articles">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-          ` : ''}
-
-          <div class="articles" ${slider ? 'id="recent-articles" tabindex="0" aria-label="Recent articles slider"' : ''}>
-            ${recentArticles.map((p, i) => `
-              <article class="article">
-                <a href="${getPostUrl(p)}" class="article-cover-link">
-                  <img class="article-cover" src="${escapeAttr(p.featuredImage || p.image || `/assets/article-${(i % 3) + 1}.jpg`)}" alt="${escapeAttr(p.title)}" onerror="this.onerror=null;this.src='/assets/article-${(i % 3) + 1}.jpg';">
-                </a>
-                <div class="article-body">
-                  <small>${escapeAttr(p.date || 'Recent')}</small>
-                  <h3><a href="${getPostUrl(p)}">${escapeAttr(p.title)}</a></h3>
-                  <p>${escapeAttr(p.excerpt)}</p>
-                  <a class="read" href="${getPostUrl(p)}">Read More ›</a>
-                </div>
-              </article>
-            `).join('')}
+        <div class="recent-articles-header-bar">
+          <div class="recent-articles-header-text">
+            <h2 class="recent-articles-heading">${escapeAttr(s.title || 'Recent Articles & Career Insights')}</h2>
+            <p class="recent-articles-subheading">${escapeAttr(s.subtitle || 'Fresh UAE job-market intelligence, resume strategies, and workplace advice posted daily.')}</p>
           </div>
 
           ${slider ? `
-            <button type="button" class="carousel-arrow carousel-arrow-next article-arrow-next" aria-label="Next articles">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
+            <div class="recent-articles-nav-controls">
+              <a class="recent-articles-viewall-link" href="/blog">
+                <span>View all articles</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </a>
+            </div>
           ` : ''}
         </div>
 
-        <div class="recent-articles-footer">
-          <a class="btn-all-articles-pill" href="/blog">
-            <span>View all articles</span>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </a>
+        <div class="articles-carousel-wrap">
+          <div class="articles" ${slider ? 'id="recent-articles" tabindex="0" aria-label="Recent articles slider"' : ''}>
+            ${recentArticles.map((p, i) => {
+              const postUrl = getPostUrl(p);
+              const rawTitle = p.title?.rendered || p.title || 'Career Guide';
+              const title = decodeArticleHtml(rawTitle);
+              const rawDate = p.date || '';
+              let formattedDate = 'Recent';
+              if (rawDate) {
+                try {
+                  const d = new Date(rawDate);
+                  if (!isNaN(d.getTime())) {
+                    formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  }
+                } catch {}
+              }
+              const category = decodeArticleHtml(p.categoryName || p.category_name || (p.category_slug ? p.category_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Career Advice'));
+              const image = p.featuredImage || p.featured_image || p.image || `/assets/article-${(i % 3) + 1}.jpg`;
+              
+              let rawExcerpt = (p.excerpt?.rendered || p.excerpt || '').replace(/<[^>]+>/g, '').trim();
+              if (!rawExcerpt && p.content?.rendered) {
+                rawExcerpt = p.content.rendered.replace(/<[^>]+>/g, '').trim().slice(0, 140);
+              }
+              const cleanedExcerpt = decodeArticleHtml(rawExcerpt);
+              const excerpt = cleanedExcerpt ? (cleanedExcerpt.slice(0, 105) + (cleanedExcerpt.length > 105 ? '…' : '')) : 'Discover actionable career strategies, salary insights, and professional growth tips for UAE jobseekers.';
+              const readTime = Math.max(3, Math.min(8, Math.round(((cleanedExcerpt || title).length / 45) + 3))) + ' min read';
+
+              return `
+                <article class="article modern-article-card">
+                  <div class="article-cover-wrap">
+                    <a href="${postUrl}" class="article-cover-link" aria-label="${escapeAttr(title)}">
+                      <img class="article-cover" src="${escapeAttr(image)}" alt="${escapeAttr(title)}" loading="lazy" onerror="this.onerror=null;this.src='/assets/article-${(i % 3) + 1}.jpg';">
+                    </a>
+                    <span class="article-badge-category">${escapeAttr(category)}</span>
+                    <span class="article-badge-readtime">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      ${readTime}
+                    </span>
+                  </div>
+
+                  <div class="article-body">
+                    <div class="article-meta-row">
+                      <span class="article-meta-date">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        ${escapeAttr(formattedDate)}
+                      </span>
+                      <span class="article-meta-dot">•</span>
+                      <span class="article-meta-author">Trikonet Insights</span>
+                    </div>
+
+                    <h3 class="article-title">
+                      <a href="${postUrl}">${escapeAttr(title)}</a>
+                    </h3>
+
+                    <p class="article-excerpt">${escapeAttr(excerpt)}</p>
+
+                    <div class="article-card-footer">
+                      <a class="article-read-link" href="${postUrl}">
+                        <span>Read Full Guide</span>
+                        <svg class="article-arrow-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                      </a>
+                      <a class="article-card-arrow-circle" href="${postUrl}" aria-label="Open article">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </div>
         </div>
+
+        ${slider ? `
+          <div class="recent-slider-dots" id="recentArticlesDots" aria-label="Article navigation dots">
+            ${recentArticles.map((_, idx) => `
+              <button type="button" class="recent-dot${idx === 0 ? ' active' : ''}" data-index="${idx}" aria-label="Go to article slide ${idx + 1}"></button>
+            `).join('')}
+          </div>
+        ` : ''}
       </div>
     </section>
   `;
 }
 function jobs(){
-  const total=data.counts.job_listing||data.jobs.length,start=total?(currentPage-1)*pageSize+1:0,end=Math.min(start+data.jobs.length-1,total),selectedType=queryParams.get('job_type')||'';
-  const jobsBase=path.startsWith('/job-location/')?path:'/jobs';
-  return `<main><section class="jobs-head"><div class="wrap">${searchBar()}</div></section><div class="wrap jobs-layout">
-    <aside class="filters jobs-filter-card">
-      <div class="jobs-filter-group">
-        <div class="jobs-filter-head">
-          <h3>Job type</h3>
-          ${selectedType ? `<a href="/jobs${(() => { const p = new URLSearchParams(queryParams); p.delete('job_type'); p.delete('page'); const qs = p.toString(); return qs ? '?' + qs : ''; })()}" class="jobs-filter-clear">Clear</a>` : ''}
+  const total = data.counts.job_listing || data.jobs.length;
+  const start = total ? (currentPage - 1) * jobsPageSize + 1 : 0;
+  const end = Math.min(start + data.jobs.length - 1, total);
+  const selectedType = queryParams.get('job_type') || '';
+  const selectedLoc = queryParams.get('location') || '';
+  const selectedCat = queryParams.get('category') || '';
+  const qTerm = (queryParams.get('q') || '').trim();
+  const isSearchResults = !!(qTerm || (selectedLoc && selectedLoc !== 'Country or City') || (selectedCat && selectedCat !== 'All Categories'));
+  const jobsBase = path.startsWith('/job-location/') ? path : '/jobs';
+
+  const iconBriefcase = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`;
+  const iconPin = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const iconClock = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+  const iconBell = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`;
+  const iconBookmark = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`;
+  const latestArticles = (data.posts || []).filter(article => article && article.slug && article.title).slice(0, 3);
+
+  const makeFilterUrl = (key, val) => {
+    const p = new URLSearchParams(queryParams);
+    if (p.get(key) === val) p.delete(key);
+    else p.set(key, val);
+    p.delete('page');
+    const qs = p.toString();
+    return qs ? '/jobs?' + qs : '/jobs';
+  };
+  const makeRemoveUrl = (key) => {
+    const p = new URLSearchParams(queryParams);
+    p.delete(key);
+    p.delete('page');
+    const qs = p.toString();
+    return qs ? '/jobs?' + qs : '/jobs';
+  };
+
+  const hasAnyFilter = !!(qTerm || selectedType || (selectedLoc && selectedLoc !== 'Country or City') || (selectedCat && selectedCat !== 'All Categories'));
+
+  return `<main>
+    <section class="jobs-head">
+      <div class="wrap">${searchBar()}</div>
+    </section>
+
+    <div class="wrap jobs-layout nurse-results-layout${isSearchResults ? ' search-results-mode' : ''}">
+      <!-- LEFT FILTER SIDEBAR -->
+      <aside class="filters jobs-filter-card nurse-site-filters">
+        <div class="jobs-filter-card-header">
+          <div class="jobs-filter-header-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            <h3>Filter Jobs</h3>
+          </div>
+          ${hasAnyFilter ? `<a href="/jobs" class="jobs-filter-clear">Clear all</a>` : ''}
+          <button type="button" class="jobs-filter-mobile-toggle" aria-expanded="false" aria-label="Show job filters">
+            <span>Show filters</span>
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
         </div>
-        <div class="jobs-filter-list">
-          ${(data.taxonomies?.types || []).map(x => {
-            const params = new URLSearchParams(queryParams);
-            const isSelected = selectedType === x.name;
-            if (isSelected) params.delete('job_type');
-            else params.set('job_type', x.name);
-            params.delete('page');
-            const countFormatted = Number(x.count || 0).toLocaleString();
-            return `<a class="jobs-filter-row${isSelected ? ' active' : ''}" href="/jobs?${params}">
-              <span class="jobs-row-label">
-                <span class="jobs-custom-cb">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+
+        <div class="jobs-filter-collapsible">
+        <!-- Job Type Filter Group -->
+        <div class="jobs-filter-group">
+          <div class="jobs-filter-head">
+            <h4>Job type</h4>
+            ${selectedType ? `<a href="${makeRemoveUrl('job_type')}" class="jobs-filter-clear">Clear</a>` : ''}
+          </div>
+          <div class="jobs-filter-list">
+            ${(data.taxonomies?.types || []).map(x => {
+              const isSelected = selectedType === x.name;
+              const countFormatted = Number(x.count || 0).toLocaleString();
+              return `<a class="jobs-filter-row${isSelected ? ' active' : ''}" href="${makeFilterUrl('job_type', x.name)}">
+                <span class="jobs-row-label">
+                  <span class="jobs-custom-cb">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </span>
+                  <span class="jobs-filter-name">${escapeAttr(x.name)}</span>
                 </span>
-                <span class="jobs-filter-name">${escapeAttr(x.name)}</span>
-              </span>
-              <span class="jobs-filter-count">(${countFormatted})</span>
-            </a>`;
-          }).join('')}
+                <span class="jobs-filter-count">(${countFormatted})</span>
+              </a>`;
+            }).join('')}
+          </div>
         </div>
-      </div>
-    </aside>
-    <section><div class="listing-top"><span>${total?`Showing ${start} – ${end} of ${total.toLocaleString()} database jobs`:'No jobs found for these filters'}</span><select><option>Sort by (Default)</option><option>Newest</option></select></div><div class="job-grid">${data.jobs.map(j=>{
-    const tags = [
-      j.type ? `<span class="tag">${escapeAttr(j.type)}</span>` : '',
-      j.location ? `<span class="tag neutral">${escapeAttr(j.location)}</span>` : '',
-      j.date ? `<span class="tag neutral">${escapeAttr(j.date)}</span>` : ''
-    ].filter(Boolean).join('');
-    const logoHtml = j.logo ? `<img class="logo-dot company-logo" src="${escapeAttr(j.logo)}" alt="${escapeAttr(j.company)}">` : `<span class="logo-dot">${escapeAttr((j.company || j.title || 'J').slice(0,2).toUpperCase())}</span>`;
-    return `<a class="job-card" href="/job/${escapeAttr(j.slug)}">
-      <div class="job-top">
-        ${logoHtml}
-        <div>
-          <h2>${escapeAttr(j.title)}</h2>
-          ${j.company ? `<p>by ${escapeAttr(j.company)}</p>` : ''}
-          ${j.category ? `<p>in ${escapeAttr(j.category)}</p>` : ''}
+
+        <!-- Location Filter Group -->
+        <div class="jobs-filter-group" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid #f1f5f9;">
+          <div class="jobs-filter-head">
+            <h4>Location (UAE)</h4>
+            ${selectedLoc && selectedLoc !== 'Country or City' ? `<a href="${makeRemoveUrl('location')}" class="jobs-filter-clear">Clear</a>` : ''}
+          </div>
+          <div class="jobs-filter-list">
+            ${(data.taxonomies?.locations || []).filter(l => ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al Khaimah'].includes(l.name)).sort((a,b) => (b.count || 0) - (a.count || 0)).map(x => {
+              const isSelected = selectedLoc === x.name;
+              const countFormatted = Number(x.count || 0).toLocaleString();
+              return `<a class="jobs-filter-row${isSelected ? ' active' : ''}" href="${makeFilterUrl('location', x.name)}">
+                <span class="jobs-row-label">
+                  <span class="jobs-custom-cb">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </span>
+                  <span class="jobs-filter-name">${escapeAttr(x.name)}</span>
+                </span>
+                <span class="jobs-filter-count">(${countFormatted})</span>
+              </a>`;
+            }).join('')}
+          </div>
         </div>
-      </div>
-      ${tags ? `<div class="tags">${tags}</div>` : ''}
-    </a>`;
-  }).join('')}</div>${pager(jobsBase,total)}</section></div></main>`;
+        </div>
+      </aside>
+
+      <!-- MAIN JOBS RESULTS CONTENT -->
+      <section class="jobs-main-content nurse-results-main">
+        <div class="listing-top-bar nurse-results-tools">
+          <div class="nurse-tools-top">
+            <span class="listing-top-sub nurse-tools-count">${total ? `Showing <b>${start} – ${end}</b> of <b>${total.toLocaleString()}</b> ${qTerm ? `jobs for “${escapeAttr(qTerm)}”` : 'database jobs'}` : 'No jobs found for these filters'}</span>
+            <div class="listing-top-actions nurse-tools-actions">
+              <select class="jobs-sort-select nurse-sort-select" aria-label="Sort jobs">
+                <option value="default">Most Relevant</option>
+                <option value="newest">Newest First</option>
+              </select>
+              <button type="button" class="nurse-alert-trigger">${iconBell} Alert Me</button>
+            </div>
+          </div>
+        </div>
+
+        ${hasAnyFilter ? `
+          <div class="active-filter-chips nurse-active-chips-bar">
+            ${qTerm ? `<span class="filter-chip">Keyword: <strong>"${escapeAttr(qTerm)}"</strong> <a href="${makeRemoveUrl('q')}" title="Remove keyword filter" aria-label="Remove keyword filter">✕</a></span>` : ''}
+            ${selectedType ? `<span class="filter-chip">Type: <strong>${escapeAttr(selectedType)}</strong> <a href="${makeRemoveUrl('job_type')}" title="Remove type filter" aria-label="Remove type filter">✕</a></span>` : ''}
+            ${selectedLoc && selectedLoc !== 'Country or City' ? `<span class="filter-chip">Location: <strong>${escapeAttr(selectedLoc)}</strong> <a href="${makeRemoveUrl('location')}" title="Remove location filter" aria-label="Remove location filter">✕</a></span>` : ''}
+            ${selectedCat && selectedCat !== 'All Categories' ? `<span class="filter-chip">Category: <strong>${escapeAttr(selectedCat)}</strong> <a href="${makeRemoveUrl('category')}" title="Remove category filter" aria-label="Remove category filter">✕</a></span>` : ''}
+            <a href="/jobs" class="filter-chip-clear-all">Reset All</a>
+          </div>
+        ` : ''}
+
+        <div class="job-grid">${data.jobs.map(j => {
+          const cleanTitle = decodeHtml(typeof j.title === 'string' ? j.title : j.title?.rendered || '').trim();
+          const rawCompany = (j.company || j.employerName || '').trim();
+          const cleanCompany = decodeHtml(rawCompany);
+          const catText = j.category || (j.categories && j.categories[0]) || '';
+          const cleanCat = decodeHtml(catText);
+          const typeText = j.type || 'Full Time';
+          const locText = j.location || 'United Arab Emirates';
+          const dateText = j.date || 'Recently posted';
+          const initial = (cleanCompany || cleanTitle || 'TJ').slice(0, 2).toUpperCase();
+          const excerptText = cleanJobExcerpt(j.excerpt || '');
+
+          const logoHtml = j.logo ? `
+            <div class="nurse-card-logo">
+              <img src="${escapeAttr(j.logo)}" alt="${escapeAttr(cleanCompany)}" loading="lazy">
+            </div>
+          ` : `
+            <div class="nurse-card-logo-fallback">
+              <span>${escapeAttr(initial)}</span>
+            </div>
+          `;
+
+          return `
+            <article class="nurse-job-card standard-job-card" data-slug="${escapeAttr(j.slug)}">
+              <div class="nurse-card-top">
+                ${logoHtml}
+                <div class="nurse-card-info">
+                  <div class="nurse-card-title-row">
+                    <a href="/job/${escapeAttr(j.slug)}" class="nurse-job-title-link">
+                      <h2>${escapeAttr(cleanTitle)}</h2>
+                    </a>
+                    <button type="button" class="nurse-card-save-btn" data-slug="${escapeAttr(j.slug)}" title="Save job" aria-label="Save job">${iconBookmark}</button>
+                  </div>
+                  <div class="nurse-company-row">
+                    ${cleanCompany ? `<span class="comp-name">${escapeAttr(cleanCompany)}</span>` : ''}
+                    ${cleanCompany && cleanCat ? `<span class="comp-sep">•</span>` : ''}
+                    ${cleanCat ? `<span class="comp-cat">${escapeAttr(cleanCat)}</span>` : ''}
+                  </div>
+                  <div class="nurse-job-meta-row">
+                    <span class="nurse-meta-badge nurse-badge-type">${iconBriefcase} ${escapeAttr(typeText)}</span>
+                    <span class="nurse-meta-badge nurse-badge-loc">${iconPin} ${escapeAttr(locText)}</span>
+                    <span class="nurse-meta-badge nurse-badge-date">${iconClock} ${escapeAttr(dateText)}</span>
+                  </div>
+                  ${excerptText ? `<p class="nurse-job-excerpt">${escapeAttr(excerptText)}</p>` : ''}
+                </div>
+              </div>
+              <div class="nurse-card-footer">
+                <div class="nurse-footer-tags">
+                  ${cleanCat ? `<span class="nurse-tag-category">${escapeAttr(cleanCat)}</span>` : ''}
+                </div>
+                <a href="/job/${escapeAttr(j.slug)}" class="nurse-view-job-btn">View Job <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
+              </div>
+            </article>
+          `;
+        }).join('')}</div>
+
+        ${pager(jobsBase, total, jobsPageSize)}
+      </section>
+
+      <!-- RIGHT SIDEBAR (Search Mode) -->
+      ${isSearchResults ? `
+        <aside class="search-results-side nurse-side-column">
+          <a href="/resume-builder" class="nurse-resume-builder-card">
+            <span class="nurse-resume-builder-badge">FREE TOOL</span>
+            <span class="nurse-resume-builder-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg></span>
+            <span class="nurse-resume-builder-copy">
+              <strong>Build your professional résumé</strong>
+              <small>Create an ATS-friendly CV tailored for UAE roles.</small>
+            </span>
+            <span class="nurse-resume-builder-action">Build my résumé <span>→</span></span>
+          </a>
+
+          <section class="nurse-side-card nurse-articles-card">
+            <div class="nurse-side-card-header">
+              <h3>Latest Articles</h3>
+              <a href="/blog" class="nurse-side-see-all">View all →</a>
+            </div>
+            <div class="nurse-side-article-list">
+              ${latestArticles.length ? latestArticles.map(article => `
+                <a href="${escapeAttr(getPostUrl(article))}" class="nurse-side-article-row">
+                  <span class="nurse-side-article-image"><img src="${escapeAttr(article.featuredImage || '/assets/article-1.jpg')}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/assets/article-1.jpg'"></span>
+                  <span class="nurse-side-article-copy">
+                    <small>${escapeAttr(article.categoryName || 'Career Advice')}</small>
+                    <strong>${escapeAttr(article.title)}</strong>
+                    ${article.date ? `<time>${escapeAttr(article.date)}</time>` : ''}
+                  </span>
+                </a>`).join('') : `<p class="nurse-side-article-empty">Published articles will appear here.</p>`}
+            </div>
+          </section>
+
+          <section class="nurse-side-card nurse-alert-card">
+            <div class="nurse-alert-card-top">
+              <div class="nurse-alert-badge-icon">${iconBell}</div>
+              <div><h4>${qTerm ? `${escapeAttr(qTerm)} Job Alerts` : 'Job Alerts'}</h4><p>Get matching UAE vacancies delivered to your inbox.</p></div>
+            </div>
+            <form class="nurse-side-alert-form" action="/alerts-jobs" onsubmit="event.preventDefault(); alert('Subscribed to job alerts!');">
+              <input type="email" placeholder="Enter your email address..." class="nurse-side-email-input" required>
+              <button type="submit" class="nurse-side-alert-btn">Subscribe Free</button>
+            </form>
+          </section>
+        </aside>
+      ` : ''}
+    </div>
+  </main>`;
 }
 function nurseJobsPage(){
   const curatedNurseJobs=[
@@ -1567,15 +1863,17 @@ function nurseJobsPage(){
     </section>
 
     <section class="wrap nurse-results-layout">
-      <aside class="filters nurse-site-filters">
+      <aside class="filters nurse-site-filters jobs-filter-card">
         <div class="nurse-filter-header">
           <div class="nurse-filter-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
             <span>Filter Jobs</span>
           </div>
           ${hasActiveFilters ? `<a href="/nurse-jobs-in-uae" class="nurse-filter-reset-link">Reset All</a>` : ''}
+          <button type="button" class="jobs-filter-mobile-toggle" aria-expanded="false" aria-label="Show job filters"><span>Show filters</span><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
         </div>
 
+        <div class="jobs-filter-collapsible">
         <div class="nurse-filter-group">
           <h3>Location</h3>
           ${(data.taxonomies?.locations || []).filter(l => ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al Khaimah'].includes(l.name)).sort((a,b) => (b.count || 0) - (a.count || 0)).map(x => {
@@ -1612,6 +1910,7 @@ function nurseJobsPage(){
               ${countText ? `<span class="nurse-filter-count">${countText}</span>` : ''}
             </a>`;
           }).join('')}
+        </div>
         </div>
       </aside>
 
@@ -1665,7 +1964,7 @@ function nurseJobsPage(){
                     <span class="nurse-meta-badge">${iconPin} ${escapeAttr(job.location||'United Arab Emirates')}</span>
                     <span class="nurse-meta-badge">${iconClock} ${escapeAttr(job.date||'Recently posted')}</span>
                   </div>
-                  <p class="nurse-job-excerpt">${escapeAttr(job.excerpt||'Join a trusted healthcare team and provide high-quality, compassionate patient care while growing your nursing career in the UAE.')}</p>
+                  <p class="nurse-job-excerpt">${escapeAttr(cleanJobExcerpt(job.excerpt)||'Join a trusted healthcare team and provide high-quality, compassionate patient care while growing your nursing career in the UAE.')}</p>
                 </div>
               </div>
               <div class="nurse-card-footer">
@@ -1850,15 +2149,17 @@ function categoryPage() {
     </section>
 
     <section class="wrap nurse-results-layout category-results-layout">
-      <aside class="filters nurse-site-filters">
+      <aside class="filters nurse-site-filters jobs-filter-card">
         <div class="nurse-filter-header">
           <div class="nurse-filter-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
             <span>Filter Jobs</span>
           </div>
           ${hasActiveFilters ? `<a href="/category/${categoryCleanSlug}" class="nurse-filter-reset-link">Reset All</a>` : ''}
+          <button type="button" class="jobs-filter-mobile-toggle" aria-expanded="false" aria-label="Show job filters"><span>Show filters</span><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
         </div>
 
+        <div class="jobs-filter-collapsible">
         <div class="nurse-filter-group">
           <h3>Location</h3>
           ${(data.taxonomies?.locations || []).filter(l => ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al Khaimah'].includes(l.name)).sort((a,b) => (b.count || 0) - (a.count || 0)).map(x => {
@@ -1907,6 +2208,7 @@ function categoryPage() {
               </a>
             `).join('')}
           </div>
+        </div>
         </div>
       </aside>
 
@@ -1962,7 +2264,7 @@ function categoryPage() {
                     <span class="nurse-meta-badge">${iconClock} ${escapeAttr(job.date || 'Recently posted')}</span>
                   </div>
                   ${job.excerpt ? `
-                    <p class="nurse-job-excerpt">${escapeAttr(job.excerpt)}</p>
+                    <p class="nurse-job-excerpt">${escapeAttr(cleanJobExcerpt(job.excerpt))}</p>
                   ` : ''}
                 </div>
               </div>
@@ -2055,7 +2357,7 @@ function categoryPage() {
 }
 function employers() {
   const employersList = (data.employers || []);
-  const total = data.counts.employer ?? employersList.length;
+  const total = data.employerResultTotal ?? data.counts.employer ?? employersList.length;
   const start = total ? (currentPage - 1) * pageSize + 1 : 0;
   const end = Math.min(start + employersList.length - 1, total);
   
@@ -2756,6 +3058,18 @@ function decodeHtml(value) {
     str = box.value;
   }
   return str;
+}
+function cleanJobExcerpt(value) {
+  const raw = typeof value === 'object' && value ? (value.rendered || value.raw || '') : value;
+  if (!raw) return '';
+  const container = document.createElement('div');
+  container.innerHTML = decodeHtml(raw);
+  return decodeHtml(container.textContent || container.innerText || '')
+    .replace(/[\u00a0\u2007\u202f]+/g, ' ')
+    .replace(/\s*•\s*/g, ' • ')
+    .replace(/(?:\s*•\s*){2,}/g, ' • ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 function faq(){return `<main><section class="subhero"><h1>FAQ</h1></section><div class="content faq"><h2>History Of Trikonet</h2>${[['Who is Trikonet?','Trikonet is a job platform connecting job seekers with employment opportunities in the UAE and other Middle Eastern countries.'],['How The Trikonet Started?','Trikonet was founded after the success of Medbiomate highlighted the need for a broader job platform.'],['How are Trikonet and Medbiomate connected?','Both platforms share founders and a commitment to connecting qualified candidates with trusted opportunities.']].map(x=>`<details><summary>${x[0]}</summary><p>${x[1]}</p></details>`).join('')}</div></main>`}
 function contact(){return `<main><section class="subhero"><h1>Contact Us</h1></section><div class="content contact-grid"><div><h2>Get in touch</h2><p>Questions about jobs, employers or your Trikonet account? Send us a message.</p><p><b>Email</b><br>info@trikonet.com</p></div><form class="form-card" id="contact"><label>Name<input required></label><label>Email<input type="email" required></label><label>Message<textarea required></textarea></label><button class="primary">Send Message</button></form></div></main>`}
@@ -5817,12 +6131,24 @@ function initRecentArticlesAutoSlider() {
   const slider = document.querySelector('#recent-articles');
   if (!slider) return;
   
+  const dots = document.querySelectorAll('#recentArticlesDots .recent-dot');
   let autoTimer = null;
+  
   const getStep = () => {
     const item = slider.querySelector('.article');
     if (!item) return 360;
-    const gap = parseFloat(getComputedStyle(slider).gap) || 30;
+    const gap = parseFloat(getComputedStyle(slider).gap) || 20;
     return item.getBoundingClientRect().width + gap;
+  };
+
+  const updateDots = () => {
+    if (!dots.length) return;
+    const step = getStep();
+    if (!step) return;
+    const idx = Math.min(dots.length - 1, Math.max(0, Math.round(slider.scrollLeft / step)));
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('active', i === idx);
+    });
   };
 
   const slideNext = () => {
@@ -5847,7 +6173,7 @@ function initRecentArticlesAutoSlider() {
 
   const startAuto = () => {
     stopAuto();
-    autoTimer = setInterval(slideNext, 3800);
+    autoTimer = setInterval(slideNext, 4500);
   };
 
   const stopAuto = () => {
@@ -5859,26 +6185,44 @@ function initRecentArticlesAutoSlider() {
 
   startAuto();
 
+  slider.addEventListener('scroll', () => {
+    requestAnimationFrame(updateDots);
+  }, { passive: true });
+
   slider.addEventListener('mouseenter', stopAuto);
   slider.addEventListener('mouseleave', startAuto);
   slider.addEventListener('touchstart', stopAuto, { passive: true });
   slider.addEventListener('touchend', startAuto, { passive: true });
 
-  const wrap = slider.closest('.articles-carousel-wrap');
-  if (wrap) {
-    wrap.addEventListener('mouseenter', stopAuto);
-    wrap.addEventListener('mouseleave', startAuto);
-    wrap.querySelector('.article-arrow-prev')?.addEventListener('click', () => {
-      stopAuto();
-      slidePrev();
-      startAuto();
+  const sec = slider.closest('.recent-section') || slider.closest('.articles-carousel-wrap');
+  if (sec) {
+    sec.addEventListener('mouseenter', stopAuto);
+    sec.addEventListener('mouseleave', startAuto);
+    sec.querySelectorAll('.article-arrow-prev').forEach(btn => {
+      btn.addEventListener('click', () => {
+        stopAuto();
+        slidePrev();
+        startAuto();
+      });
     });
-    wrap.querySelector('.article-arrow-next')?.addEventListener('click', () => {
-      stopAuto();
-      slideNext();
-      startAuto();
+    sec.querySelectorAll('.article-arrow-next').forEach(btn => {
+      btn.addEventListener('click', () => {
+        stopAuto();
+        slideNext();
+        startAuto();
+      });
     });
   }
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      stopAuto();
+      const idx = parseInt(dot.dataset.index, 10);
+      const step = getStep();
+      slider.scrollTo({ left: idx * step, behavior: 'smooth' });
+      startAuto();
+    });
+  });
 
   slider.addEventListener('keydown', event => {
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
@@ -6019,6 +6363,19 @@ document.addEventListener('click', e => {
   header.setAttribute('aria-expanded', !wasOpen ? 'true' : 'false');
 });
 
+// Compact mobile job filters: closed by default, expanded on demand.
+document.addEventListener('click', e => {
+  const toggle = e.target.closest('.jobs-filter-mobile-toggle');
+  if (!toggle) return;
+  const card = toggle.closest('.jobs-filter-card');
+  if (!card) return;
+  const isOpen = card.classList.toggle('filters-open');
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.setAttribute('aria-label', isOpen ? 'Hide job filters' : 'Show job filters');
+  const label = toggle.querySelector('span');
+  if (label) label.textContent = isOpen ? 'Hide filters' : 'Show filters';
+});
+
 // Featured Companies Carousel Arrow Navigation
 document.addEventListener('click', e => {
   const nextBtn = e.target.closest('.carousel-arrow-next');
@@ -6078,7 +6435,7 @@ document.addEventListener('click', e => {
     const index = parseInt(howDot.getAttribute('data-index'), 10);
     const track = document.getElementById('howStepsTrack');
     if (track) {
-      const cards = track.querySelectorAll('.how-step-card');
+      const cards = track.querySelectorAll('.how-step-item');
       if (cards[index]) {
         cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
@@ -6094,7 +6451,7 @@ document.addEventListener('scroll', e => {
     const dots = document.querySelectorAll('.how-dot');
     if (!dots.length) return;
     const trackCenter = track.scrollLeft + track.clientWidth / 2;
-    const cards = track.querySelectorAll('.how-step-card');
+    const cards = track.querySelectorAll('.how-step-item');
     let closestIdx = 0;
     let minDiff = Infinity;
     cards.forEach((card, idx) => {
