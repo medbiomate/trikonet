@@ -1255,6 +1255,17 @@
   box-shadow: none;
 }
 
+.modern-status-badge.status-inactive {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #dbe2ea;
+}
+
+.modern-status-badge.status-inactive .status-pulse-dot {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
 .modern-status-badge.status-expired {
   background: #fff1f2;
   color: #be123c;

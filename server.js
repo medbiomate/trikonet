@@ -1,9 +1,12 @@
 import http from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
+const dataDir = join(root, '../backend/data');
+const localDbPath = join(dataDir, 'local-db.json');
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 
@@ -19,19 +22,645 @@ const types = {
   '.svg': 'image/svg+xml',
   '.xml': 'application/xml; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.ttf': 'font/ttf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2'
 };
+
+// Cached in-memory datasets
+let memoryTaxonomies = null;
+let memoryPosts = null;
+let memoryJobs = null;
+let memoryEmployers = null;
+const sessions = new Map();
+const MAX_RESUMES_PER_USER = 3;
+const MAX_PROFILE_PHOTO_BYTES = 100 * 1024;
+
+async function loadData(filename) {
+  try {
+    const raw = await readFile(join(dataDir, filename), 'utf-8');
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+async function getLocalDb() {
+  try {
+    const raw = await readFile(localDbPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    parsed.users = parsed.users || [];
+    parsed.emailCampaigns = parsed.emailCampaigns || [];
+    parsed.savedJobs = parsed.savedJobs || [];
+    parsed.employerClaims = parsed.employerClaims || [];
+    parsed.resumes = parsed.resumes || [];
+    return parsed;
+  } catch {
+    return { users: [], emailCampaigns: [], savedJobs: [], employerClaims: [], resumes: [] };
+  }
+}
+
+async function saveLocalDb(db) {
+  try {
+    await writeFile(localDbPath, JSON.stringify(db, null, 2), 'utf-8');
+  } catch {}
+}
+
+function sendJson(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-cache, no-store, must-revalidate'
+  });
+  res.end(JSON.stringify(data));
+}
+
+function parseCookies(req) {
+  const list = {};
+  const rc = req.headers.cookie;
+  if (!rc) return list;
+  rc.split(';').forEach(cookie => {
+    const parts = cookie.split('=');
+    list[parts.shift().trim()] = decodeURI(parts.join('='));
+  });
+  return list;
+}
+
+async function readJsonBody(req) {
+  let body = '';
+  for await (const chunk of req) {
+    body += chunk;
+    if (body.length > 2_000_000) throw new Error('Request too large');
+  }
+  return body ? JSON.parse(body) : {};
+}
+
+function dataUrlBytes(value) {
+  const match = String(value || '').match(/^data:[^;,]+;base64,(.+)$/);
+  if (!match) return 0;
+  return Math.max(0, Math.floor(match[1].length * 3 / 4) - (match[1].endsWith('==') ? 2 : match[1].endsWith('=') ? 1 : 0));
+}
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const path = decodeURIComponent(requestUrl.pathname);
 
-  // Health check for hosting monitors
+  // Health check
   if (path === '/healthz' || path === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ status: 'ok', domain: 'dev.trikonet.com' }));
+    return sendJson(res, 200, { status: 'ok', domain: 'dev.trikonet.com' });
   }
 
+  // API: Taxonomies (Job Categories, Locations, Types)
+  if (path === '/api/wp/taxonomies' || path === '/api/local/taxonomies') {
+    if (!memoryTaxonomies) {
+      memoryTaxonomies = await loadData('taxonomies.json');
+    }
+    return sendJson(res, 200, memoryTaxonomies || { types: [], categories: [], locations: [], tags: [] });
+  }
+
+  // Helpers for filtering dataset
+  function filterJobs(list, params) {
+    const slug = params.get('slug');
+    if (slug) {
+      return list.filter(item => item.slug === slug || item.id === Number(slug));
+    }
+    const query = (params.get('q') || '').trim().toLowerCase();
+    const location = (params.get('location') || '').trim();
+    const category = (params.get('category') || '').trim();
+    const jobType = (params.get('job_type') || '').trim();
+    const employerId = Number(params.get('employer_id'));
+
+    let filtered = list;
+
+    if (query) {
+      filtered = filtered.filter(item => {
+        const title = (item.title?.rendered || item.title || '').toLowerCase();
+        const cats = Object.values(item.metas?._job_category || {}).join(' ').toLowerCase();
+        return title.includes(query) || cats.includes(query);
+      });
+    }
+
+    if (location && location !== 'Country or City' && location !== 'All Locations') {
+      filtered = filtered.filter(item => {
+        const locs = Object.values(item.metas?._job_location || {});
+        return locs.some(l => l.toLowerCase() === location.toLowerCase());
+      });
+    }
+
+    if (category && category !== 'All Categories') {
+      filtered = filtered.filter(item => {
+        const cats = Object.values(item.metas?._job_category || {});
+        return cats.some(c => c.toLowerCase() === category.toLowerCase());
+      });
+    }
+
+    if (jobType) {
+      filtered = filtered.filter(item => {
+        const types = Object.values(item.metas?._job_type || {});
+        return types.some(t => t.toLowerCase() === jobType.toLowerCase());
+      });
+    }
+
+    if (employerId) {
+      filtered = filtered.filter(item => Number(item.metas?._job_employer_posted_by) === employerId);
+    }
+
+    const employerSlug = (params.get('employer_slug') || '').trim().toLowerCase();
+    if (employerSlug) {
+      filtered = filtered.filter(item => {
+        const url = (item.metas?._job_employer_url || '').toLowerCase();
+        const slug = (item.metas?._job_employer_slug || '').toLowerCase();
+        return slug === employerSlug || url.endsWith(`/${employerSlug}`) || url.endsWith(`/${employerSlug}/`);
+      });
+    }
+
+    return filtered;
+  }
+
+  function filterEmployers(list, params) {
+    const slug = params.get('slug');
+    if (slug) {
+      return list.filter(item => item.slug === slug || item.id === Number(slug));
+    }
+    const query = (params.get('q') || '').trim().toLowerCase();
+    const location = (params.get('location') || '').trim();
+    const category = (params.get('category') || '').trim();
+    const minJobs = Number(params.get('min_jobs'));
+
+    let filtered = list;
+
+    if (query) {
+      filtered = filtered.filter(item => {
+        const title = (item.title?.rendered || item.title || '').toLowerCase();
+        const cats = Object.values(item.metas?._employer_category || {}).join(' ').toLowerCase();
+        const locs = Object.values(item.metas?._employer_location || {}).join(' ').toLowerCase();
+        return title.includes(query) || cats.includes(query) || locs.includes(query);
+      });
+    }
+
+    if (location && location !== 'City or postcode' && location !== 'All Locations' && location !== 'Country or City') {
+      filtered = filtered.filter(item => {
+        const locs = Object.values(item.metas?._employer_location || {});
+        return locs.some(l => l.toLowerCase().includes(location.toLowerCase()));
+      });
+    }
+
+    if (category && category !== 'All Categories') {
+      filtered = filtered.filter(item => {
+        const cats = Object.values(item.metas?._employer_category || {});
+        return cats.some(c => c.toLowerCase().includes(category.toLowerCase()));
+      });
+    }
+
+    if (minJobs) {
+      filtered = filtered.filter(item => (Number(item.metas?._employer_open_jobs) || 0) >= minJobs);
+    }
+
+    return filtered;
+  }
+
+  // API: Counts (live dynamic counts)
+  if (path === '/api/wp/counts') {
+    if (!memoryJobs) memoryJobs = await loadData('jobs.json');
+    if (!memoryEmployers) memoryEmployers = await loadData('employers.json');
+    if (!memoryPosts) memoryPosts = await loadData('posts.json');
+    const db = await getLocalDb();
+    const baseJobs = Array.isArray(memoryJobs) ? memoryJobs.length : 13621;
+    const localJobsCount = Array.isArray(db.jobs) ? db.jobs.length : 0;
+    const baseEmployers = Array.isArray(memoryEmployers) ? memoryEmployers.length : 2728;
+    const localEmployersCount = Array.isArray(db.employers) ? db.employers.length : 0;
+    const basePosts = Array.isArray(memoryPosts) ? memoryPosts.length : 30;
+
+    return sendJson(res, 200, {
+      job_listing: baseJobs + localJobsCount,
+      employer: baseEmployers + localEmployersCount,
+      post: basePosts
+    });
+  }
+
+  if (path === '/api/wp/count') {
+    const type = requestUrl.searchParams.get('type') || 'job_listing';
+    const db = await getLocalDb();
+    if (type === 'employer') {
+      if (!memoryEmployers) memoryEmployers = await loadData('employers.json');
+      const baseEmployers = Array.isArray(memoryEmployers) ? memoryEmployers : [];
+      const localEmployers = Array.isArray(db.employers) ? db.employers : [];
+      const allEmployers = [...localEmployers, ...baseEmployers];
+      const filtered = filterEmployers(allEmployers, requestUrl.searchParams);
+      return sendJson(res, 200, { total: filtered.length });
+    }
+    if (!memoryJobs) memoryJobs = await loadData('jobs.json');
+    const baseJobs = Array.isArray(memoryJobs) ? memoryJobs : [];
+    const localJobs = Array.isArray(db.jobs) ? db.jobs : [];
+    const allJobs = [...localJobs, ...baseJobs];
+    const filtered = filterJobs(allJobs, requestUrl.searchParams);
+    return sendJson(res, 200, { total: filtered.length });
+  }
+
+  // API: Posts / Blogs
+  if (path === '/api/wp/posts') {
+    if (!memoryPosts) {
+      memoryPosts = await loadData('posts.json');
+    }
+    const perPage = Number(requestUrl.searchParams.get('per_page')) || 30;
+    const posts = Array.isArray(memoryPosts) ? memoryPosts.slice(0, perPage) : [];
+    return sendJson(res, 200, posts);
+  }
+
+  // API: Local user-created database
+  if (path === '/api/local/jobs' && req.method === 'GET') {
+    const db = await getLocalDb();
+    return sendJson(res, 200, db.jobs || []);
+  }
+
+  if (path.startsWith('/api/local/jobs/') && req.method === 'GET') {
+    const slug = decodeURIComponent(path.slice('/api/local/jobs/'.length));
+    const db = await getLocalDb();
+    const job = (db.jobs || []).find(item => item.slug === slug);
+    return sendJson(res, job ? 200 : 404, job || { error: 'Job not found' });
+  }
+
+  if (path === '/api/local/jobs' && (req.method === 'POST' || req.method === 'PUT')) {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const job = JSON.parse(body || '{}');
+        if (!job.title?.trim()) {
+          return sendJson(res, 400, { error: 'Title is required' });
+        }
+        if (!job.slug?.trim()) {
+          job.slug = job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+        job.slug = job.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+        const nowIso = new Date().toISOString();
+        job.createdAt = job.createdAt || nowIso;
+        job.updatedAt = nowIso;
+        job.local = true;
+
+        const formattedDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        const db = await getLocalDb();
+        if (!db.jobs) db.jobs = [];
+        const index = db.jobs.findIndex(item => item.slug === job.originalSlug || item.slug === job.slug);
+        delete job.originalSlug;
+
+        if (index >= 0) {
+          job.updatedDate = formattedDate;
+          job.date = formattedDate;
+          db.jobs[index] = job;
+        } else {
+          job.publishedDate = formattedDate;
+          job.date = formattedDate;
+          db.jobs.unshift(job);
+        }
+        await saveLocalDb(db);
+        return sendJson(res, 200, job);
+      } catch (err) {
+        return sendJson(res, 400, { error: err.message });
+      }
+    });
+    return;
+  }
+
+  if (path.startsWith('/api/local/jobs/') && req.method === 'DELETE') {
+    const slug = decodeURIComponent(path.slice('/api/local/jobs/'.length));
+    const db = await getLocalDb();
+    const before = (db.jobs || []).length;
+    db.jobs = (db.jobs || []).filter(item => item.slug !== slug);
+    await saveLocalDb(db);
+    return sendJson(res, 200, { deleted: true, count: db.jobs.length });
+  }
+
+  if (path === '/api/local/employers') {
+    const db = await getLocalDb();
+    return sendJson(res, 200, db.employers || []);
+  }
+
+  // API: Employer Profile Claims (Verification & Login Issuance)
+  if (path === '/api/local/employer-claims' && req.method === 'GET') {
+    const db = await getLocalDb();
+    return sendJson(res, 200, db.employerClaims || []);
+  }
+
+  if (path === '/api/local/employer-claims' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const employerSlug = String(payload.employerSlug || '').trim();
+        const employerName = String(payload.employerName || '').trim();
+        const applicantName = String(payload.applicantName || '').trim();
+        const workEmail = String(payload.workEmail || '').trim().toLowerCase();
+        const phone = String(payload.phone || '').trim();
+        const designation = String(payload.designation || '').trim();
+        const documentType = String(payload.documentType || 'UAE Trade License').trim();
+        const documentName = String(payload.documentName || '').trim();
+        const documentData = payload.documentData || '';
+        const notes = String(payload.notes || '').trim();
+
+        if (!employerSlug || !applicantName || !workEmail || !phone) {
+          return sendJson(res, 400, { error: 'Please provide full name, official work email, phone number, and employer.' });
+        }
+
+        const db = await getLocalDb();
+        db.employerClaims = db.employerClaims || [];
+
+        const claim = {
+          id: 'CLM-' + Math.floor(100000 + Math.random() * 900000),
+          employerSlug,
+          employerName: employerName || employerSlug,
+          applicantName,
+          workEmail,
+          phone,
+          designation,
+          documentType,
+          documentName,
+          documentData,
+          notes,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+
+        db.employerClaims.unshift(claim);
+        await saveLocalDb(db);
+        return sendJson(res, 201, { ok: true, claim });
+      } catch (err) {
+        return sendJson(res, 400, { error: 'Failed to process claim submission.' });
+      }
+    });
+    return;
+  }
+
+  if (path === '/api/local/employer-claims/approve' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { claimId } = JSON.parse(body || '{}');
+        const db = await getLocalDb();
+        db.employerClaims = db.employerClaims || [];
+        const claim = db.employerClaims.find(c => c.id === claimId);
+        if (!claim) {
+          return sendJson(res, 404, { error: 'Claim request not found.' });
+        }
+
+        const tempPassword = `Trikonet@${Math.floor(1000 + Math.random() * 9000)}!`;
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(tempPassword, salt, 1000, 64, 'sha512').toString('hex');
+
+        db.users = db.users || [];
+        let existingUser = db.users.find(u => u.email === claim.workEmail);
+        if (existingUser) {
+          existingUser.salt = salt;
+          existingUser.hash = hash;
+          existingUser.role = 'employer';
+          existingUser.employerSlug = claim.employerSlug;
+          existingUser.employerName = claim.employerName;
+        } else {
+          db.users.push({
+            id: crypto.randomUUID(),
+            name: claim.applicantName,
+            email: claim.workEmail,
+            role: 'employer',
+            employerSlug: claim.employerSlug,
+            employerName: claim.employerName,
+            salt,
+            hash,
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        claim.status = 'approved';
+        claim.approvedAt = new Date().toISOString();
+        claim.issuedUsername = claim.workEmail;
+        claim.issuedPassword = tempPassword;
+
+        await saveLocalDb(db);
+        return sendJson(res, 200, {
+          ok: true,
+          claimId: claim.id,
+          username: claim.workEmail,
+          password: tempPassword,
+          employerName: claim.employerName
+        });
+      } catch (err) {
+        return sendJson(res, 400, { error: 'Failed to approve claim.' });
+      }
+    });
+    return;
+  }
+
+  if (path === '/api/local/employer-claims/reject' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { claimId, reason } = JSON.parse(body || '{}');
+        const db = await getLocalDb();
+        db.employerClaims = db.employerClaims || [];
+        const claim = db.employerClaims.find(c => c.id === claimId);
+        if (!claim) {
+          return sendJson(res, 404, { error: 'Claim request not found.' });
+        }
+        claim.status = 'rejected';
+        claim.rejectedAt = new Date().toISOString();
+        claim.rejectReason = reason || 'Documentation could not be verified.';
+        await saveLocalDb(db);
+        return sendJson(res, 200, { ok: true, claim });
+      } catch (err) {
+        return sendJson(res, 400, { error: 'Failed to reject claim.' });
+      }
+    });
+    return;
+  }
+
+  if (path === '/api/local/posts') {
+    if (!memoryPosts) memoryPosts = await loadData('posts.json');
+    return sendJson(res, 200, memoryPosts || []);
+  }
+
+  // API: Top Employers actively hiring (20+ open jobs)
+  if (path === '/api/wp/top-employers' || (path === '/api/wp/employer' && requestUrl.searchParams.get('top') === 'true')) {
+    if (!memoryEmployers) memoryEmployers = await loadData('employers.json');
+    const minJobs = Number(requestUrl.searchParams.get('min_jobs')) || 20;
+    const limit = Number(requestUrl.searchParams.get('limit')) || 12;
+    const list = Array.isArray(memoryEmployers) ? memoryEmployers : [];
+    const sorted = [...list]
+      .filter(e => (Number(e.metas?._employer_open_jobs) || 0) >= minJobs)
+      .sort((a, b) => (Number(b.metas?._employer_open_jobs) || 0) - (Number(a.metas?._employer_open_jobs) || 0));
+    return sendJson(res, 200, sorted.slice(0, limit));
+  }
+
+  // API: WordPress database jobs list (13,600+ records)
+  if (path === '/api/wp/job_listing') {
+    if (!memoryJobs) {
+      memoryJobs = await loadData('jobs.json');
+    }
+    const perPage = Number(requestUrl.searchParams.get('per_page')) || 30;
+    const page = Math.max(Number(requestUrl.searchParams.get('page')) || 1, 1);
+    const filtered = filterJobs(memoryJobs || [], requestUrl.searchParams);
+    const start = (page - 1) * perPage;
+    return sendJson(res, 200, filtered.slice(start, start + perPage));
+  }
+
+  // API: Employers list (2,700+ records)
+  if (path === '/api/wp/employer') {
+    if (!memoryEmployers) {
+      memoryEmployers = await loadData('employers.json');
+    }
+    const perPage = Number(requestUrl.searchParams.get('per_page')) || 30;
+    const page = Math.max(Number(requestUrl.searchParams.get('page')) || 1, 1);
+    const slug = requestUrl.searchParams.get('slug');
+    const employersList = Array.isArray(memoryEmployers) ? memoryEmployers : [];
+    if (slug) {
+      const match = employersList.filter(e => e.slug === slug || e.id === Number(slug));
+      return sendJson(res, 200, match);
+    }
+    const filtered = filterEmployers(employersList, requestUrl.searchParams);
+    const start = (page - 1) * perPage;
+    return sendJson(res, 200, filtered.slice(start, start + perPage));
+  }
+
+  // API: Auth - Register
+  if (path === '/api/auth/register' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const email = String(data.email || '').trim().toLowerCase();
+        const name = String(data.name || '').trim();
+        const password = String(data.password || '');
+        if (!name || !email || password.length < 8) {
+          return sendJson(res, 400, { error: 'Valid name, email, and password (at least 8 chars) required.' });
+        }
+        const db = await getLocalDb();
+        if (db.users.some(u => u.email === email)) {
+          return sendJson(res, 409, { error: 'An account with this email already exists.' });
+        }
+        const salt = crypto.randomBytes(16).toString('hex');
+        const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+        const user = { id: crypto.randomUUID(), name, email, salt, hash, createdAt: new Date().toISOString() };
+        db.users.push(user);
+        await saveLocalDb(db);
+        const token = crypto.randomUUID();
+        sessions.set(token, { userId: user.id, email: user.email, name: user.name });
+        res.setHeader('Set-Cookie', `trikonet_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+        return sendJson(res, 201, { user: { id: user.id, name: user.name, email: user.email } });
+      } catch (err) {
+        return sendJson(res, 400, { error: 'Invalid request data.' });
+      }
+    });
+    return;
+  }
+
+  // API: Auth - Login
+  if (path === '/api/auth/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const email = String(data.email || '').trim().toLowerCase();
+        const password = String(data.password || '');
+        const db = await getLocalDb();
+        const user = db.users.find(u => u.email === email);
+        if (!user) {
+          return sendJson(res, 401, { error: 'Invalid email or password.' });
+        }
+        const testHash = crypto.pbkdf2Sync(password, user.salt || user.passwordSalt, 1000, 64, 'sha512').toString('hex');
+        if (testHash !== (user.hash || user.passwordHash)) {
+          return sendJson(res, 401, { error: 'Invalid email or password.' });
+        }
+        const token = crypto.randomUUID();
+        sessions.set(token, { userId: user.id, email: user.email, name: user.name });
+        res.setHeader('Set-Cookie', `trikonet_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+        return sendJson(res, 200, { user: { id: user.id, name: user.name, email: user.email } });
+      } catch (err) {
+        return sendJson(res, 400, { error: 'Invalid login data.' });
+      }
+    });
+    return;
+  }
+
+  // API: Auth - Me
+  if (path === '/api/auth/me' && req.method === 'GET') {
+    const cookies = parseCookies(req);
+    const session = sessions.get(cookies.trikonet_session);
+    return sendJson(res, session ? 200 : 401, session ? { user: session } : { error: 'Not authenticated' });
+  }
+
+  // API: Auth - Logout
+  if (path === '/api/auth/logout' && req.method === 'POST') {
+    const cookies = parseCookies(req);
+    sessions.delete(cookies.trikonet_session);
+    res.setHeader('Set-Cookie', 'trikonet_session=; Path=/; HttpOnly; Max-Age=0');
+    return sendJson(res, 200, { ok: true });
+  }
+
+  // API: User résumé cloud library
+  if (path === '/api/resumes' && req.method === 'GET') {
+    const session = sessions.get(parseCookies(req).trikonet_session);
+    if (!session) return sendJson(res, 401, { error: 'Sign in to access your résumé library.' });
+    const db = await getLocalDb();
+    const resumes = db.resumes
+      .filter(item => item.userId === session.userId)
+      .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+    return sendJson(res, 200, { resumes, limit: MAX_RESUMES_PER_USER });
+  }
+
+  if (path === '/api/resumes' && (req.method === 'POST' || req.method === 'PUT')) {
+    const session = sessions.get(parseCookies(req).trikonet_session);
+    if (!session) return sendJson(res, 401, { error: 'Sign in to save a résumé.' });
+    try {
+      const body = await readJsonBody(req);
+      const id = String(body.id || '').trim();
+      const state = body.state && typeof body.state === 'object' ? body.state : null;
+      if (!id || !state) return sendJson(res, 400, { error: 'A valid résumé is required.' });
+      if (dataUrlBytes(state.photo) > MAX_PROFILE_PHOTO_BYTES) {
+        return sendJson(res, 413, { error: 'Profile photo must be smaller than 100 KB.' });
+      }
+      const db = await getLocalDb();
+      const existingIndex = db.resumes.findIndex(item => item.id === id && item.userId === session.userId);
+      const userCount = db.resumes.filter(item => item.userId === session.userId).length;
+      if (existingIndex < 0 && userCount >= MAX_RESUMES_PER_USER) {
+        return sendJson(res, 409, { error: `You can save up to ${MAX_RESUMES_PER_USER} résumés. Delete one before creating another.` });
+      }
+      const now = Date.now();
+      const existing = existingIndex >= 0 ? db.resumes[existingIndex] : null;
+      const resume = {
+        id,
+        userId: session.userId,
+        name: String(body.name || 'My professional résumé').slice(0, 120),
+        template: String(body.template || 'classic').slice(0, 40),
+        state,
+        previewImage: dataUrlBytes(body.previewImage) <= MAX_PROFILE_PHOTO_BYTES ? String(body.previewImage || '') : '',
+        createdAt: existing?.createdAt || now,
+        updatedAt: now
+      };
+      if (existingIndex >= 0) db.resumes[existingIndex] = resume;
+      else db.resumes.push(resume);
+      await saveLocalDb(db);
+      return sendJson(res, existingIndex >= 0 ? 200 : 201, { resume, limit: MAX_RESUMES_PER_USER });
+    } catch (error) {
+      return sendJson(res, error.message === 'Request too large' ? 413 : 400, { error: error.message || 'Unable to save résumé.' });
+    }
+  }
+
+  if (path.startsWith('/api/resumes/') && req.method === 'DELETE') {
+    const session = sessions.get(parseCookies(req).trikonet_session);
+    if (!session) return sendJson(res, 401, { error: 'Sign in to delete a résumé.' });
+    const id = path.slice('/api/resumes/'.length);
+    const db = await getLocalDb();
+    const before = db.resumes.length;
+    db.resumes = db.resumes.filter(item => !(item.id === id && item.userId === session.userId));
+    if (db.resumes.length === before) return sendJson(res, 404, { error: 'Résumé not found.' });
+    await saveLocalDb(db);
+    return sendJson(res, 200, { ok: true });
+  }
+
+  // Static File Serving & SPA Fallback
   let target = normalize(join(root, path === '/' ? 'index.html' : path.slice(1)));
   if (!target.startsWith(root)) {
     res.writeHead(403);
@@ -51,12 +680,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    const body = await readFile(target);
+    const fileBody = await readFile(target);
     res.writeHead(200, {
       'Content-Type': types[extname(target)] || 'application/octet-stream',
-      'Cache-Control': extname(target) === '.html' ? 'no-cache' : 'public, max-age=86400'
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
-    res.end(body);
+    res.end(fileBody);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not found');
@@ -64,5 +693,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Trikonet Frontend server listening on ${host}:${port}`);
+  console.log(`Trikonet Server listening on http://${host}:${port}`);
 });

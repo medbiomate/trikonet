@@ -123,7 +123,7 @@ export function renderAdmin() {
   <header class="admin-top-header">
     <div class="admin-header-left">
       <a href="#jobs" class="admin-brand" title="Trikonet Console">
-        <img src="/assets/logo-black.png?v=3.3" alt="Trikonet" class="admin-brand-logo-img">
+        <img src="/assets/logo-black.png?v=4.0" alt="Trikonet" class="admin-brand-logo-img">
         <span class="admin-brand-badge">Console</span>
       </a>
       <div class="admin-breadcrumbs">
@@ -159,6 +159,14 @@ export function renderAdmin() {
           <span class="admin-user-sub">Administrator</span>
         </div>
       </div>
+      <button type="button" class="admin-header-btn secondary" id="admin-logout-btn" title="Sign out of Admin Console" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; color:#ef4444; border-color:rgba(239,68,68,0.25); background:rgba(239,68,68,0.06); font-weight:600; padding:6px 12px; border-radius:8px; margin-left:6px;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Logout</span>
+      </button>
     </div>
   </header>
 
@@ -261,6 +269,7 @@ export function renderAdmin() {
         </button>
         <div class="admin-submenu" id="employers-submenu">
           <a href="#employers" class="admin-sub-item" data-view="employers">All Employers</a>
+          <a href="#employer-claims" class="admin-sub-item" data-view="employer-claims" id="employer-claims-link">Company Claims <span class="admin-menu-badge" id="admin-claims-badge" style="display:none;background:#b00008;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:auto;">0</span></a>
           <a href="#employer-new" class="admin-sub-item" data-view="employer-new" id="new-employer-link">Add New Employer</a>
           <a href="#employer-categories" class="admin-sub-item" data-view="employer-categories">Categories</a>
           <a href="#employer-locations" class="admin-sub-item" data-view="employer-locations">Locations</a>
@@ -1050,6 +1059,94 @@ export function renderAdmin() {
           </table>
         </div>
         <div id="admin-employer-pagination" style="display:flex;align-items:center;justify-content:center;gap:18px;padding:18px;border-top:1px solid #e5e7eb;"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Company Profile Claims -->
+    <div class="admin-view" id="view-employer-claims">
+      <div class="modern-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <h1 class="modern-page-title">Company Profile Claims</h1>
+            <span class="modern-heading-badge" id="admin-claims-count-chip">Verification Requests</span>
+          </div>
+          <p class="modern-page-subtitle">Review submitted business verification documents (Trade License, Establishment Card, POA) and grant official employer access.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="modern-filter-btn" id="admin-claims-refresh-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modern-card">
+        <div class="modern-search-row">
+          <div class="modern-search-left" style="display:flex;gap:8px;">
+            <button type="button" class="modern-filter-btn active" data-claim-filter="all">All Claims</button>
+            <button type="button" class="modern-filter-btn" data-claim-filter="pending">Pending</button>
+            <button type="button" class="modern-filter-btn" data-claim-filter="approved">Approved</button>
+            <button type="button" class="modern-filter-btn" data-claim-filter="rejected">Rejected</button>
+          </div>
+          <div class="modern-search-right">
+            <div class="modern-count-badge" id="admin-claims-total-count">0 claims</div>
+          </div>
+        </div>
+
+        <div class="modern-table-wrap">
+          <table class="wp-list-table widefat fixed striped modern-table-clean">
+            <thead>
+              <tr>
+                <th style="width:140px;">Claim ID & Date</th>
+                <th style="width:200px;">Employer Profile</th>
+                <th>Authorized Representative</th>
+                <th style="width:190px;">Verification Document</th>
+                <th style="width:110px;">Status</th>
+                <th style="width:190px;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-claims-rows">
+              <tr><td colspan="6" style="text-align:center;padding:35px;color:#646970;">Loading company claims…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issued Credentials Modal -->
+    <div id="adminClaimCredentialsModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;">
+      <div style="background:#fff;border-radius:14px;max-width:520px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg,#059669,#047857);color:#fff;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;">✓</div>
+            <div>
+              <h3 style="margin:0;font-size:18px;font-weight:700;">Claim Approved & Login Created</h3>
+              <p style="margin:2px 0 0;font-size:12.5px;opacity:0.9;">Employer credentials have been provisioned.</p>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('adminClaimCredentialsModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;">×</button>
+        </div>
+        <div style="padding:24px;">
+          <p style="margin:0 0 16px;font-size:14px;color:#475569;">Please dispatch these credentials to the verified representative or copy them for records:</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:20px;display:grid;gap:12px;">
+            <div>
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;">Company</span>
+              <div id="adminCredEmployer" style="font-size:14px;font-weight:700;color:#0f172a;margin-top:2px;">—</div>
+            </div>
+            <div>
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;">Username / Login Email</span>
+              <div id="adminCredUsername" style="font-size:15px;font-weight:700;color:#0f172a;margin-top:2px;font-family:monospace;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1;">—</div>
+            </div>
+            <div>
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;">Temporary Password</span>
+              <div id="adminCredPassword" style="font-size:15px;font-weight:700;color:#b00008;margin-top:2px;font-family:monospace;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1;">—</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button type="button" id="adminCredCopyBtn" class="modern-filter-btn" style="background:#0f172a;color:#fff;border-color:#0f172a;">Copy Credentials</button>
+            <button type="button" class="modern-filter-btn" onclick="document.getElementById('adminClaimCredentialsModal').style.display='none'">Done</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2042,7 +2139,7 @@ export function renderAdmin() {
             <div class="modern-field-wrap">
               <label class="modern-label" for="user-username">Username <span class="req">*</span></label>
               <input name="username" id="user-username" type="text" class="modern-input" placeholder="e.g. jsmith" required autocomplete="off">
-              <span class="modern-field-hint">Usernames cannot be changed once created.</span>
+              <span class="modern-field-hint">Used to sign in. It must be unique across all portal users.</span>
             </div>
 
             <div class="modern-field-wrap">
@@ -2077,12 +2174,20 @@ export function renderAdmin() {
             </div>
 
             <div class="modern-field-wrap">
+              <label class="modern-label" for="user-status">Account Status <span class="req">*</span></label>
+              <select name="status" id="user-status" class="modern-select" required>
+                <option value="active">Active — Can sign in</option>
+                <option value="inactive">Inactive — Sign-in disabled</option>
+              </select>
+            </div>
+
+            <div class="modern-field-wrap">
               <label class="modern-label" for="user-password">Password</label>
               <div style="display:flex; gap:8px;">
                 <input name="password" id="user-password" type="text" class="modern-input" placeholder="Enter password or generate one" style="flex:1;">
                 <button type="button" id="btn-generate-password" class="modern-filter-btn" style="white-space:nowrap; padding:0 14px;">Generate Password</button>
               </div>
-              <span class="modern-field-hint">Leave blank if keeping the existing password.</span>
+              <span class="modern-field-hint">Leave blank to keep the existing password. New passwords are stored as a one-way hash.</span>
             </div>
 
             <div class="modern-field-wrap">
@@ -3460,7 +3565,75 @@ export function renderAdmin() {
 </div>`;
 }
 
+export function showAdminNotice(message, type = 'success') {
+  let noticeBox = document.getElementById('admin-global-toast');
+  if (!noticeBox) {
+    noticeBox = document.createElement('div');
+    noticeBox.id = 'admin-global-toast';
+    noticeBox.style.cssText = `
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 999999;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-left: 4px solid #10b981;
+      transform: translateY(-20px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+      max-width: 440px;
+      font-family: Inter, -apple-system, sans-serif;
+    `;
+    document.body.appendChild(noticeBox);
+  }
+
+  const icon = type === 'success' 
+    ? `<span style="color:#10b981; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:rgba(16,185,129,0.15); font-weight:700;">✓</span>`
+    : `<span style="color:#ef4444; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,0.15); font-weight:700;">✕</span>`;
+
+  noticeBox.style.borderLeftColor = type === 'success' ? '#10b981' : '#ef4444';
+  noticeBox.innerHTML = `${icon} <span style="flex:1; line-height:1.4;">${message}</span>`;
+  noticeBox.style.transform = 'translateY(0)';
+  noticeBox.style.opacity = '1';
+
+  clearTimeout(noticeBox._timeout);
+  noticeBox._timeout = setTimeout(() => {
+    noticeBox.style.transform = 'translateY(-20px)';
+    noticeBox.style.opacity = '0';
+  }, 4000);
+}
+window.showAdminNotice = showAdminNotice;
+
 export async function initAdmin() {
+  // Logout handler
+  document.getElementById('admin-logout-btn')?.addEventListener('click', () => {
+    localStorage.removeItem('trikonet_admin_session');
+    sessionStorage.removeItem('trikonet_admin_session');
+    location.href = '/admin-login';
+  });
+
+  // Populate logged-in admin user info in header
+  try {
+    const adminSess = JSON.parse(localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session') || '{}');
+    if (adminSess.name || adminSess.username) {
+      const titleEl = document.querySelector('.admin-user-title');
+      const subEl = document.querySelector('.admin-user-sub');
+      const initEl = document.querySelector('.admin-avatar-initials');
+      if (titleEl) titleEl.textContent = adminSess.name || adminSess.username;
+      if (subEl) subEl.textContent = adminSess.role || 'Administrator';
+      if (initEl) initEl.textContent = (adminSess.name || adminSess.username || 'A')[0].toUpperCase();
+    }
+  } catch {}
+
   const jobForm = document.querySelector('#admin-job-form');
   const jobRows = document.querySelector('#admin-job-rows');
   const jobStatusState = document.querySelector('#admin-save-state');
@@ -3538,6 +3711,7 @@ export async function initAdmin() {
       'job-new': 'view-job-editor',
       'job-edit': 'view-job-editor',
       'employers': 'view-employers',
+      'employer-claims': 'view-employer-claims',
       'employer-new': 'view-employer-editor',
       'employer-edit': 'view-employer-editor',
       'employer-categories': 'view-taxonomy-categories',
@@ -3700,6 +3874,8 @@ export async function initAdmin() {
       renderJobRows();
     } else if (targetId === 'view-employers') {
       renderEmployerRows();
+    } else if (targetId === 'view-employer-claims') {
+      renderEmployerClaims();
     } else if (targetId === 'view-candidates') {
       if (typeof renderCandidateRows === 'function') renderCandidateRows();
     } else if (targetId === 'view-users') {
@@ -3857,6 +4033,8 @@ export async function initAdmin() {
       switchView('taxonomy-tags');
     } else if (hash === 'employers') {
       switchView('employers');
+    } else if (hash === 'employer-claims') {
+      switchView('employer-claims');
     } else if (hash === 'users') {
       switchView('users');
     } else if (hash === 'user-new') {
@@ -5217,6 +5395,225 @@ export async function initAdmin() {
     if (pager) pager.innerHTML = list.length > employerPageSize ? `<button type="button" class="modern-filter-btn" id="employer-prev-page" ${employerPage===1?'disabled':''}>← Previous</button><strong style="font-size:13px;color:#475569;">Page ${employerPage} of ${pageCount}</strong><button type="button" class="modern-filter-btn" id="employer-next-page" ${employerPage===pageCount?'disabled':''}>Next →</button>` : '';
   }
 
+  // --- Employer Profile Claims Management ---
+  let employerClaimsList = [];
+  let currentClaimFilter = 'all';
+
+  async function loadEmployerClaims() {
+    try {
+      const res = await fetch('/api/local/employer-claims');
+      if (res.ok) {
+        employerClaimsList = await res.json();
+      }
+    } catch {
+      employerClaimsList = [];
+    }
+    updateClaimsBadge();
+  }
+
+  function updateClaimsBadge() {
+    const badge = document.getElementById('admin-claims-badge');
+    const pendingCount = (employerClaimsList || []).filter(c => c.status === 'pending').length;
+    if (badge) {
+      if (pendingCount > 0) {
+        badge.textContent = pendingCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  async function renderEmployerClaims() {
+    await loadEmployerClaims();
+    const rowsEl = document.getElementById('admin-claims-rows');
+    const countEl = document.getElementById('admin-claims-total-count');
+    const chipEl = document.getElementById('admin-claims-count-chip');
+    if (!rowsEl) return;
+
+    let filtered = employerClaimsList || [];
+    if (currentClaimFilter !== 'all') {
+      filtered = filtered.filter(c => c.status === currentClaimFilter);
+    }
+
+    if (countEl) countEl.textContent = `${filtered.length} claims`;
+    if (chipEl) chipEl.textContent = `${(employerClaimsList || []).length} Verification Requests`;
+
+    if (!filtered.length) {
+      rowsEl.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:45px 20px;color:#64748b;font-size:14px;">No company claims found in this view.</td></tr>`;
+      return;
+    }
+
+    rowsEl.innerHTML = filtered.map(claim => {
+      const isPending = claim.status === 'pending';
+      const isApproved = claim.status === 'approved';
+      const isRejected = claim.status === 'rejected';
+
+      const dateStr = claim.createdAt ? new Date(claim.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+      let statusBadge = `<span class="modern-status-badge status-pending" style="display:inline-flex;align-items:center;gap:6px;background:#fefce8;color:#a16207;border:1px solid #fef08a;"><span class="status-pulse-dot" style="background:#eab308;"></span>Pending</span>`;
+      if (isApproved) {
+        statusBadge = `<span class="modern-status-badge status-active" style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;"><span class="status-pulse-dot" style="background:#16a34a;"></span>Approved</span>`;
+      } else if (isRejected) {
+        statusBadge = `<span class="modern-status-badge" style="display:inline-flex;align-items:center;gap:6px;background:#fef2f2;color:#dc2626;border:1px solid #fee2e2;">Rejected</span>`;
+      }
+
+      let docDisplay = `<div style="display:grid;gap:4px;">
+        <span style="font-weight:600;color:#0f172a;font-size:12.5px;">${esc(claim.documentType || 'Trade License')}</span>`;
+      if (claim.documentData) {
+        docDisplay += `<a href="${esc(claim.documentData)}" download="${esc(claim.fileName || 'verification-document')}" class="row-action-link" style="color:#b00008;font-weight:600;font-size:12px;display:inline-flex;align-items:center;gap:4px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Document
+        </a>`;
+      } else if (claim.fileName) {
+        docDisplay += `<span style="color:#64748b;font-size:11.5px;">${esc(claim.fileName)}</span>`;
+      }
+      docDisplay += `</div>`;
+
+      let actions = '';
+      if (isPending) {
+        actions = `
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+            <button type="button" class="modern-btn-primary" style="padding:6px 12px;font-size:12px;background:#059669;border-color:#059669;border-radius:6px;color:#fff;cursor:pointer;" data-approve-claim="${esc(claim.id)}">Approve & Issue Login</button>
+            <button type="button" class="row-action-link trash-link" style="font-size:12px;cursor:pointer;color:#dc2626;" data-reject-claim="${esc(claim.id)}">Reject</button>
+          </div>
+        `;
+      } else if (isApproved) {
+        actions = `
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:11.5px;color:#15803d;">
+            <strong>✓ Login Active</strong>
+            <span style="color:#475569;font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${esc(claim.issuedUsername || claim.workEmail)}</span>
+          </div>
+        `;
+      } else {
+        actions = `
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:11px;color:#dc2626;">
+            <strong>Rejected:</strong>
+            <span style="color:#64748b;max-width:180px;text-align:right;">${esc(claim.rejectionReason || 'Document unconfirmed')}</span>
+          </div>
+        `;
+      }
+
+      return `
+        <tr id="claim-row-${esc(claim.id)}">
+          <td>
+            <div style="display:grid;gap:3px;">
+              <strong style="font-family:monospace;color:#0f172a;font-size:13px;">${esc(claim.id)}</strong>
+              <small style="color:#64748b;font-size:11.5px;">${esc(dateStr)}</small>
+            </div>
+          </td>
+          <td>
+            <div style="display:grid;gap:2px;">
+              <strong style="color:#0f172a;font-size:13.5px;">${esc(claim.employerName || claim.employerSlug)}</strong>
+              <a href="/employer/${encodeURIComponent(claim.employerSlug)}" target="_blank" rel="noopener" style="font-size:12px;color:#b00008;text-decoration:none;font-weight:600;">View profile ↗</a>
+            </div>
+          </td>
+          <td>
+            <div style="display:grid;gap:2px;font-size:13px;">
+              <span style="font-weight:600;color:#0f172a;">${esc(claim.applicantName)} <small style="color:#64748b;font-weight:normal;">(${esc(claim.designation || 'Representative')})</small></span>
+              <span style="color:#2563eb;font-size:12px;"><a href="mailto:${esc(claim.workEmail)}" style="color:inherit;">${esc(claim.workEmail)}</a></span>
+              <span style="color:#64748b;font-size:11.5px;">📞 ${esc(claim.phone || '—')}</span>
+            </div>
+          </td>
+          <td>${docDisplay}</td>
+          <td>${statusBadge}</td>
+          <td>${actions}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Claim actions listener
+  document.addEventListener('click', async e => {
+    // Filter click
+    const filterBtn = e.target.closest('[data-claim-filter]');
+    if (filterBtn) {
+      document.querySelectorAll('[data-claim-filter]').forEach(b => b.classList.remove('active'));
+      filterBtn.classList.add('active');
+      currentClaimFilter = filterBtn.dataset.claimFilter;
+      renderEmployerClaims();
+      return;
+    }
+
+    // Refresh click
+    if (e.target.closest('#admin-claims-refresh-btn')) {
+      renderEmployerClaims();
+      return;
+    }
+
+    // Approve claim click
+    const approveBtn = e.target.closest('[data-approve-claim]');
+    if (approveBtn) {
+      const claimId = approveBtn.dataset.approveClaim;
+      const claim = (employerClaimsList || []).find(c => c.id === claimId);
+      if (!claim) return;
+
+      const confirmed = confirm(`Are you sure you want to approve verification for "${claim.employerName}"?\n\nThis will create an active Employer user account for "${claim.workEmail}" and issue login credentials.`);
+      if (!confirmed) return;
+
+      approveBtn.disabled = true;
+      approveBtn.textContent = 'Approving…';
+
+      try {
+        const res = await fetch('/api/local/employer-claims/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claimId })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Approval failed');
+
+        // Show credentials modal
+        const credModal = document.getElementById('adminClaimCredentialsModal');
+        if (credModal && result.credentials) {
+          document.getElementById('adminCredEmployer').textContent = claim.employerName || claim.employerSlug;
+          document.getElementById('adminCredUsername').textContent = result.credentials.username;
+          document.getElementById('adminCredPassword').textContent = result.credentials.temporaryPassword;
+          credModal.style.display = 'flex';
+
+          const copyBtn = document.getElementById('adminCredCopyBtn');
+          if (copyBtn) {
+            copyBtn.onclick = () => {
+              const textToCopy = `Employer: ${claim.employerName}\nUsername: ${result.credentials.username}\nPassword: ${result.credentials.temporaryPassword}\nLogin URL: ${location.origin}/login`;
+              navigator.clipboard.writeText(textToCopy);
+              copyBtn.textContent = '✓ Copied!';
+              setTimeout(() => { copyBtn.textContent = 'Copy Credentials'; }, 2000);
+            };
+          }
+        }
+        await renderEmployerClaims();
+        if (typeof loadData === 'function') loadData();
+      } catch (err) {
+        alert(err.message || 'Error approving claim');
+        approveBtn.disabled = false;
+        approveBtn.textContent = 'Approve & Issue Login';
+      }
+      return;
+    }
+
+    // Reject claim click
+    const rejectBtn = e.target.closest('[data-reject-claim]');
+    if (rejectBtn) {
+      const claimId = rejectBtn.dataset.rejectClaim;
+      const reason = prompt('Please enter the reason for rejecting this claim (e.g., Invalid trade license or domain mismatch):');
+      if (reason === null) return;
+
+      try {
+        const res = await fetch('/api/local/employer-claims/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claimId, reason: reason.trim() || 'Verification document invalid or rejected' })
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Rejection failed');
+        await renderEmployerClaims();
+      } catch (err) {
+        alert(err.message || 'Error rejecting claim');
+      }
+      return;
+    }
+  });
+
   // Load all data
   async function loadData() {
     const [local, tax, remote, employers, wpEmployers] = await Promise.all([
@@ -5755,6 +6152,7 @@ export async function initAdmin() {
       localJobs = localJobs.filter(j => j.slug !== slug);
       remoteJobs = remoteJobs.filter(j => j.slug !== slug);
       renderJobRows();
+      showAdminNotice(`Job “${slug}” moved to Trash successfully.`);
       return;
     }
     const indexBtn = e.target.closest('[data-instant]');
@@ -7062,6 +7460,7 @@ export async function initAdmin() {
     fillEmployer({});
     renderEmployerRows();
     location.hash = 'employers';
+    showAdminNotice(`Employer "${title}" moved to Trash successfully.`);
   });
 
   // Taxonomy Hierarchy Helper
@@ -7515,6 +7914,27 @@ export async function initAdmin() {
     }
   })();
 
+  async function hashUserPassword(value) {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  function signedInAdminUsername() {
+    try {
+      const raw = localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session');
+      return JSON.parse(raw || '{}').username || '';
+    } catch {
+      return '';
+    }
+  }
+
+  function canDeleteUser(user) {
+    if (!user || user.username === signedInAdminUsername()) return false;
+    if (user.role === 'Administrator' && users.filter(item => item.role === 'Administrator').length <= 1) return false;
+    return true;
+  }
+
   function saveUsers() {
     try {
       localStorage.setItem('trikonet_users_cms', JSON.stringify(users));
@@ -7579,7 +7999,7 @@ export async function initAdmin() {
                 <div class="row-actions">
                   <a href="#user-editor" class="row-action-link edit-link" data-user-edit="${u.id}">Edit</a>
                   <a href="mailto:${esc(u.email)}" class="row-action-link view-link">Email</a>
-                  ${u.username !== 'admin' ? `<a href="#" class="row-action-link trash-link" data-user-delete="${u.id}">Delete</a>` : ''}
+                  ${canDeleteUser(u) ? `<a href="#" class="row-action-link trash-link" data-user-delete="${u.id}">Delete</a>` : ''}
                 </div>
               </div>
             </div>
@@ -7593,9 +8013,9 @@ export async function initAdmin() {
           <td class="user-col-role"><span class="pill-role ${roleClass}">${esc(u.role)}</span></td>
           <td class="user-col-posts" style="text-align:center;"><span class="modern-tax-count-chip">${u.posts || 0}</span></td>
           <td class="user-col-status" style="text-align:right;">
-            <span class="modern-status-badge status-active">
+            <span class="modern-status-badge ${u.status === 'inactive' ? 'status-inactive' : 'status-active'}">
               <span class="status-pulse-dot"></span>
-              <span>Active</span>
+              <span>${u.status === 'inactive' ? 'Inactive' : 'Active'}</span>
             </span>
           </td>
         </tr>
@@ -7626,12 +8046,13 @@ export async function initAdmin() {
     form.reset();
     document.getElementById('field-user-id').value = u.id || '';
     document.getElementById('user-username').value = u.username || '';
-    document.getElementById('user-username').readOnly = Boolean(u.id);
+    document.getElementById('user-username').readOnly = false;
     document.getElementById('user-email').value = u.email || '';
     document.getElementById('user-first-name').value = u.firstName || '';
     document.getElementById('user-last-name').value = u.lastName || '';
     document.getElementById('user-website').value = u.website || '';
     document.getElementById('user-role').value = u.role || 'Employer';
+    document.getElementById('user-status').value = u.status || 'active';
     document.getElementById('user-bio').value = u.bio || '';
     document.getElementById('user-password').value = '';
 
@@ -7711,14 +8132,16 @@ export async function initAdmin() {
         return;
       }
       if (!confirm(`Delete ${selectedIds.length} selected user(s)?`)) return;
-      users = users.filter(u => !selectedIds.includes(u.id) || u.username === 'admin');
+      const blocked = users.filter(u => selectedIds.includes(u.id) && !canDeleteUser(u));
+      users = users.filter(u => !selectedIds.includes(u.id) || !canDeleteUser(u));
       saveUsers();
       renderUserRows();
+      if (blocked.length) alert('The signed-in account and the last administrator were kept to prevent an account lockout.');
     }
   });
 
   // User form submission
-  document.getElementById('admin-user-form')?.addEventListener('submit', e => {
+  document.getElementById('admin-user-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
     const id = Number(form.userId.value);
@@ -7728,27 +8151,65 @@ export async function initAdmin() {
     const lastName = form.lastName.value.trim();
     const website = form.website.value.trim();
     const role = form.role.value;
+    const status = form.status.value;
+    const password = form.password.value;
     const bio = form.bio.value.trim();
     const name = `${firstName} ${lastName}`.trim() || username;
 
     if (!username || !email) return;
+    if (!id && password.length < 8) {
+      alert('New users must have a password of at least 8 characters.');
+      return;
+    }
+    if (users.some(u => u.id !== id && u.username.toLowerCase() === username.toLowerCase())) {
+      alert('Username is already taken. Please choose another.');
+      return;
+    }
+    if (users.some(u => u.id !== id && u.email.toLowerCase() === email.toLowerCase())) {
+      alert('Email address is already assigned to another user.');
+      return;
+    }
 
     if (id) {
       const existing = users.find(u => u.id === id);
       if (existing) {
+        const previousUsername = existing.username;
+        if (previousUsername === signedInAdminUsername() && status === 'inactive') {
+          alert('You cannot deactivate the account you are currently using.');
+          return;
+        }
+        if (existing.role === 'Administrator' && role !== 'Administrator' && users.filter(item => item.role === 'Administrator').length <= 1) {
+          alert('Create another administrator before changing the role of the last administrator.');
+          return;
+        }
+        if (!existing.passwordHash && password.length < 8) {
+          alert('Set a password of at least 8 characters before saving this user.');
+          return;
+        }
+        if (password && password.length < 8) {
+          alert('Passwords must contain at least 8 characters.');
+          return;
+        }
+        existing.username = username;
         existing.email = email;
         existing.firstName = firstName;
         existing.lastName = lastName;
         existing.name = name;
         existing.website = website;
         existing.role = role;
+        existing.status = status;
         existing.bio = bio;
+        if (password) existing.passwordHash = await hashUserPassword(password);
+        if (previousUsername === signedInAdminUsername()) {
+          try {
+            const session = JSON.parse(localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session') || '{}');
+            Object.assign(session, { username, email, name, role, expiresAt: Date.now() + (8 * 60 * 60 * 1000) });
+            localStorage.removeItem('trikonet_admin_session');
+            sessionStorage.setItem('trikonet_admin_session', JSON.stringify(session));
+          } catch {}
+        }
       }
     } else {
-      if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-        alert('Username is already taken. Please choose another.');
-        return;
-      }
       const palette = ['#4f46e5', '#0284c7', '#059669', '#d97706', '#dc2626', '#7c3aed', '#ec4899'];
       const color = palette[Math.floor(Math.random() * palette.length)];
       const initials = (name.split(/\s+/).map(x => x[0]).join('').slice(0, 2) || username.slice(0, 2)).toUpperCase();
@@ -7765,9 +8226,10 @@ export async function initAdmin() {
         color,
         initials,
         registered: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        status: 'active',
+        status,
         bio
       };
+      if (password) newUser.passwordHash = await hashUserPassword(password);
       users.unshift(newUser);
     }
 
@@ -7796,8 +8258,8 @@ export async function initAdmin() {
       const id = Number(delBtn.dataset.userDelete);
       const u = users.find(x => x.id === id);
       if (!u) return;
-      if (u.username === 'admin') {
-        alert('Primary administrator account cannot be deleted.');
+      if (!canDeleteUser(u)) {
+        alert(u.username === signedInAdminUsername() ? 'You cannot delete the account you are currently using.' : 'You cannot delete the last administrator account.');
         return;
       }
       if (!confirm(`Are you sure you want to delete user “${u.username}”?`)) return;
