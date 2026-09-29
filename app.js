@@ -208,8 +208,47 @@ export function getPostUrl(postOrSlug) {
   return `/${prefix}/${slug}`;
 }
 
+const UAE_CANONICAL_ORDER = [
+  'uae',
+  'united arab emirates',
+  'abu dhabi',
+  'dubai',
+  'sharjah',
+  'ajman',
+  'umm al quwain',
+  'ras al khaimah',
+  'fujairah',
+  'al ain'
+];
+
+export function sortUaeLocations(items) {
+  if (!Array.isArray(items)) return [];
+  return [...items].sort((a, b) => {
+    const nameA = String((a && (a.name || a.title)) || a || '').trim().toLowerCase();
+    const nameB = String((b && (b.name || b.title)) || b || '').trim().toLowerCase();
+    const indexA = UAE_CANONICAL_ORDER.indexOf(nameA);
+    const indexB = UAE_CANONICAL_ORDER.indexOf(nameB);
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return nameA.localeCompare(nameB);
+  });
+}
+
+const defaultLocations = [
+  { id: 258, name: 'UAE', slug: 'uae', count: 4833 },
+  { id: 259, name: 'Abu Dhabi', slug: 'abu-dhabi', count: 3422 },
+  { id: 260, name: 'Dubai', slug: 'dubai', count: 6252 },
+  { id: 261, name: 'Sharjah', slug: 'sharjah-uae', count: 819 },
+  { id: 262, name: 'Ajman', slug: 'ajman', count: 389 },
+  { id: 263, name: 'Umm Al Quwain', slug: 'umm-al-quwain-uae', count: 17 },
+  { id: 264, name: 'Ras Al Khaimah', slug: 'ras-al-khaimah', count: 229 },
+  { id: 265, name: 'Fujairah', slug: 'fujairah', count: 37 },
+  { id: 843, name: 'Al Ain', slug: 'al-ain', count: 333 }
+];
+
 data.counts={job_listing:0,employer:0,post:0};
-data.taxonomies={types:[],categories:[...defaultTopCategories],locations:[],tags:[],employerCategories:[],employerLocations:[]};
+data.taxonomies={types:[],categories:[...defaultTopCategories],locations:[...defaultLocations],tags:[],employerCategories:[],employerLocations:[]};
 let queryParams=new URLSearchParams(location.search),currentPage=Math.max(Number(queryParams.get('page'))||1,1);
 const locationPathMatch=path.match(/^\/job-location\/([^/]+)$/);
 if(locationPathMatch&&!queryParams.get('location')){
@@ -328,7 +367,10 @@ async function loadLocalJobs(){
     if (isCategoryPage && (!data.taxonomies?.categories || data.taxonomies.categories.length <= defaultTopCategories.length)) {
       try {
         const taxRes = await fetch('/api/wp/taxonomies');
-        if (taxRes.ok) data.taxonomies = await taxRes.json();
+        if (taxRes.ok) {
+          data.taxonomies = await taxRes.json();
+          if (Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
+        }
       } catch {}
     }
     const catSlug = isCategoryPage ? path.replace('/category/', '').split('/')[0].split('?')[0] : '';
@@ -363,7 +405,7 @@ async function loadLocalJobs(){
 async function loadLocalEmployers(){
   try{
     if(!data.taxonomies?.employerCategories||data.taxonomies.employerCategories.length===0){
-      try{const taxRes=await fetch('/api/wp/taxonomies');if(taxRes.ok)data.taxonomies=await taxRes.json();}catch{}
+      try{const taxRes=await fetch('/api/wp/taxonomies');if(taxRes.ok){data.taxonomies=await taxRes.json();if(Array.isArray(data.taxonomies?.locations))data.taxonomies.locations=sortUaeLocations(data.taxonomies.locations);}}catch{}
     }
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
     for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
@@ -527,7 +569,11 @@ async function loadConnectedContent(){
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
       : `/api/wp/posts?per_page=${path==='/'?12:30}&summary=1`;
     const [taxonomyResponse,postsResponse]=await Promise.all([fetch('/api/wp/taxonomies'),fetch(postQuery)]);
-    if(taxonomyResponse.ok)data.taxonomies=await taxonomyResponse.json();
+    if(taxonomyResponse.ok){
+      data.taxonomies=await taxonomyResponse.json();
+      if(Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
+      if(Array.isArray(data.taxonomies?.employerLocations)) data.taxonomies.employerLocations = sortUaeLocations(data.taxonomies.employerLocations);
+    }
     if(postsResponse.ok){
       const posts=await postsResponse.json();
       if(posts.length)data.posts=posts.map(post=>{const rawTitle=post.title?.rendered||'';const rawExcerpt=(post.excerpt?.rendered||'').replace(/<[^>]+>/g,'').trim();const prefix=POST_SLUG_PREFIXES[post.slug]||post.url_prefix||'blog';const cat=post.categoryName||post.category_name||CATEGORY_PREFIX_LABELS[prefix]||detectBlogCategory(rawTitle,rawExcerpt);const authorName=(post.author_display_name||(post.author_name&&post.author_name!=='Trikonet'?post.author_name:''))||'Athira Susan James';return {id:post.id,title:rawTitle,slug:post.slug,category:'blog',categoryName:cat,urlPrefix:prefix,localUrl:`/${prefix}/${post.slug}`,date:new Date(`${post.date}Z`).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),excerpt:rawExcerpt,content:post.content?.rendered||'',featuredImage:post.featured_image||'',author:authorName,authorRole:'Written By',authorImage:post.author_avatar||'/assets/athira-susan-james.png',authorLink:'#',reviewer:post.reviewer_name||'Mayur Kacholiya',reviewerRole:'Reviewed by:',reviewerImage:post.reviewer_avatar||'/assets/mayur-kacholiya.png',reviewerLink:'#'}})
@@ -999,15 +1045,29 @@ function footer(){
     </div>
   </footer>`;
 }
-const optionList=(items,placeholder,selected)=>`<option value="">${placeholder}</option>${(items||[]).map(item=>`<option value="${escapeAttr(item.name)}"${selected===item.name?' selected':''}>${item.name}</option>`).join('')}`;
+const optionList=(items,placeholder,selected)=>{
+  const isLocList = Array.isArray(items) && items.some(i => UAE_CANONICAL_ORDER.includes(String(i?.name || i || '').trim().toLowerCase()));
+  const list = isLocList ? sortUaeLocations(items) : (items || []);
+  return `<option value="">${placeholder}</option>${list.map(item=>{
+    const val = typeof item === 'object' && item !== null ? item.name : item;
+    return `<option value="${escapeAttr(val)}"${selected===val?' selected':''}>${val}</option>`;
+  }).join('')}`;
+};
 function customSelect(name, items, defaultLabel, selectedValue) {
+  let list = items || [];
+  if (name === 'location' || list.some(i => UAE_CANONICAL_ORDER.includes(String(i?.name || i || '').trim().toLowerCase()))) {
+    list = sortUaeLocations(list);
+  }
   const currentVal = selectedValue || '';
-  const currentItem = (items || []).find(item => item.name === currentVal);
-  const currentLabel = currentItem ? currentItem.name : defaultLabel;
+  const currentItem = list.find(item => (typeof item === 'object' ? item.name : item) === currentVal);
+  const currentLabel = currentItem ? (typeof currentItem === 'object' ? currentItem.name : currentItem) : defaultLabel;
   
   const optionsHtml = [
     { name: '', label: defaultLabel },
-    ...(items || []).map(item => ({ name: item.name, label: item.name }))
+    ...list.map(item => {
+      const val = typeof item === 'object' && item !== null ? item.name : item;
+      return { name: val, label: val };
+    })
   ].map(opt => {
     const isSelected = opt.name === currentVal;
     return `<li class="custom-select-option${isSelected ? ' selected' : ''}" data-value="${escapeAttr(opt.name)}" role="option" aria-selected="${isSelected ? 'true' : 'false'}">
@@ -1646,7 +1706,7 @@ function jobs(){
             ${selectedLoc && selectedLoc !== 'Country or City' ? `<a href="${makeRemoveUrl('location')}" class="jobs-filter-clear">Clear</a>` : ''}
           </div>
           <div class="jobs-filter-list">
-            ${(data.taxonomies?.locations || []).filter(l => ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al Khaimah'].includes(l.name)).sort((a,b) => (b.count || 0) - (a.count || 0)).map(x => {
+            ${sortUaeLocations((data.taxonomies?.locations || []).filter(l => ['UAE', 'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah', 'Al Ain'].some(k => k.toLowerCase() === (l.name || '').toLowerCase()))).map(x => {
               const isSelected = selectedLoc === x.name;
               const countFormatted = Number(x.count || 0).toLocaleString();
               return `<a class="jobs-filter-row${isSelected ? ' active' : ''}" href="${makeFilterUrl('location', x.name)}">
@@ -1889,7 +1949,7 @@ function nurseJobsPage(){
         <div class="jobs-filter-collapsible">
         <div class="nurse-filter-group">
           <h3>Location</h3>
-          ${(data.taxonomies?.locations || []).filter(l => ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al Khaimah'].includes(l.name)).sort((a,b) => (b.count || 0) - (a.count || 0)).map(x => {
+          ${sortUaeLocations((data.taxonomies?.locations || []).filter(l => ['UAE', 'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah', 'Al Ain'].some(k => k.toLowerCase() === (l.name || '').toLowerCase()))).map(x => {
             const params = new URLSearchParams(queryParams);
             const isSelected = selectedLoc === x.name;
             if (isSelected) params.delete('location');
@@ -2175,7 +2235,7 @@ function categoryPage() {
         <div class="jobs-filter-collapsible">
         <div class="nurse-filter-group">
           <h3>Location</h3>
-          ${(data.taxonomies?.locations || []).filter(l => ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al Khaimah'].includes(l.name)).sort((a,b) => (b.count || 0) - (a.count || 0)).map(x => {
+          ${sortUaeLocations((data.taxonomies?.locations || []).filter(l => ['UAE', 'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah', 'Al Ain'].some(k => k.toLowerCase() === (l.name || '').toLowerCase()))).map(x => {
             const params = new URLSearchParams(queryParams);
             const isSelected = selectedLoc === x.name;
             if (isSelected) params.delete('location');
@@ -2397,7 +2457,10 @@ function employers() {
 
   const locCountMap = new Map((data.taxonomies?.employerLocations || []).map(l => [l.name.toLowerCase(), Number(l.count)]));
   const getLocCount = (name, fallback) => {
-    const val = locCountMap.get(name.toLowerCase());
+    let val = locCountMap.get(name.toLowerCase());
+    if ((val === undefined || isNaN(val)) && name.toLowerCase() === 'uae') {
+      val = locCountMap.get('united arab emirates');
+    }
     return (val !== undefined && val !== null && !isNaN(val)) ? val : fallback;
   };
 
@@ -2452,15 +2515,15 @@ function employers() {
   }));
 
   const sidebarLocationKeys = [
-    { name: 'Dubai', fallback: 1680 },
-    { name: 'United Arab Emirates', fallback: 655 },
+    { name: 'UAE', fallback: 655 },
     { name: 'Abu Dhabi', fallback: 450 },
+    { name: 'Dubai', fallback: 1680 },
     { name: 'Sharjah', fallback: 122 },
     { name: 'Ajman', fallback: 62 },
+    { name: 'Umm Al Quwain', fallback: 10 },
     { name: 'Ras Al Khaimah', fallback: 37 },
-    { name: 'Al Ain', fallback: 20 },
     { name: 'Fujairah', fallback: 18 },
-    { name: 'Umm Al Quwain', fallback: 10 }
+    { name: 'Al Ain', fallback: 20 }
   ];
 
   const sidebarLocations = sidebarLocationKeys.map(loc => ({
@@ -3362,7 +3425,7 @@ const CANDIDATE_LICENSES = [
 ];
 const CANDIDATE_AVAILABILITY = ['Immediately', 'Within 15 days', 'Within 30 days', 'Within 60 days', 'More than 60 days'];
 const CANDIDATE_HOSPITAL_TYPES = ['Any Employer Type', 'Private Corporate Company', 'Government / Semi-Government', 'Multinational Corporation (MNC)', 'Hospital / Medical Centre', 'Startup / Tech Agency', 'Retail / Hospitality Chain', 'Educational Institution'];
-const CANDIDATE_LOCATIONS = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
+const CANDIDATE_LOCATIONS = ['UAE', 'Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah', 'Al Ain'];
 const CANDIDATE_COUNTRIES = [
   { name: 'United Arab Emirates', code: 'AE', dial: '+971', flag: '🇦🇪' },
   { name: 'Saudi Arabia', code: 'SA', dial: '+966', flag: '🇸🇦' },
