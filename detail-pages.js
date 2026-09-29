@@ -76,14 +76,14 @@ function jobCard([title,slug,category,location,type],logo='') {
   const cleanCat = decode(category);
   const cleanLoc = decode(location);
   const meta = [
-    cleanCat ? `▣ &nbsp;${esc(cleanCat)}` : '',
-    cleanLoc ? `⌖ &nbsp;${esc(cleanLoc)}` : ''
-  ].filter(Boolean).join(' &nbsp;&nbsp;');
+    cleanCat ? `<span><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>${esc(cleanCat)}</span>` : '',
+    cleanLoc ? `<span><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(cleanLoc)}</span>` : ''
+  ].filter(Boolean).join('');
   const fallback = esc((cleanTitle || 'J').charAt(0));
   const logoHtml = logo
-    ? `<img src="${esc(logo)}" alt="" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="detail-job-logo-fallback" hidden>${fallback}</div>`
+    ? `<img src="${esc(logo)}" alt="" onerror="this.outerHTML='<div class=&quot;detail-job-logo-fallback&quot;>${fallback}</div>'">`
     : `<div class="detail-job-logo-fallback">${fallback}</div>`;
-  return `<a class="detail-job-row" href="/job/${esc(slug)}">${logoHtml}<div class="detail-job-row-main"><h3>${esc(cleanTitle)}</h3>${meta ? `<p>${meta}</p>` : ''}<span class="detail-pill">${esc(type || 'Full Time')}</span></div><span class="detail-bookmark" aria-hidden="true">♧</span></a>`;
+  return `<a class="detail-job-row" href="/job/${esc(slug)}">${logoHtml}<div class="detail-job-row-main"><h3>${esc(cleanTitle)}</h3>${meta ? `<p>${meta}</p>` : ''}<span class="detail-pill">${esc(type || 'Full Time')}</span></div><span class="detail-bookmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span></a>`;
 }
 
 function relatedJobCard(record, employerLogo = '') {
@@ -91,14 +91,16 @@ function relatedJobCard(record, employerLogo = '') {
   const title = record?.title?.rendered || record?.title || '';
   const category = record?.local ? (record.categories || []).join(', ') : orderedValues(m._job_category, record?.job_listing_category) || record?.category || '';
   const location = record?.local ? (record.locations || []).join(', ') : values(m._job_location) || record?.location || '';
-  const type = record?.local ? (record.types || []).join(', ') : values(m._job_type) || record?.type || '';
+  let type = record?.local ? (record.types || []).join(', ') : values(m._job_type) || '';
+  if (!type || type === 'job_listing') {
+    type = (record?.type && record?.type !== 'job_listing') ? record.type : 'Full Time';
+  }
   const logo = record?.logo || m._job_logo || employerLogo;
   return jobCard([title, record?.slug || '', category, location, type], logo);
 }
 
-function formatSocialLinks(socials, website) {
+function formatSocialLinks(socials) {
   const links = [];
-  if (website) links.push({ name: 'Website', url: website });
   if (socials && typeof socials === 'object') {
     if (Array.isArray(socials.items)) {
       socials.items.forEach(it => {
@@ -121,7 +123,7 @@ function formatSocialLinks(socials, website) {
     }
   });
   if (!unique.length) return '';
-  return `<div class="detail-social-links" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">${unique.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="detail-social-pill" style="display:inline-flex;align-items:center;padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;font-size:11.5px;color:#1d4ed8;text-decoration:none;">${esc(l.name)} ↗</a>`).join('')}</div>`;
+  return `<div class="detail-social-links" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">${unique.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow" class="detail-social-pill" style="display:inline-flex;align-items:center;padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;font-size:11.5px;color:#1d4ed8;text-decoration:none;">${esc(l.name)} ↗</a>`).join('')}</div>`;
 }
 
 function resolveEmployerProfile(record, jobEmployerUrl = '', company = '') {
@@ -184,7 +186,7 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
     : employer?.content?.rendered || '';
 
   const cleanBio = rawContent || `<p>${esc(compName)} is a leading employer operating across the UAE and GCC region, providing top-tier professional career opportunities, modern workplace culture, and continuous development for talent.</p>`;
-  const socialsHtml = formatSocialLinks(employer?.socials, compWebsite);
+  const socialsHtml = formatSocialLinks(employer?.socials);
 
   return `
     <section class="detail-about-company-card" aria-label="About ${esc(compName)}">
@@ -232,7 +234,7 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
 
       ${(compWebsite || socialsHtml) ? `
         <div class="detail-about-company-footer">
-          ${compWebsite ? `<a href="${esc(compWebsite)}" target="_blank" rel="noopener noreferrer" class="detail-about-website-btn">🌐 Official Website ↗</a>` : ''}
+          ${compWebsite ? `<a href="${esc(compWebsite)}" target="_blank" rel="noopener noreferrer nofollow" class="detail-about-website-btn">🌐 Official Website ↗</a>` : ''}
           ${socialsHtml}
         </div>
       ` : ''}
@@ -259,7 +261,10 @@ function renderSameOrgJobsSidebar(orgJobs, company, employer, employerPath) {
           const jTitle = decode(job.title?.rendered || job.title || 'Job Opening');
           const jCat = job.category || (job.categories || []).join(', ') || values(job.metas?._job_category) || '';
           const jLoc = job.location || (job.locations || []).join(', ') || values(job.metas?._job_location) || '';
-          const jType = job.type || values(job.metas?._job_type) || 'Full Time';
+          let jType = values(job.metas?._job_type) || (job.types || []).join(', ') || '';
+          if (!jType || jType === 'job_listing') {
+            jType = (job.type && job.type !== 'job_listing') ? job.type : 'Full Time';
+          }
           const jDate = resolveJobDate(job);
           return `
             <a class="detail-org-job-card" href="/job/${esc(job.slug)}">
@@ -299,7 +304,7 @@ function renderSameOrgJobsSidebar(orgJobs, company, employer, employerPath) {
   `;
 }
 
-export function renderJobDetail(record, employer, path, orgJobs = []) {
+export function renderJobDetail(record, employer, path, orgJobs = [], relatedJobs = []) {
   if (!record) return '<main class="detail-page"><div class="wrap detail-empty"><h1>Job not found</h1><a href="/jobs">Browse Jobs</a></div></main>';
   const m=record.metas||{};
   const title=decode(record.title?.rendered||record.title);
@@ -318,7 +323,15 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
   const experience=record.experience||m['custom-text-27987527']||'';
   const qualification=record.qualification||m['custom-text-28953441']||'';
   const shareUrl=encodeURIComponent(`https://www.trikonet.com${path}`);
-  const related=(orgJobs || []).filter(item => item && item.slug !== record.slug).slice(0, 4);
+  const currentCompany = (m._job_employer_name || record.company || employer?.title?.rendered || employer?.title || '').trim().toLowerCase();
+  const currentEmployerId = m._job_employer_posted_by || employer?.id;
+  const isSameCompany = (job) => {
+    const comp = (job?.metas?._job_employer_name || job?.company || '').trim().toLowerCase();
+    if (currentCompany && comp && (comp === currentCompany || comp.includes(currentCompany) || currentCompany.includes(comp))) return true;
+    if (currentEmployerId && job?.metas?._job_employer_posted_by && String(job.metas._job_employer_posted_by) === String(currentEmployerId)) return true;
+    return false;
+  };
+  const related = (relatedJobs || []).filter(item => item && item.slug !== record.slug && !isSameCompany(item)).slice(0, 4);
   const metaSpans = [
     category ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${esc(category)}</span>` : '',
     location ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(location)}</span>` : '',
@@ -331,6 +344,7 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
   return `<main class="detail-page detail-exact">
     <section class="detail-hero">
       <div class="wrap detail-hero-inner">
+        <button class="detail-report-job-btn detail-report-corner-btn" type="button" id="openJobReportBtn" aria-label="Report this job">Report this job</button>
         <a href="${esc(employerPath)}" class="detail-logo-card">
           ${logo ? `<img class="detail-logo" src="${esc(logo)}" alt="${esc(company)}">` : `<div class="detail-logo-fallback">${esc((company || title || 'J').charAt(0))}</div>`}
         </a>
@@ -340,7 +354,7 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
           ${type ? `<span class="detail-pill">${esc(type)}</span>` : ''}
         </div>
         <div class="detail-actions">
-          <a class="primary apply" href="${esc(record.applyUrl||m._job_apply_url||'#')}">Apply Now</a>
+          <a class="primary apply" href="${esc(record.applyUrl||m._job_apply_url||'#')}" target="_blank" rel="noopener noreferrer nofollow">Apply Now</a>
           <button class="save" type="button" aria-label="Save job"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
         </div>
       </div>
@@ -357,33 +371,60 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
           <span>Read more</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
-        <p class="detail-tags">Tags: ${esc(record.local?(record.tags||[]).join(', ')||'No tags for this post.':'No tags for this post.')}</p>
+        ${(record.local ? (record.tags || []) : (record.tags || [])).length ? `
+          <div class="detail-tags-row">
+            <span class="detail-tags-label">Tags:</span>
+            <div class="detail-tags-list">
+              ${(record.local ? record.tags : record.tags).map(t => `<span class="detail-tag-pill">${esc(t)}</span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
 
         <!-- About The Company (Bottom Below Job Description) -->
         ${aboutCompanyHtml}
 
         <div class="share">
-          <h3>Share this post</h3>
-          <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}">Facebook</a>
-          <a href="https://twitter.com/intent/tweet?url=${shareUrl}">Twitter</a>
-          <a href="https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}">LinkedIn</a>
+          <div class="share-header">
+            <h3>Share this job</h3>
+            <span class="share-subtitle">Know someone looking for this role?</span>
+          </div>
+          <div class="share-btns">
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}" target="_blank" rel="noopener noreferrer nofollow" class="detail-share-pill share-linkedin" aria-label="Share on LinkedIn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              LinkedIn
+            </a>
+            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(title + ': https://www.trikonet.com' + path)}" target="_blank" rel="noopener noreferrer nofollow" class="detail-share-pill share-wa" aria-label="Share on WhatsApp">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+              WhatsApp
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" rel="noopener noreferrer nofollow" class="detail-share-pill share-fb" aria-label="Share on Facebook">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.5 5 15.667 5H18V0h-3.808C10.592 0 9 1.583 9 4.615V8z"/></svg>
+              Facebook
+            </a>
+            <a href="https://twitter.com/intent/tweet?url=${shareUrl}&text=${encodeURIComponent(title)}" target="_blank" rel="noopener noreferrer nofollow" class="detail-share-pill share-x" aria-label="Share on X">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              X
+            </a>
+          </div>
         </div>
-        ${related.length?`<section class="related-list"><h3>Related Jobs</h3>${related.map(item => relatedJobCard(item, logo)).join('')}</section>`:''}
+        ${related.length?`<section class="related-list"><h3>Related Jobs</h3>${related.map(item => relatedJobCard(item)).join('')}</section>`:''}
       </article>
 
       <div class="detail-sidebar">
         <aside class="overview">
-          <h2>Job Overview</h2>
+          <div class="overview-header">
+            <span class="overview-eyebrow">QUICK SUMMARY</span>
+            <h2 class="overview-heading">Job Overview</h2>
+          </div>
           <div class="overview-list">
             ${date ? `
             <div class="overview-item">
               <div class="overview-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b00008" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                   <line x1="16" y1="2" x2="16" y2="6"/>
                   <line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
-                  <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
                 </svg>
               </div>
               <div class="overview-content">
@@ -395,7 +436,7 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
             ${location ? `
             <div class="overview-item">
               <div class="overview-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b00008" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                   <circle cx="12" cy="10" r="3"/>
                 </svg>
@@ -406,11 +447,24 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
               </div>
             </div>` : ''}
 
+            ${type ? `
+            <div class="overview-item">
+              <div class="overview-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="overview-content">
+                <span class="overview-title">Job Type</span>
+                <span class="overview-val">${esc(type)}</span>
+              </div>
+            </div>` : ''}
 
             ${experience ? `
             <div class="overview-item">
               <div class="overview-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b00008" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                 </svg>
@@ -424,7 +478,7 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
             ${qualification ? `
             <div class="overview-item">
               <div class="overview-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b00008" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
                   <path d="M6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
@@ -434,6 +488,7 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
                 <span class="overview-val">${esc(qualification)}</span>
               </div>
             </div>` : ''}
+
           </div>
         </aside>
 
@@ -441,7 +496,30 @@ export function renderJobDetail(record, employer, path, orgJobs = []) {
         ${orgJobsHtml}
       </div>
     </div>
-  </main>`;
+  </main>
+  <div class="job-report-modal" id="jobReportModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="jobReportTitle">
+    <div class="job-report-card">
+      <button type="button" class="job-report-close" id="closeJobReportBtn" aria-label="Close report form">×</button>
+      <span class="job-report-eyebrow">HELP KEEP TRIKONET ACCURATE</span>
+      <h2 id="jobReportTitle">Report this job</h2>
+      <p>Tell us what is wrong with this listing. Our team will review your report.</p>
+      <form id="jobReportForm">
+        <input type="hidden" name="jobSlug" value="${esc(record.slug || '')}">
+        <input type="hidden" name="jobTitle" value="${esc(title)}">
+        <div class="job-report-options">
+          <label><input type="radio" name="reason" value="broken_link" required><span>Application link is not working</span></label>
+          <label><input type="radio" name="reason" value="expired"><span>Job has expired or is no longer available</span></label>
+          <label><input type="radio" name="reason" value="incorrect"><span>Incorrect job information</span></label>
+          <label><input type="radio" name="reason" value="duplicate"><span>Duplicate job listing</span></label>
+          <label><input type="radio" name="reason" value="suspicious"><span>Suspicious or misleading job</span></label>
+          <label><input type="radio" name="reason" value="other"><span>Other issue</span></label>
+        </div>
+        <label class="job-report-details">Additional details <span>(optional)</span><textarea name="details" rows="3" maxlength="1000" placeholder="Share any details that can help us review this listing"></textarea></label>
+        <p class="job-report-message" aria-live="polite"></p>
+        <button type="submit" class="job-report-submit">Submit report</button>
+      </form>
+    </div>
+  </div>`;
 }
 
 export function renderEmployerDetail(record, path, jobs = []) {
@@ -452,8 +530,11 @@ export function renderEmployerDetail(record, path, jobs = []) {
   const location = record.local ? (record.locations || []).join(', ') : values(m._employer_location);
   const isBateel = record.slug === 'bateel-international';
   const logo = record.logo || m._employer_logo || (isBateel ? '/assets/bateel.jpg' : '');
-  const phone = record.phone || m._employer_phone || '';
-  const email = record.email || m._employer_email || '';
+  const phoneRaw = record.phone || record.mobile || m._employer_phone || m._employer_mobile || m._company_phone || '';
+  const phone = Array.isArray(phoneRaw) ? String(phoneRaw[0] || '').trim() : String(phoneRaw || '').trim();
+  const phoneHref = phone.replace(/[^\d+]/g, '');
+  const emailRaw = record.email || m._employer_email || m._company_email || '';
+  const email = Array.isArray(emailRaw) ? String(emailRaw[0] || '').trim() : String(emailRaw || '').trim();
   const website = record.website || m._employer_website || '';
   const founded = record.foundedDate || m._employer_founded_date || '2012';
   const size = record.companySize || m._employer_company_size || '501-1,000';
@@ -461,7 +542,19 @@ export function renderEmployerDetail(record, path, jobs = []) {
   
   let positions = [];
   if (Array.isArray(jobs) && jobs.length) {
-    positions = jobs.map(job => {
+    const normalizedEmployer = title.trim().toLowerCase();
+    const employerSlug = String(record.slug || '').trim().toLowerCase();
+    const matchingJobs = jobs.filter(job => {
+      if (Array.isArray(job)) return false;
+      const jobCompany = String(job.company || job.employerName || '').trim().toLowerCase();
+      const jobEmployerSlug = String(job.employerSlug || '').trim().toLowerCase();
+      let urlSlug = '';
+      try { urlSlug = new URL(job.employerUrl || '', window.location.origin).pathname.split('/').filter(Boolean).pop()?.toLowerCase() || ''; } catch {}
+      return (jobCompany && jobCompany === normalizedEmployer) ||
+        (employerSlug && jobEmployerSlug === employerSlug) ||
+        (employerSlug && urlSlug === employerSlug);
+    });
+    positions = matchingJobs.map(job => {
       if (Array.isArray(job)) return job;
       return [
         job.title || '',
@@ -474,7 +567,9 @@ export function renderEmployerDetail(record, path, jobs = []) {
   }
   if (!positions.length && isBateel) positions = bateelJobs;
 
-  const totalOpenJobs = positions.length || record.openJobs || (m._employer_open_jobs ? Number(m._employer_open_jobs) : 0);
+  // Count only the vacancies actually matched to this employer. API page-size
+  // limits and stale employer metadata must never be shown as a job count.
+  const totalOpenJobs = positions.length;
   const empDesc = record.description || '';
   const hasEmpHtml = /<[a-z][\s\S]*>/i.test(empDesc);
   const rawContent = record.local
@@ -584,42 +679,16 @@ export function renderEmployerDetail(record, path, jobs = []) {
               <h1 class="emp-profile-name">${esc(title)}</h1>
             </div>
 
-            <!-- Rating: ONLY if there is any real rating! -->
-            <div id="empHeaderRatingRow" class="emp-profile-rating-row" style="${hasRating ? '' : 'display:none;'}">
-              <span class="emp-rating-star">★</span>
-              <strong class="emp-rating-num" id="empHeaderRatingVal">${ratingScore || '0.0'}</strong>
-              <span class="emp-rating-count" id="empHeaderReviewCnt">(${reviewCount} reviews)</span>
+            <div class="emp-profile-pills-row">
+              ${companyCategory ? `<span class="emp-meta-pill emp-cat-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>${esc(companyCategory)}</span>` : ''}
+              ${location ? `<span class="emp-meta-pill emp-location-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>${esc(location)}</span>` : ''}
             </div>
-
-            <!-- Subtitle / Tagline / Location -->
-            ${tagline ? `<p class="emp-profile-tagline">${esc(tagline)}</p>` : ''}
-
-            <!-- Company Category only -->
-            ${companyCategory ? `
-              <div class="emp-profile-pills-row">
-                <span class="emp-meta-pill emp-cat-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:5px;display:inline-block;vertical-align:-1px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>${esc(companyCategory)}</span>
-              </div>
-            ` : ''}
           </div>
         </div>
 
         <div class="emp-profile-header-actions">
-          <div class="emp-header-rate-widget emp-rate-widget">
-            <div class="emp-rate-head">
-              <div class="emp-rate-icon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              </div>
-              <div>
-                <strong>Worked at ${esc(title)}?</strong>
-                <p>Share your experience and help other job seekers.</p>
-              </div>
-            </div>
-            <button type="button" class="emp-rate-btn emp-open-rate-modal" id="openRateCompanyBtnHeader">Write review</button>
-            <div class="emp-claim-prompt-row">
-              <span class="emp-claim-question">Represent this company?</span>
-              <button type="button" class="emp-claim-cta-btn" id="empOpenClaimBtn" data-slug="${esc(record.slug)}" data-name="${esc(title)}">Claim this profile</button>
-            </div>
-          </div>
+          <button type="button" class="emp-follow-btn" data-slug="${esc(record.slug)}">+ Follow</button>
+          <button type="button" class="emp-profile-claim-link" id="empOpenClaimBtn" data-slug="${esc(record.slug)}" data-name="${esc(title)}">Own this company? <strong>Claim profile</strong></button>
         </div>
       </section>
 
@@ -670,10 +739,22 @@ export function renderEmployerDetail(record, path, jobs = []) {
                   <span class="emp-info-label">Headquarters</span>
                   <span class="emp-info-val">${esc(hq)}</span>
                 </div>
+                ${phone ? `
+                  <div class="emp-info-item">
+                    <span class="emp-info-label">Phone</span>
+                    <span class="emp-info-val"><a href="tel:${esc(phoneHref)}" class="emp-link-external">${esc(phone)}</a></span>
+                  </div>
+                ` : ''}
+                ${email ? `
+                  <div class="emp-info-item">
+                    <span class="emp-info-label">Email</span>
+                    <span class="emp-info-val"><a href="mailto:${esc(email)}" class="emp-link-external">${esc(email)}</a></span>
+                  </div>
+                ` : ''}
                 <div class="emp-info-item emp-info-full">
                   <span class="emp-info-label">Website</span>
                   <span class="emp-info-val">
-                    ${website ? `<a href="${esc(website)}" target="_blank" rel="noopener noreferrer" class="emp-link-external">${esc(website)} ↗</a>` : '—'}
+                    ${website ? `<a href="${esc(website)}" target="_blank" rel="noopener noreferrer nofollow" class="emp-link-external">${esc(website)} ↗</a>` : '—'}
                   </span>
                 </div>
                 ${category ? `
@@ -780,20 +861,6 @@ export function renderEmployerDetail(record, path, jobs = []) {
                 </div>
               </div>
 
-              <!-- Prompt Callout to Rate -->
-              <div class="emp-rate-callout-box">
-                <div class="emp-rate-callout-content">
-                  <div class="emp-rate-callout-icon">✨</div>
-                  <div>
-                    <h4>Worked at ${esc(title)}?</h4>
-                    <p>Share your authentic workplace experience, salary insights, and culture feedback to assist UAE job seekers.</p>
-                  </div>
-                </div>
-                <button type="button" class="emp-rate-callout-btn" id="openRateCompanyCalloutBtn">
-                  ★ Add Your Rating
-                </button>
-              </div>
-
               <!-- Live User Reviews Feed (NO DUMMY REVIEWS) -->
               <div class="emp-reviews-feed" style="margin-top: 28px;">
                 <h3 class="emp-feed-heading">Recent Workplace Reviews</h3>
@@ -804,7 +871,6 @@ export function renderEmployerDetail(record, path, jobs = []) {
                   <div class="emp-empty-reviews-icon">★</div>
                   <h4>No reviews yet for ${esc(title)}</h4>
                   <p>Be the first employee to share your workplace rating and experience with fellow job seekers.</p>
-                  <button type="button" class="emp-rate-callout-btn" id="openRateCompanyEmptyBtn">★ Add First Rating</button>
                 </div>
               </div>
 
@@ -826,18 +892,6 @@ export function renderEmployerDetail(record, path, jobs = []) {
             <div class="emp-recruiter-icon-wrap" aria-hidden="true">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
             </div>
-          </div>
-
-          <!-- Rate Workplace CTA (Mobile View) -->
-          <div class="emp-sidebar-widget emp-rate-widget emp-sidebar-rate-widget">
-            <div class="emp-rate-head">
-              <div class="emp-rate-icon">⭐</div>
-              <div>
-                <strong>Rate ${esc(title)}</strong>
-                <p>Share your employee review to assist fellow UAE job seekers.</p>
-              </div>
-            </div>
-            <button type="button" class="emp-rate-btn emp-open-rate-modal" id="openRateCompanyBtnSidebar">Write review</button>
           </div>
 
         </aside>

@@ -1,6 +1,6 @@
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=11.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=14.0';
 import { renderAdmin, initAdmin } from './admin.js?v=10.0';
-import { initCVBuilder } from './cvBuilder.js?v=20260929-clean-cards-v24';
+import { initCVBuilder } from './cvBuilder.js?v=20260929-library-route-v27';
 const seed = {
   jobs:[
     {id:1,title:'Corporate Accounting Manager',company:'Bateel International',category:'Accountant, Accounting or Finance',location:'Dubai',type:'Full Time',date:'September 22, 2026',slug:'corporate-accounting-manager'},
@@ -17,7 +17,9 @@ const seed = {
   pages:{about:{title:'About Us',content:'Welcome to Trikonet! We are Konets, and this is not just a job portal—we’re your gateway to limitless career opportunities in the UAE and beyond.'}}
 };
 const store = {get(){try{return JSON.parse(localStorage.getItem('trikonetCMS'))||structuredClone(seed)}catch{return structuredClone(seed)}},set(v){localStorage.setItem('trikonetCMS',JSON.stringify(v))},reset(){localStorage.removeItem('trikonetCMS');location.reload()}};
-const data=store.get(), path=location.pathname.replace(/\/$/,'')||'/';
+const data=store.get();
+let path=location.pathname.replace(/\/$/,'')||'/';
+const SITE_ORIGIN='https://www.trikonet.com';
 const defaultTopCategories = [
   { name: 'Education and Training', slug: 'education-and-training', count: 3148 },
   { name: 'Accounting or Finance', slug: 'accounting-finance', count: 1767 },
@@ -195,12 +197,44 @@ export function getPostUrl(postOrSlug) {
 
 data.counts={job_listing:0,employer:0,post:0};
 data.taxonomies={types:[],categories:[...defaultTopCategories],locations:[],tags:[],employerCategories:[],employerLocations:[]};
-const queryParams=new URLSearchParams(location.search),currentPage=Math.max(Number(queryParams.get('page'))||1,1),pageSize=30;
+let queryParams=new URLSearchParams(location.search),currentPage=Math.max(Number(queryParams.get('page'))||1,1);
+const locationPathMatch=path.match(/^\/job-location\/([^/]+)$/);
+if(locationPathMatch&&!queryParams.get('location')){
+  queryParams.set('location',decodeURIComponent(locationPathMatch[1]).replace(/-/g,' ').replace(/\b\w/g,char=>char.toUpperCase()));
+}
+const pageSize=30;
 const escapeAttr=value=>String(value||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const icons={search:'⌕',pin:'⌖',bag:'▣'};
-let wpRecord=null,wpEmployer=null,profileJobs=[],orgJobs=[],currentUser=null,emailCampaigns=[];
+let wpRecord=null,wpEmployer=null,profileJobs=[],orgJobs=[],categoryJobs=[],currentUser=null,emailCampaigns=[];
 async function loadAccount(){try{const response=await fetch('/api/auth/me');if(response.ok){currentUser=(await response.json()).user;const campaigns=await fetch('/api/email-campaigns');if(campaigns.ok)emailCampaigns=await campaigns.json()}}catch{}}
-async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{const response=await fetch(`/api/wp/${type}?slug=${encodeURIComponent(slug)}`);if(response.ok){const records=await response.json();wpRecord=records[0]||null}if(!wpRecord){const localResponse=await fetch(`/api/local/${type==='job_listing'?'jobs':'employers'}/${encodeURIComponent(slug)}`);if(localResponse.ok)wpRecord=await localResponse.json()}if(type==='job_listing'){let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){const employerResponse=await fetch(`/api/wp/employer?slug=${encodeURIComponent(employerSlug)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}}else if(type==='employer'&&wpRecord){if(wpRecord.local){try{const localJobsRes=await fetch('/api/local/jobs');if(localJobsRes.ok){const lJobs=await localJobsRes.json();profileJobs=lJobs.filter(j=>j.employerSlug===wpRecord.slug||j.company===(wpRecord.title?.rendered||wpRecord.title)).map(mapJob)}}catch{}}else if(wpRecord.id){const jobsResponse=await fetch(`/api/wp/job_listing?employer_id=${wpRecord.id}&per_page=100`);if(jobsResponse.ok)profileJobs=(await jobsResponse.json()).map(mapJob);if(!profileJobs.length&&wpRecord.slug){const slugResponse=await fetch(`/api/wp/job_listing?employer_slug=${encodeURIComponent(wpRecord.slug)}&per_page=100`);if(slugResponse.ok)profileJobs=(await slugResponse.json()).map(mapJob)}}}}catch{wpRecord=null}}
+async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{const response=await fetch(`/api/wp/${type}?slug=${encodeURIComponent(slug)}`);if(response.ok){const records=await response.json();wpRecord=records[0]||null}if(!wpRecord){const localResponse=await fetch(`/api/local/${type==='job_listing'?'jobs':'employers'}/${encodeURIComponent(slug)}`);if(localResponse.ok)wpRecord=await localResponse.json()}if(type==='job_listing'){let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){const employerResponse=await fetch(`/api/wp/employer?slug=${encodeURIComponent(employerSlug)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
+categoryJobs=[];
+const extractJobCats = (rec) => {
+  if (!rec) return [];
+  if (rec.local) return Array.isArray(rec.categories) ? rec.categories : [];
+  const m = rec.metas || {};
+  if (m._job_category) {
+    if (typeof m._job_category === 'object') return Object.values(m._job_category);
+    if (typeof m._job_category === 'string') return m._job_category.split(',').map(s => s.trim());
+  }
+  if (rec.job_listing_category) {
+    return Array.isArray(rec.job_listing_category) ? rec.job_listing_category : [rec.job_listing_category];
+  }
+  return rec.category ? [rec.category] : [];
+};
+const cats = extractJobCats(wpRecord).filter(c => c && c.toLowerCase() !== 'all categories');
+if (cats.length) {
+  try {
+    const catPromises = cats.slice(0, 2).map(c =>
+      fetch(`/api/wp/job_listing?category=${encodeURIComponent(c)}&per_page=25&_fields=id,slug,title,status,date,metas`)
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => [])
+    );
+    const catResults = await Promise.all(catPromises);
+    const seenCat = new Set();
+    categoryJobs = catResults.flat().filter(j => j && j.slug && !seenCat.has(j.slug) && seenCat.add(j.slug));
+  } catch {}
+}}else if(type==='employer'&&wpRecord){if(wpRecord.local){try{const localJobsRes=await fetch('/api/local/jobs');if(localJobsRes.ok){const lJobs=await localJobsRes.json();profileJobs=lJobs.filter(j=>j.employerSlug===wpRecord.slug||j.company===(wpRecord.title?.rendered||wpRecord.title)).map(mapJob)}}catch{}}else if(wpRecord.id){const jobsResponse=await fetch(`/api/wp/job_listing?employer_id=${wpRecord.id}&per_page=100`);if(jobsResponse.ok)profileJobs=(await jobsResponse.json()).map(mapJob);if(!profileJobs.length&&wpRecord.slug){const slugResponse=await fetch(`/api/wp/job_listing?employer_slug=${encodeURIComponent(wpRecord.slug)}&per_page=100`);if(slugResponse.ok)profileJobs=(await slugResponse.json()).map(mapJob)}}}}catch{wpRecord=null}}
 const fieldValues=value=>value&&typeof value==='object'?Object.values(value).join(', '):'';
 export function formatJobDate(value) {
   if (!value) return '';
@@ -293,16 +327,27 @@ async function loadLocalJobs(){
       const val=queryParams.get(key);
       if(val&&val!=='Country or City'&&val!=='All Categories')filters.set(key,val);
     }
-    const [wpResponse,localResponse]=await Promise.all([fetch(`/api/wp/job_listing?${filters}`),fetch('/api/local/jobs')]);
-    const wp=wpResponse.ok?await wpResponse.json():[],local=localResponse.ok?await localResponse.json():[];
+    const fetchPromises = [fetch(`/api/wp/job_listing?${filters}`)];
+    if (currentPage === 1) fetchPromises.push(fetch('/api/local/jobs'));
+    const results = await Promise.all(fetchPromises);
+    const wp = results[0].ok ? await results[0].json() : [];
+    const local = (results[1] && results[1].ok) ? await results[1].json() : [];
     const qTerm=queryParams.get('q')||(path==='/nurse-jobs-in-uae'?'nurse':'');
     const targetCat = isCategoryPage && catObj ? (queryParams.get('category') || catObj.name) : queryParams.get('category');
-    const localFiltered=local.filter(job=>(!qTerm||job.title?.toLowerCase().includes(qTerm.toLowerCase())||(job.categories||[]).some(c=>c.toLowerCase().includes(qTerm.toLowerCase())))&&(!queryParams.get('location')||queryParams.get('location')==='Country or City'||(job.locations||[]).includes(queryParams.get('location')))&&(!targetCat||targetCat==='All Categories'||(job.categories||[]).some(c=>c.toLowerCase().includes(targetCat.toLowerCase())))&&(!queryParams.get('job_type')||(job.types||[]).includes(queryParams.get('job_type'))));
+    const normalizedQuery=String(qTerm||'').trim().toLowerCase();
+    const queryWords=[...new Set(normalizedQuery.split(/\s+/).filter(Boolean))];
+    const localSearchText=job=>[
+      job.title,job.company,job.description,job.content?.rendered||job.content,job.excerpt?.rendered||job.excerpt,
+      ...(job.categories||[]),...(job.locations||[]),...(job.types||[]),...(job.tags||[]),...(job.skills||[]),
+      ...Object.values(job.metas||{}).flatMap(value=>typeof value==='object'&&value?Object.values(value):[value])
+    ].filter(Boolean).join(' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').toLowerCase();
+    const localSearchScore=job=>{const title=String(job.title||'').toLowerCase(),company=String(job.company||job.metas?._job_employer_name||'').toLowerCase(),text=localSearchText(job);if(title===normalizedQuery)return 100;if(title.startsWith(normalizedQuery))return 90;if(title.includes(normalizedQuery))return 80;if(company===normalizedQuery)return 75;if(company.includes(normalizedQuery))return 65;return text.includes(normalizedQuery)?40:20};
+    const localFiltered=local.filter(job=>(!normalizedQuery||queryWords.every(word=>localSearchText(job).includes(word)))&&(!queryParams.get('location')||queryParams.get('location')==='Country or City'||(job.locations||[]).includes(queryParams.get('location')))&&(!targetCat||targetCat==='All Categories'||(job.categories||[]).some(c=>c.toLowerCase().includes(targetCat.toLowerCase())))&&(!queryParams.get('job_type')||(job.types||[]).includes(queryParams.get('job_type')))).sort((a,b)=>localSearchScore(b)-localSearchScore(a));
     data.jobs=[...(currentPage===1?localFiltered.map(mapJob):[]),...wp.map(mapJob)];
   }catch{data.jobs=[]}
 }
-async function loadLocalEmployers(){try{const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));const response=await fetch(`/api/wp/employer?${filters}`);const wp=response.ok?await response.json():[];data.employers=wp.map(record=>{const m=record.metas||{};return {title:record.title?.rendered||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}catch{data.employers=[]}}
-async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=16');if(res.ok){const list=await res.json();data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',locations:Object.values(m._employer_location||{}),categories:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}catch{}}
+async function loadLocalEmployers(){try{if(!data.taxonomies?.employerCategories||data.taxonomies.employerCategories.length===0){try{const taxRes=await fetch('/api/wp/taxonomies');if(taxRes.ok)data.taxonomies=await taxRes.json();}catch{}}const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));const response=await fetch(`/api/wp/employer?${filters}`);const wp=response.ok?await response.json():[];data.employers=wp.map(record=>{const m=record.metas||{};return {title:record.title?.rendered||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}catch{data.employers=[]}}
+async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20');if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
 function updateLiveJobCountUI(){
   const liveCount = (data.counts && data.counts.job_listing) ? data.counts.job_listing : 13621;
   const formattedCount = Number(liveCount).toLocaleString() + '+';
@@ -314,12 +359,16 @@ function updateLiveJobCountUI(){
   });
 }
 
+let baseCountsFetched = false;
 async function loadCounts(){
   try{
-    const response=await fetch('/api/wp/counts');
-    if(response.ok) {
-      data.counts=await response.json();
-      updateLiveJobCountUI();
+    if (!baseCountsFetched) {
+      const response=await fetch('/api/wp/counts');
+      if(response.ok) {
+        data.counts=await response.json();
+        baseCountsFetched = true;
+        updateLiveJobCountUI();
+      }
     }
     if(path==='/nurse-jobs-in-uae'){
       const filters=new URLSearchParams();
@@ -334,16 +383,21 @@ async function loadCounts(){
     }else if(path.startsWith('/category/')){
       const catSlug = path.replace('/category/', '').split('/')[0].split('?')[0];
       const catObj = findCategoryBySlug(catSlug);
-      const filters=new URLSearchParams();
-      filters.set('type','job_listing');
-      if(catObj) filters.set('category', queryParams.get('category') || catObj.name);
-      for(const key of ['q','location','job_type']){
-        const val=queryParams.get(key);
-        if(val&&val!=='Country or City')filters.set(key,val);
+      const hasExtraFilters = ['location','job_type','q'].some(k => queryParams.get(k) && queryParams.get(k) !== 'Country or City');
+      if (!hasExtraFilters && catObj?.count) {
+        data.counts.category = catObj.count;
+      } else {
+        const filters=new URLSearchParams();
+        filters.set('type','job_listing');
+        if(catObj) filters.set('category', queryParams.get('category') || catObj.name);
+        for(const key of ['q','location','job_type']){
+          const val=queryParams.get(key);
+          if(val&&val!=='Country or City')filters.set(key,val);
+        }
+        const filtered=await fetch(`/api/wp/count?${filters}`);
+        if(filtered.ok)data.counts.category=(await filtered.json()).total;
       }
-      const filtered=await fetch(`/api/wp/count?${filters}`);
-      if(filtered.ok)data.counts.category=(await filtered.json()).total;
-    }else if((path==='/employers'||path==='/jobs')&&[...queryParams].some(([key])=>['q','location','category','job_type','min_jobs'].includes(key))){
+    }else if((path==='/employers'||path==='/jobs'||path.startsWith('/job-location/'))&&[...queryParams].some(([key])=>['q','location','category','job_type','min_jobs'].includes(key))){
       const filters=new URLSearchParams(queryParams);
       filters.set('type',path==='/employers'?'employer':'job_listing');
       filters.delete('page');
@@ -416,9 +470,24 @@ export function detectBlogCategory(title = '', excerpt = '') {
   return 'Career Advice';
 }
 
-async function loadConnectedContent(){try{const [taxonomyResponse,postsResponse,pagesResponse]=await Promise.all([fetch('/api/wp/taxonomies'),fetch('/api/wp/posts?per_page=100'),fetch('/api/wp/pages?per_page=100')]);if(taxonomyResponse.ok)data.taxonomies=await taxonomyResponse.json();if(postsResponse.ok){const posts=await postsResponse.json();if(posts.length)data.posts=posts.map(post=>{const rawTitle=post.title?.rendered||'';const rawExcerpt=(post.excerpt?.rendered||'').replace(/<[^>]+>/g,'').trim();const prefix=POST_SLUG_PREFIXES[post.slug]||post.url_prefix||'blog';const cat=post.categoryName||post.category_name||CATEGORY_PREFIX_LABELS[prefix]||detectBlogCategory(rawTitle,rawExcerpt);const authorName=(post.author_display_name||(post.author_name&&post.author_name!=='Trikonet'?post.author_name:''))||'Athira Susan James';return {id:post.id,title:rawTitle,slug:post.slug,category:'blog',categoryName:cat,urlPrefix:prefix,localUrl:`/${prefix}/${post.slug}`,date:new Date(`${post.date}Z`).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),excerpt:rawExcerpt,content:post.content?.rendered||'',featuredImage:post.featured_image||'',author:authorName,authorRole:'Written By',authorImage:post.author_avatar||'/assets/athira-susan-james.png',authorLink:'#',reviewer:post.reviewer_name||'Mayur Kacholiya',reviewerRole:'Reviewed by:',reviewerImage:post.reviewer_avatar||'/assets/mayur-kacholiya.png',reviewerLink:'#'}})}if(pagesResponse.ok){const pages=await pagesResponse.json();data.connectedPages=Object.fromEntries(pages.map(page=>[page.slug,page]))}}catch{}}
+async function loadConnectedContent(){
+  try{
+    const pathParts=path.split('/').filter(Boolean);
+    const candidateSlug=pathParts.at(-1)||'';
+    const isArticlePath=pathParts.length===2&&(pathParts[0]==='blog'||Boolean(POST_SLUG_PREFIXES[candidateSlug]));
+    const postQuery=isArticlePath
+      ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
+      : `/api/wp/posts?per_page=${path==='/'?12:30}&summary=1`;
+    const [taxonomyResponse,postsResponse]=await Promise.all([fetch('/api/wp/taxonomies'),fetch(postQuery)]);
+    if(taxonomyResponse.ok)data.taxonomies=await taxonomyResponse.json();
+    if(postsResponse.ok){
+      const posts=await postsResponse.json();
+      if(posts.length)data.posts=posts.map(post=>{const rawTitle=post.title?.rendered||'';const rawExcerpt=(post.excerpt?.rendered||'').replace(/<[^>]+>/g,'').trim();const prefix=POST_SLUG_PREFIXES[post.slug]||post.url_prefix||'blog';const cat=post.categoryName||post.category_name||CATEGORY_PREFIX_LABELS[prefix]||detectBlogCategory(rawTitle,rawExcerpt);const authorName=(post.author_display_name||(post.author_name&&post.author_name!=='Trikonet'?post.author_name:''))||'Athira Susan James';return {id:post.id,title:rawTitle,slug:post.slug,category:'blog',categoryName:cat,urlPrefix:prefix,localUrl:`/${prefix}/${post.slug}`,date:new Date(`${post.date}Z`).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),excerpt:rawExcerpt,content:post.content?.rendered||'',featuredImage:post.featured_image||'',author:authorName,authorRole:'Written By',authorImage:post.author_avatar||'/assets/athira-susan-james.png',authorLink:'#',reviewer:post.reviewer_name||'Mayur Kacholiya',reviewerRole:'Reviewed by:',reviewerImage:post.reviewer_avatar||'/assets/mayur-kacholiya.png',reviewerLink:'#'}})
+    }
+  }catch{}
+}
 const siteChrome=(()=>{try{return JSON.parse(localStorage.getItem('trikonet_site_chrome')||'{}')}catch{return {}}})();
-const LOGO_VERSION = 'v=20260928_triangle_v1';
+const LOGO_VERSION = 'v=20260929_footer_brand_v3';
 const resolveLogo = (logo, fallback) => {
   const chosen = (logo && typeof logo === 'string' && !logo.startsWith('data:')) ? logo : fallback;
   if (!chosen) return `/assets/logo-black.png?${LOGO_VERSION}`;
@@ -435,8 +504,43 @@ function header(){
   const nurseHeader=path==='/nurse-jobs-in-uae';
   const isJobs = path.startsWith('/job') || path === '/nurse-jobs-in-uae';
   const isEmployers = path.startsWith('/employer');
-  const isServices = path.startsWith('/services') || path === '/resume-maker' || path === '/ats-resume-builder' || path === '/medical-coder-class';
+  const isServices = path.startsWith('/services') || path === '/resume-library' || path === '/resume-maker' || path === '/ats-resume-builder' || path === '/medical-coder-class';
   const navArrow = `<svg class="nav-arrow" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.25L5 4.75L9 1.25"/></svg>`;
+  let candidateAvatar = currentUser?.avatar || currentUser?.photo || currentUser?.profile?.photo || '';
+  if (currentUser && !candidateAvatar) {
+    try { candidateAvatar = JSON.parse(localStorage.getItem('cvBuilderPluginState') || '{}').photo || ''; } catch {}
+  }
+  const candidateInitial = escapeAttr((currentUser?.name || 'U').charAt(0).toUpperCase());
+  const candidateComp = typeof currentUser?.completionPercentage === 'number'
+    ? currentUser.completionPercentage
+    : (currentUser?.profile ? calculateCandidateCompletion(currentUser.profile) : 0);
+  const isProfileComplete = candidateComp >= 85;
+  const profileBadge = isProfileComplete ? '' : `<span class="nav-profile-badge" aria-label="1 notification" title="Profile ${candidateComp}% complete — complete your profile to get verified">1</span>`;
+  const accountIcon = pathData => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${pathData}</svg>`;
+  const profileAvatar = `<div class="nav-account-menu">
+    <button class="nav-profile-avatar" type="button" id="navAccountToggle" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false" title="Account menu">
+      <span class="nav-profile-photo"><span class="nav-profile-initial">${candidateInitial}</span>${candidateAvatar ? `<img src="${escapeAttr(candidateAvatar)}" alt="${escapeAttr(currentUser?.name || 'Account')}">` : ''}</span>${profileBadge}
+    </button>
+    <div class="nav-account-dropdown" id="navAccountDropdown" role="menu" aria-hidden="true">
+      <div class="nav-account-summary">
+        <span class="nav-account-summary-avatar"><span>${candidateInitial}</span>${candidateAvatar ? `<img src="${escapeAttr(candidateAvatar)}" alt="">` : ''}</span>
+        <div><strong>${escapeAttr(currentUser?.name || 'My account')}</strong><small>${escapeAttr(currentUser?.email || 'Signed in')}</small></div>
+      </div>
+      <a class="nav-account-score" href="/profile" role="menuitem">
+        <span><strong>Account score</strong><small>${candidateComp >= 85 ? 'Your profile is recruiter-ready' : 'Complete your profile to improve visibility'}</small></span>
+        <b>${candidateComp}%</b>
+        <i><span style="width:${candidateComp}%"></span></i>
+      </a>
+      <div class="nav-account-links">
+        <a href="/profile" role="menuitem"><span class="nav-account-link-icon">${accountIcon('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>')}</span><span><strong>Account information</strong><small>Profile and contact details</small></span><b>›</b></a>
+        <a href="/resume-library" role="menuitem"><span class="nav-account-link-icon">${accountIcon('<path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 12h7M9 16h7"/>')}</span><span><strong>Résumé library</strong><small>Build and manage résumés</small></span><b>›</b></a>
+        <a href="/saved-jobs" role="menuitem"><span class="nav-account-link-icon">${accountIcon('<path d="M6 3h12v18l-6-4-6 4z"/>')}</span><span><strong>Saved jobs</strong><small>Your shortlisted opportunities</small></span><b>›</b></a>
+        <a href="/applied-jobs" role="menuitem"><span class="nav-account-link-icon">${accountIcon('<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2M8 12l3 3 5-6"/>')}</span><span><strong>Applied jobs</strong><small>Track your applications</small></span><b>›</b></a>
+        <a href="/followed-companies" role="menuitem"><span class="nav-account-link-icon">${accountIcon('<path d="M3 21h18M5 21V6l7-3v18M12 9h7v12M8 9v1M8 13v1M8 17v1M16 13v1M16 17v1"/>')}</span><span><strong>Followed companies</strong><small>Employers you follow</small></span><b>›</b></a>
+      </div>
+      <button class="nav-account-signout" type="button" id="navAccountLogout" role="menuitem">${accountIcon('<path d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/>')}<span>Sign out</span></button>
+    </div>
+  </div>`;
 
   return `<header class="topbar${nurseHeader?' nurse-page-header':''} site-header-${escapeAttr(siteChrome.headerLayout||'classic')}" style="background:${escapeAttr(siteChrome.headerBg||'#ffffff')};color:${escapeAttr(siteChrome.headerText||'#202124')}">
     <div class="wrap nav">
@@ -646,11 +750,11 @@ function header(){
 
         <!-- 3. SERVICES MENU (Resume Maker) -->
         <div class="nav-item nav-has-dropdown">
-          <a class="nav-link${isServices?' active':''}" href="/services/resume-maker">
+          <a class="nav-link${isServices?' active':''}" href="/resume-library">
             Services ${navArrow}
           </a>
           <div class="nav-services-dropdown">
-            <a href="/services/resume-maker" class="service-item">
+            <a href="/resume-library" class="service-item">
               <div class="service-text">
                 <div class="service-title-row">
                   <strong>Resume Maker</strong>
@@ -663,15 +767,27 @@ function header(){
         </div>
 
         <div class="mobile-nav-actions">
-          ${currentUser?`<a class="mobile-btn-auth" href="/email-campaigns">Email campaigns</a><button class="mobile-btn-auth" id="mobileLogoutBtn">Logout</button>`:`<a class="mobile-btn-auth" href="/login">Login / Register</a>`}
-          <a class="mobile-btn-primary" href="/submit-job">+ Add Job</a>
+          ${currentUser?`<div class="mobile-account-panel">
+            <div class="mobile-account-user">
+              <span class="mobile-account-avatar"><span>${candidateInitial}</span>${candidateAvatar ? `<img src="${escapeAttr(candidateAvatar)}" alt="">` : ''}</span>
+              <div><strong>${escapeAttr(currentUser?.name || 'My account')}</strong><small>${escapeAttr(currentUser?.email || '')}</small></div>
+            </div>
+            <a class="mobile-account-score" href="/profile"><span><strong>Account score</strong><small>Complete your profile to improve visibility</small></span><b>${candidateComp}%</b><i><span style="width:${candidateComp}%"></span></i></a>
+            <div class="mobile-account-links">
+              <a href="/profile">${accountIcon('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>')}<span>Account information</span><b>›</b></a>
+              <a href="/resume-library">${accountIcon('<path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 12h7M9 16h7"/>')}<span>Résumé library</span><b>›</b></a>
+              <a href="/saved-jobs">${accountIcon('<path d="M6 3h12v18l-6-4-6 4z"/>')}<span>Saved jobs</span><b>›</b></a>
+              <a href="/applied-jobs">${accountIcon('<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2M8 12l3 3 5-6"/>')}<span>Applied jobs</span><b>›</b></a>
+              <a href="/followed-companies">${accountIcon('<path d="M3 21h18M5 21V6l7-3v18M12 9h7v12M8 9v1M8 13v1M8 17v1M16 13v1M16 17v1"/>')}<span>Followed companies</span><b>›</b></a>
+            </div>
+            <button type="button" id="mobileLogoutBtn" class="mobile-account-signout">${accountIcon('<path d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/>')} Sign out</button>
+          </div>`:`<a class="mobile-btn-auth" href="/login">Login / Register</a>`}
+          ${currentUser?'':`<a class="mobile-btn-primary" href="/submit-job">+ Add Job</a>`}
         </div>
       </nav>
       <div class="nav-actions">
-        ${currentUser?`<a class="nav-btn-auth" href="/email-campaigns">Email campaigns</a><button class="nav-btn-auth" id="logoutBtn">Logout</button>`:`<a class="nav-btn-auth" href="/login">Login / Register</a>`}
-        <a class="nav-btn-primary" href="/submit-job">
-          <span>+ Add Job</span>
-        </a>
+        ${currentUser?`${profileAvatar}`:`<a class="nav-btn-auth" href="/login">Login / Register</a>`}
+        ${currentUser?'':`<a class="nav-btn-primary" href="/submit-job"><span>+ Add Job</span></a>`}
       </div>
       <button class="hamb" aria-label="Toggle navigation" aria-expanded="false">
         <svg class="hamb-open" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -813,7 +929,7 @@ function footer(){
   candidateMenu=chromeMenu(siteChrome.footerCandidateMenu,'Browse Jobs | /jobs\nJob Alerts | /alerts-jobs'),
   employerMenu=chromeMenu(siteChrome.footerEmployerMenu,'Employers List | /employers\nSubmit Job | /submit-job'),
   links=items=>items.map(([label,url])=>`<a href="${escapeAttr(url)}" style="color:${escapeAttr(siteChrome.footerLink||'#979797')}">${escapeAttr(label)}</a>`).join('');
-  return `<footer class="footer site-footer-${escapeAttr(siteChrome.footerLayout||'columns')}" style="background:${escapeAttr(siteChrome.footerBg||'#202124')};color:${escapeAttr(siteChrome.footerText||'#ffffff')}">
+  return `<footer class="footer site-footer-columns site-footer-standard" style="background:#202124;color:#ffffff">
     <div class="wrap footer-grid">
       <div>
         <img src="${escapeAttr(resolveLogo(siteChrome.footerLogo,'/assets/logo-white.png'))}" alt="Trikonet">
@@ -1034,38 +1150,69 @@ const companyTaglineMap = {
   'emaar': "Iconic real estate, luxury developments, and hospitality in Dubai."
 };
 
-function homeTopCompanies(s = {}) {
-  const employers = (data.topEmployers && data.topEmployers.length) 
-    ? data.topEmployers 
-    : (data.employers || []).filter(e => (e.openJobs || 0) >= 20);
-  if (!employers.length) return '';
+const TOP_HIRING_COMPANIES_FALLBACK = [
+  { title: 'GEMS Education', slug: 'gems-education', openJobs: 511, locations: ['Dubai'], categories: ['Educational Services'], logo: '/uploads/employers/11640.png' },
+  { title: 'Aldar Education', slug: 'aldar-education', openJobs: 400, locations: ['Abu Dhabi'], categories: ['Educational Services'], logo: '/uploads/employers/11645.png' },
+  { title: 'NMC Healthcare', slug: 'nmc-healthcare', openJobs: 206, locations: ['UAE'], categories: ['Healthcare'], logo: '/uploads/employers/11664.jpg' },
+  { title: 'American Hospital', slug: 'american-hospital-dubai', openJobs: 184, locations: ['Dubai'], categories: ['Healthcare'], logo: '/uploads/employers/11647.png' },
+  { title: 'Al-Futtaim', slug: 'alfuttaim', openJobs: 157, locations: ['Dubai'], categories: ['Retail', 'Conglomerate'], logo: '/uploads/employers/11641.png' },
+  { title: 'Seha Abudhabi Health Services CO', slug: 'seha-abu-dhabi-health-services-co-2', openJobs: 144, locations: ['Abu Dhabi'], categories: ['Healthcare'], logo: '/uploads/employers/12777.jpg' },
+  { title: 'Mediclinic', slug: 'mediclinic', openJobs: 115, locations: ['UAE'], categories: ['Healthcare'], logo: '/uploads/employers/12103.jpg' },
+  { title: 'Nord Anglia Education', slug: 'nord-anglia-education', openJobs: 108, locations: ['Dubai'], categories: ['Educational Services'], logo: '/uploads/employers/31623.jpg' },
+  { title: 'Jumeirah', slug: 'jumeirah', openJobs: 101, locations: ['Dubai'], categories: ['Hospitality'], logo: '/uploads/employers/28110.jpg' },
+  { title: 'Wynn Al Marjan Island', slug: 'wynn-al-marjan-island', openJobs: 92, locations: ['Ras Al Khaimah'], categories: ['Hospitality'], logo: '/uploads/employers/29164.jpg' },
+  { title: 'Saudi German Health', slug: 'saudigerman', openJobs: 91, locations: ['UAE'], categories: ['Healthcare'], logo: '/uploads/employers/9222.jpg' },
+  { title: "King's College Hospital London – UAE", slug: 'kings-college-hospital-london-uae', openJobs: 88, locations: ['Dubai'], categories: ['Healthcare'], logo: '/uploads/employers/12975.jpg' },
+  { title: 'First Abu Dhabi Bank (FAB)', slug: 'first-abu-dhabi-bank', openJobs: 81, locations: ['Abu Dhabi'], categories: ['Banking'], logo: '/uploads/employers/9867.jpg' },
+  { title: 'Mashreq', slug: 'mashreq-bank', openJobs: 79, locations: ['Dubai'], categories: ['Banking'], logo: '/uploads/employers/9915.jpg' },
+  { title: 'United Arab Emirates University', slug: 'united-arab-emirates-university', openJobs: 79, locations: ['Al Ain'], categories: ['Educational Services'], logo: '/uploads/employers/38913.jpg' },
+  { title: 'Majid Al Futtaim', slug: 'majid-al-futtaim', openJobs: 76, locations: ['Dubai'], categories: ['Retail'], logo: '/uploads/employers/9891.jpg' }
+];
 
-  const cardsHtml = employers.slice(0, 14).map(e => {
-    const initials = escapeAttr((e.title || 'TC').slice(0, 2).toUpperCase());
+function homeTopCompanies(s = {}) {
+  let employers = (data.topEmployers && data.topEmployers.length) 
+    ? [...data.topEmployers] 
+    : [...(data.employers || [])];
+
+  if (!employers.length) {
+    employers = [...TOP_HIRING_COMPANIES_FALLBACK];
+  }
+
+  // Strictly sort by highest open jobs descending!
+  employers.sort((a, b) => (Number(b.openJobs) || 0) - (Number(a.openJobs) || 0));
+
+  if ((Number(employers[0]?.openJobs) || 0) < 20) {
+    employers = [...TOP_HIRING_COMPANIES_FALLBACK];
+  }
+
+  const cardsHtml = employers.slice(0, 16).map(e => {
+    const displayTitle = decodeHtml(e.title || '');
+    const initials = escapeAttr(displayTitle.slice(0, 2).toUpperCase() || 'TC');
     const rawLoc = (e.locations && e.locations[0]) || '';
-    const cleanLoc = (!rawLoc || /^\d+$/.test(rawLoc) || rawLoc === 'United Arab Emirates') ? 'UAE' : rawLoc;
+    const cleanLoc = (!rawLoc || /^\d+$/.test(rawLoc) || rawLoc === 'United Arab Emirates') ? 'UAE' : decodeHtml(rawLoc);
     
     // Extract category
     const validCats = (e.categories || []).filter(c => typeof c === 'string' && c.trim() && !/^\d+$/.test(c));
-    const catText = validCats.length ? validCats.slice(0, 2).join(' • ') : (e.category || 'Hiring Enterprise');
+    const catText = validCats.length ? decodeHtml(validCats.slice(0, 2).join(' • ')) : decodeHtml(e.category || 'Top Employer');
+    const openJobsCount = Number(e.openJobs) || 20;
 
     return `
       <div class="featured-company-card">
         <div class="featured-company-logo-wrap">
-          ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(e.title)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
+          ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(displayTitle)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
           <div class="featured-company-logo-fallback" style="${e.logo ? 'display:none;' : 'display:flex;'}">
             ${initials}
           </div>
         </div>
 
         <div class="featured-company-info-box">
-          <h3 class="featured-company-name" title="${escapeAttr(e.title)}">${escapeAttr(e.title)}</h3>
+          <h3 class="featured-company-name" title="${escapeAttr(displayTitle)}">${escapeAttr(displayTitle)}</h3>
           <div class="featured-company-jobs-badge">
             <svg class="featured-company-job-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
-            <span class="company-jobs-count-text"><strong>${e.openJobs || 20}</strong> Open Jobs</span>
+            <span class="company-jobs-count-text"><strong>${openJobsCount}</strong> Open Jobs</span>
             <span class="company-jobs-sep">•</span>
             <span class="company-jobs-loc">${escapeAttr(cleanLoc)}</span>
           </div>
@@ -1108,7 +1255,48 @@ function homeTopCompanies(s = {}) {
     </div>
   </section>`;
 }
-function homeHowItWorks(s={}){const steps=[[s.step1Image||'/assets/step-1.jpg',s.step1Title||'Register an Account to Start'],[s.step2Image||'/assets/step-2.jpg',s.step2Title||'Explore Over Thousands of Jobs'],[s.step3Image||'/assets/step-3.jpg',s.step3Title||'Find the Most Suitable Company and Job']];return `<section class="section alt${homeSectionAttrs(s)}"><div class="wrap"><div class="section-title"><h2>${escapeAttr(s.title||'How It Works?')}</h2><p>${escapeAttr(s.subtitle||'Job for Anyone, Anywhere')}</p></div><div class="steps">${steps.map(step=>`<div class="step"><img src="${escapeAttr(step[0])}" alt="${escapeAttr(step[1])}"><h3>${escapeAttr(step[1])}</h3></div>`).join('')}</div></div></section>`}
+function homeHowItWorks(s = {}) {
+  const steps = [
+    {
+      title: s.step1Title || 'Register an Account to Start',
+      image: s.step1Image || '/assets/step-1.jpg'
+    },
+    {
+      title: s.step2Title || 'Explore Over Thousands of Jobs',
+      image: s.step2Image || '/assets/step-2.jpg'
+    },
+    {
+      title: s.step3Title || 'Find the Most Suitable Company and Job',
+      image: s.step3Image || '/assets/step-3.jpg'
+    }
+  ];
+
+  return `<section class="section alt how-it-works-section${homeSectionAttrs(s)}" id="howItWorksSection">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>${escapeAttr(s.title || 'How It Works?')}</h2>
+        <p>${escapeAttr(s.subtitle || 'Job for Anyone, Anywhere')}</p>
+      </div>
+      <div class="how-steps-wrap">
+        <div class="how-steps-track" id="howStepsTrack">
+          ${steps.map((st, i) => `
+            <div class="how-step-item" data-step="${i}">
+              <div class="how-step-icon">
+                <img src="${escapeAttr(st.image)}" alt="${escapeAttr(st.title)}" loading="lazy">
+              </div>
+              <h3 class="how-step-title">${escapeAttr(st.title)}</h3>
+            </div>
+          `).join('')}
+        </div>
+        <div class="how-slider-dots" id="howSliderDots" aria-label="Step slider navigation">
+          <button type="button" class="how-dot active" data-index="0" aria-label="Step 1"></button>
+          <button type="button" class="how-dot" data-index="1" aria-label="Step 2"></button>
+          <button type="button" class="how-dot" data-index="2" aria-label="Step 3"></button>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
 function homeWidgets(){const fallback=['hero','categories','top-companies','how-it-works','articles'].map(type=>({type,settings:{}}));try{const pages=JSON.parse(localStorage.getItem('trikonet_pages_cms')||'[]');const page=pages.find(item=>item.slug==='home');if(!page?.content)return fallback;const doc=new DOMParser().parseFromString(page.content,'text/html');const widgets=[...doc.querySelectorAll('[data-home-widget]')].map(node=>{let settings={};try{settings=JSON.parse(decodeURIComponent(node.dataset.homeSettings||'%7B%7D'))}catch{}return {type:node.dataset.homeWidget,settings}}).filter(item=>['hero','categories','top-companies','how-it-works','articles'].includes(item.type));if(widgets.length&&!widgets.some(w=>w.type==='top-companies')){const catIdx=widgets.findIndex(w=>w.type==='categories');if(catIdx>=0)widgets.splice(catIdx+1,0,{type:'top-companies',settings:{}});else widgets.push({type:'top-companies',settings:{}})}return widgets.length?widgets:fallback}catch{return fallback}}
 function home(){const renderers={hero:homeHero,categories:homeCategories,'top-companies':homeTopCompanies,'how-it-works':homeHowItWorks,articles:(s)=>articleSection(s)};return `<main>${homeWidgets().map(item=>renderers[item.type]?.(item.settings)||'').join('')}</main>`}
 function getPaginationRange(current, total) {
@@ -1248,6 +1436,7 @@ function articleSection(s = {}) {
 }
 function jobs(){
   const total=data.counts.job_listing||data.jobs.length,start=total?(currentPage-1)*pageSize+1:0,end=Math.min(start+data.jobs.length-1,total),selectedType=queryParams.get('job_type')||'';
+  const jobsBase=path.startsWith('/job-location/')?path:'/jobs';
   return `<main><section class="jobs-head"><div class="wrap">${searchBar()}</div></section><div class="wrap jobs-layout">
     <aside class="filters jobs-filter-card">
       <div class="jobs-filter-group">
@@ -1296,7 +1485,7 @@ function jobs(){
       </div>
       ${tags ? `<div class="tags">${tags}</div>` : ''}
     </a>`;
-  }).join('')}</div>${pager('/jobs',total)}</section></div></main>`;
+  }).join('')}</div>${pager(jobsBase,total)}</section></div></main>`;
 }
 function nurseJobsPage(){
   const curatedNurseJobs=[
@@ -1562,10 +1751,10 @@ function nurseJobsPage(){
           </div>
           <p class="nurse-side-share-txt">Know someone looking for a nurse job in the UAE?</p>
           <div class="nurse-side-share-btns">
-            <a href="https://www.linkedin.com/company/trikonet-team" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on LinkedIn">${iconShareLinkedin} LinkedIn</a>
-            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent('Healthcare Nurse Jobs in UAE: https://www.trikonet.com/nurse-jobs-in-uae')}" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on WhatsApp">${iconShareWa} WhatsApp</a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.trikonet.com/nurse-jobs-in-uae')}" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on Facebook">${iconShareFb} Facebook</a>
-            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent('https://www.trikonet.com/nurse-jobs-in-uae')}" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on X">${iconShareX} X</a>
+            <a href="https://www.linkedin.com/company/trikonet-team" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on LinkedIn">${iconShareLinkedin} LinkedIn</a>
+            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent('Healthcare Nurse Jobs in UAE: https://www.trikonet.com/nurse-jobs-in-uae')}" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on WhatsApp">${iconShareWa} WhatsApp</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.trikonet.com/nurse-jobs-in-uae')}" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on Facebook">${iconShareFb} Facebook</a>
+            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent('https://www.trikonet.com/nurse-jobs-in-uae')}" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on X">${iconShareX} X</a>
           </div>
         </section>
       </aside>
@@ -1854,10 +2043,10 @@ function categoryPage() {
           </div>
           <p class="nurse-side-share-txt">Know someone looking for a ${escapeAttr(categoryName)} job in the UAE?</p>
           <div class="nurse-side-share-btns">
-            <a href="https://www.linkedin.com/company/trikonet-team" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on LinkedIn">${iconShareLinkedin} LinkedIn</a>
-            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`${categoryName} Jobs in UAE: https://www.trikonet.com/category/${categoryCleanSlug}`)}" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on WhatsApp">${iconShareWa} WhatsApp</a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://www.trikonet.com/category/${categoryCleanSlug}`)}" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on Facebook">${iconShareFb} Facebook</a>
-            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://www.trikonet.com/category/${categoryCleanSlug}`)}" target="_blank" rel="noopener" class="nurse-share-pill" aria-label="Share on X">${iconShareX} X</a>
+            <a href="https://www.linkedin.com/company/trikonet-team" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on LinkedIn">${iconShareLinkedin} LinkedIn</a>
+            <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`${categoryName} Jobs in UAE: https://www.trikonet.com/category/${categoryCleanSlug}`)}" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on WhatsApp">${iconShareWa} WhatsApp</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://www.trikonet.com/category/${categoryCleanSlug}`)}" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on Facebook">${iconShareFb} Facebook</a>
+            <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://www.trikonet.com/category/${categoryCleanSlug}`)}" target="_blank" rel="noopener noreferrer nofollow" class="nurse-share-pill" aria-label="Share on X">${iconShareX} X</a>
           </div>
         </section>
       </aside>
@@ -1885,16 +2074,28 @@ function employers() {
     list.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
   }
 
+  const catCountMap = new Map((data.taxonomies?.employerCategories || []).map(c => [c.name.toLowerCase(), Number(c.count)]));
+  const getCatCount = (name, fallback) => {
+    const val = catCountMap.get(name.toLowerCase());
+    return (val !== undefined && val !== null && !isNaN(val)) ? val : fallback;
+  };
+
+  const locCountMap = new Map((data.taxonomies?.employerLocations || []).map(l => [l.name.toLowerCase(), Number(l.count)]));
+  const getLocCount = (name, fallback) => {
+    const val = locCountMap.get(name.toLowerCase());
+    return (val !== undefined && val !== null && !isNaN(val)) ? val : fallback;
+  };
+
   const topStripCategories = [
-    { title: 'Healthcare', subtitle: '850+ Companies', qParam: 'Healthcare' },
-    { title: 'Hospitals & Clinics', subtitle: '210+ Companies', qParam: 'Hospital' },
-    { title: 'IT & Technology', subtitle: '340+ Companies', qParam: 'Information Technology' },
-    { title: 'Education', subtitle: '380+ Companies', qParam: 'Educational Services' },
-    { title: 'Banking & Finance', subtitle: '195+ Companies', qParam: 'Banking' },
-    { title: 'Hospitality', subtitle: '165+ Companies', qParam: 'Hospitality' },
-    { title: 'Real Estate', subtitle: '420+ Companies', qParam: 'Real Estate' },
-    { title: 'Construction', subtitle: '240+ Companies', qParam: 'Construction' },
-    { title: 'Retail & Commerce', subtitle: '150+ Companies', qParam: 'Retail' }
+    { title: 'Healthcare', subtitle: `${getCatCount('Healthcare', 271)} Companies`, qParam: 'Healthcare' },
+    { title: 'Hospitals & Clinics', subtitle: `${getCatCount('Hospital', 107)} Companies`, qParam: 'Hospital' },
+    { title: 'IT & Technology', subtitle: `${getCatCount('Information Technology', 63)} Companies`, qParam: 'Information Technology' },
+    { title: 'Education', subtitle: `${getCatCount('Educational Services', 339)} Companies`, qParam: 'Educational Services' },
+    { title: 'Banking & Finance', subtitle: `${getCatCount('Banking', 33) + getCatCount('Finance and Insurance', 83)} Companies`, qParam: 'Banking' },
+    { title: 'Hospitality', subtitle: `${getCatCount('Hospitality', 103)} Companies`, qParam: 'Hospitality' },
+    { title: 'Real Estate', subtitle: `${getCatCount('Real Estate', 392)} Companies`, qParam: 'Real Estate' },
+    { title: 'Construction', subtitle: `${getCatCount('Construction', 113)} Companies`, qParam: 'Construction' },
+    { title: 'Retail & Commerce', subtitle: `${getCatCount('Retail', 92)} Companies`, qParam: 'Retail' }
   ];
 
   const buildFilterUrl = (overrides = {}) => {
@@ -1913,28 +2114,44 @@ function employers() {
 
   const hasActiveFilters = Boolean(q || selectedLocation || selectedCategory || selectedMinJobs);
 
-  const sidebarCategories = [
-    { name: 'Healthcare', count: '270' },
-    { name: 'Hospital', count: '107' },
-    { name: 'Educational Services', count: '339' },
-    { name: 'Information Technology', count: '63' },
-    { name: 'Banking', count: '33' },
-    { name: 'Finance and Insurance', count: '83' },
-    { name: 'Hospitality', count: '103' },
-    { name: 'Real Estate', count: '392' },
-    { name: 'Construction', count: '113' },
-    { name: 'Manufacturing', count: '112' },
-    { name: 'Retail', count: '92' }
+  const sidebarCategoryKeys = [
+    { name: 'Healthcare', fallback: 271 },
+    { name: 'Hospital', fallback: 107 },
+    { name: 'Educational Services', fallback: 339 },
+    { name: 'Information Technology', fallback: 63 },
+    { name: 'Banking', fallback: 33 },
+    { name: 'Finance and Insurance', fallback: 83 },
+    { name: 'Hospitality', fallback: 103 },
+    { name: 'Real Estate', fallback: 392 },
+    { name: 'Construction', fallback: 113 },
+    { name: 'Manufacturing', fallback: 112 },
+    { name: 'Retail', fallback: 92 },
+    { name: 'Accounting', fallback: 78 },
+    { name: 'Business Consulting and Services', fallback: 70 },
+    { name: 'Other Services', fallback: 130 }
   ];
 
-  const sidebarLocations = [
-    { name: 'Dubai', count: '1,680' },
-    { name: 'Abu Dhabi', count: '450' },
-    { name: 'Sharjah', count: '122' },
-    { name: 'Ajman', count: '62' },
-    { name: 'Ras Al Khaimah', count: '37' },
-    { name: 'Al Ain', count: '20' }
+  const sidebarCategories = sidebarCategoryKeys.map(cat => ({
+    name: cat.name,
+    count: Number(getCatCount(cat.name, cat.fallback)).toLocaleString()
+  }));
+
+  const sidebarLocationKeys = [
+    { name: 'Dubai', fallback: 1680 },
+    { name: 'United Arab Emirates', fallback: 655 },
+    { name: 'Abu Dhabi', fallback: 450 },
+    { name: 'Sharjah', fallback: 122 },
+    { name: 'Ajman', fallback: 62 },
+    { name: 'Ras Al Khaimah', fallback: 37 },
+    { name: 'Al Ain', fallback: 20 },
+    { name: 'Fujairah', fallback: 18 },
+    { name: 'Umm Al Quwain', fallback: 10 }
   ];
+
+  const sidebarLocations = sidebarLocationKeys.map(loc => ({
+    name: loc.name,
+    count: Number(getLocCount(loc.name, loc.fallback)).toLocaleString()
+  }));
 
   const vacancyFilters = [
     { label: 'All Companies', value: '' },
@@ -1943,22 +2160,36 @@ function employers() {
     { label: 'Mass Hiring (10+ jobs)', value: '10' }
   ];
 
-  const getEmpRating = (title = '') => {
-    let hash = 0;
-    for (let i = 0; i < title.length; i++) hash = (hash * 31 + title.charCodeAt(i)) >>> 0;
-    const rating = (4.0 + (hash % 10) / 10).toFixed(1);
-    const reviews = 24 + (hash % 140);
-    return { rating, reviews };
+  const getEmpRating = employer => {
+    const explicitReviews = Number(employer?.reviewCount || employer?.metas?._employer_review_count || 0);
+    const explicitRating = Number(employer?.rating || employer?.metas?._employer_rating || 0);
+    if (explicitReviews > 0 && explicitRating > 0) {
+      return { rating: explicitRating.toFixed(1), reviews: explicitReviews };
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem(`trikonet_emp_reviews_${employer?.slug || ''}`) || '[]');
+      if (!Array.isArray(stored) || stored.length === 0) return null;
+      const valid = stored.filter(review => Number(review?.ratingScore) > 0);
+      if (valid.length === 0) return null;
+      const average = valid.reduce((sum, review) => sum + Number(review.ratingScore), 0) / valid.length;
+      return { rating: average.toFixed(1), reviews: valid.length };
+    } catch {
+      return null;
+    }
   };
 
   return `<main class="emp-directory-page">
     <div class="wrap">
-      <!-- Top Strip: Top companies hiring now (Naukri style with Trikonet red branding) -->
+      <!-- Top Strip: Top companies hiring now (Trikonet Signature Crimson Red Branding) -->
       <section class="emp-top-hiring-strip" aria-label="Top companies hiring now">
         <div class="emp-top-hiring-head">
+          <span class="emp-top-eyebrow">EXPLORE BY INDUSTRY</span>
           <h2>Top companies hiring now</h2>
         </div>
         <div class="emp-top-hiring-wrap">
+          <button type="button" class="emp-top-arrow-btn prev" id="empTopPrevBtn" aria-label="Scroll to previous categories">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
           <div class="emp-top-hiring-track" id="empTopHiringTrack">
             ${topStripCategories.map(cat => {
               const isActive = selectedCategory.toLowerCase() === cat.qParam.toLowerCase();
@@ -1974,6 +2205,23 @@ function employers() {
         </div>
       </section>
 
+      <section class="emp-directory-search" aria-label="Search companies">
+        <div class="emp-directory-search-copy">
+          <strong>Find a company</strong>
+          <span>Search by company name, industry, or location</span>
+        </div>
+        <form class="emp-search-form emp-search-form-prominent" action="/employers" method="GET" onsubmit="event.preventDefault(); const val=this.q.value.trim(); location.href='${buildFilterUrl({ q: null })}'+(val?('${buildFilterUrl({ q: null })}'.includes('?')?'&':'?')+'q='+encodeURIComponent(val):'');">
+          <div class="emp-search-input-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="search" name="q" value="${escapeAttr(q)}" placeholder="Search companies…" aria-label="Search companies">
+          </div>
+          <button type="submit" class="emp-directory-search-btn">
+            <span>Search</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
+        </form>
+      </section>
+
       <!-- Main Layout: Sidebar Filters + Right Listings -->
       <div class="emp-main-layout">
         <!-- Left Filters Sidebar -->
@@ -1982,14 +2230,6 @@ function employers() {
             <h3>All Filters</h3>
             ${hasActiveFilters ? `<a href="/employers" class="emp-clear-all">Clear All</a>` : ''}
           </div>
-
-          <!-- Search Company Input -->
-          <form class="emp-search-form" action="/employers" method="GET" onsubmit="event.preventDefault(); const val=this.q.value.trim(); location.href='${buildFilterUrl({ q: null })}'+(val?('${buildFilterUrl({ q: null })}'.includes('?')?'&':'?')+'q='+encodeURIComponent(val):'');">
-            <div class="emp-search-input-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input type="text" name="q" value="${escapeAttr(q)}" placeholder="Search Company" aria-label="Search Company">
-            </div>
-          </form>
 
           <button type="button" class="emp-mobile-filter-toggle" id="empMobileFilterToggle" aria-expanded="false" aria-controls="empExpandableFilters">
             <span>Show filters</span>
@@ -2008,7 +2248,7 @@ function employers() {
               ${sidebarCategories.map(cat => {
                 const isActive = selectedCategory.toLowerCase() === cat.name.toLowerCase();
                 return `<a href="${buildFilterUrl({ category: isActive ? null : cat.name })}" class="emp-filter-row${isActive ? ' active' : ''}">
-                  <span class="emp-checkbox${isActive ? ' checked' : ''}"></span>
+                  <span class="emp-checkbox${isActive ? ' checked' : ''}">${isActive ? `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}</span>
                   <span class="label">${escapeAttr(cat.name)}</span>
                   <span class="count">(${cat.count})</span>
                 </a>`;
@@ -2026,7 +2266,7 @@ function employers() {
               ${sidebarLocations.map(loc => {
                 const isActive = selectedLocation.toLowerCase() === loc.name.toLowerCase();
                 return `<a href="${buildFilterUrl({ location: isActive ? null : loc.name })}" class="emp-filter-row${isActive ? ' active' : ''}">
-                  <span class="emp-checkbox${isActive ? ' checked' : ''}"></span>
+                  <span class="emp-checkbox${isActive ? ' checked' : ''}">${isActive ? `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}</span>
                   <span class="label">${escapeAttr(loc.name)}</span>
                   <span class="count">(${loc.count})</span>
                 </a>`;
@@ -2044,7 +2284,7 @@ function employers() {
               ${vacancyFilters.map(v => {
                 const isActive = selectedMinJobs === v.value;
                 return `<a href="${buildFilterUrl({ min_jobs: isActive ? null : (v.value || null) })}" class="emp-filter-row${isActive ? ' active' : ''}">
-                  <span class="emp-checkbox${isActive ? ' checked' : ''}"></span>
+                  <span class="emp-checkbox${isActive ? ' checked' : ''}">${isActive ? `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}</span>
                   <span class="label">${escapeAttr(v.label)}</span>
                 </a>`;
               }).join('')}
@@ -2057,7 +2297,7 @@ function employers() {
         <section class="emp-listing-pane" aria-label="Company Listings">
           <div class="emp-listing-top">
             <div class="emp-results-count">
-              ${total > 0 ? `Showing ${start} – ${end} of ${total.toLocaleString()} companies` : 'No companies found matching your filters'}
+              ${total > 0 ? `Showing <strong class="emp-count-highlight">${start} – ${end}</strong> of <strong class="emp-count-highlight">${total.toLocaleString()}</strong> companies` : 'No companies found matching your filters'}
             </div>
             <div class="emp-listing-sorts">
               <select onchange="window.location.href=this.value" aria-label="Sort Companies">
@@ -2072,32 +2312,30 @@ function employers() {
           <!-- 2-Column Naukri Cards Grid -->
           <div class="emp-naukri-grid">
             ${list.length > 0 ? list.map(e => {
-              const initials = (e.title || '').split(/\s+/).map(x => x[0]).join('').slice(0, 3).toUpperCase() || 'CO';
-              const { rating, reviews } = getEmpRating(e.title);
-              const primaryCat = (e.categories && e.categories[0]) || 'Corporate';
-              const primaryLoc = (e.locations && e.locations[0]) || '';
+              const displayTitle = decodeHtml(e.title || '');
+              const initials = displayTitle.split(/\s+/).map(x => x[0]).join('').slice(0, 3).toUpperCase() || 'CO';
+              const reviewData = getEmpRating(e);
+              const primaryCat = decodeHtml((e.categories && e.categories[0]) || 'Corporate');
+              const primaryLoc = decodeHtml((e.locations && e.locations[0]) || '');
               const openJobs = e.openJobs || 0;
 
               return `<a href="/employer/${e.slug}" class="emp-naukri-card">
                 <div class="emp-naukri-logo">
-                  ${e.logo ? `<img src="${e.logo}" alt="${escapeAttr(e.title)}" loading="lazy">` : `<div class="emp-naukri-fallback">${initials}</div>`}
+                  ${e.logo ? `<img src="${e.logo}" alt="${escapeAttr(displayTitle)}" loading="lazy">` : `<div class="emp-naukri-fallback">${initials}</div>`}
                 </div>
                 <div class="emp-naukri-info">
-                  <h3 class="emp-naukri-title" title="${escapeAttr(e.title)}">${escapeAttr(e.title)}</h3>
+                  <h3 class="emp-naukri-title" title="${escapeAttr(displayTitle)}">${escapeAttr(displayTitle)}</h3>
                   <div class="emp-naukri-meta">
-                    <span class="emp-rating-pill">★ ${rating}</span>
-                    <span class="emp-meta-divider">|</span>
-                    <span class="emp-reviews-count">${reviews} reviews</span>
-                    <span class="emp-meta-bullet">•</span>
-                    <span class="emp-jobs-count"><strong>${openJobs}</strong> Jobs</span>
+                    ${reviewData ? `<span class="emp-rating-pill">★ ${reviewData.rating}</span><span class="emp-meta-divider">|</span><span class="emp-reviews-count">${reviewData.reviews} ${reviewData.reviews === 1 ? 'review' : 'reviews'}</span>` : ''}
+                    <span class="emp-jobs-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg> ${openJobs} ${openJobs === 1 ? 'Job' : 'Jobs'} Hiring</span>
                   </div>
                   <div class="emp-naukri-tags">
                     <span class="emp-pill-tag">${escapeAttr(primaryCat)}</span>
-                    ${primaryLoc ? `<span class="emp-pill-tag loc">📍 ${escapeAttr(primaryLoc)}</span>` : ''}
+                    ${primaryLoc ? `<span class="emp-pill-tag loc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>${escapeAttr(primaryLoc)}</span>` : ''}
                   </div>
                 </div>
                 <div class="emp-naukri-arrow" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </div>
               </a>`;
             }).join('') : `
@@ -2502,54 +2740,1757 @@ function jobDetail(j){
   const type=m._job_type?Object.values(m._job_type).join(', '):j?.type||'';
   const date=resolveJobDate(w||j),deadline=resolveJobDeadline(w||j),logo=m._job_logo||j?.logo||'';
   const content=w?.content?.rendered||j?.content||'<p>Job information will appear here.</p>';
-  return `<main class="detail-page"><section class="detail-hero"><div class="wrap detail-hero-inner">${logo?`<img class="detail-logo" src="${escapeAttr(logo)}" alt="${escapeAttr(company)}">`:''}<div class="detail-title"><h1>${escapeAttr(title)}</h1><div class="detail-meta">${categories?`<span>▣ &nbsp;${escapeAttr(categories)}</span>`:''}${location?`<span>⌖ &nbsp;${escapeAttr(location)}</span>`:''}${date?`<span>◷ &nbsp;${escapeAttr(date)}</span>`:''}</div>${type?`<span class="tag">${escapeAttr(type)}</span>`:''}</div><div class="detail-actions"><a class="primary apply" href="${escapeAttr(m._job_apply_url||j?.applyUrl||'#')}">Apply Now</a></div></div></section><div class="wrap detail-grid"><article class="job-description"><h2>▣ Job Description</h2><div class="wordpress-content">${content}</div></article><aside><div class="overview"><h2>Job Overview</h2><dl>${date?`<dt>▣</dt><dd><b>Date Posted</b><span>${escapeAttr(date)}</span></dd>`:''}${location?`<dt>⌖</dt><dd><b>Location</b><span>${escapeAttr(location)}</span></dd>`:''}</dl></div></aside></div></main>`;
+  return `<main class="detail-page"><section class="detail-hero"><div class="wrap detail-hero-inner">${logo?`<img class="detail-logo" src="${escapeAttr(logo)}" alt="${escapeAttr(company)}">`:''}<div class="detail-title"><h1>${escapeAttr(title)}</h1><div class="detail-meta">${categories?`<span>▣ &nbsp;${escapeAttr(categories)}</span>`:''}${location?`<span>⌖ &nbsp;${escapeAttr(location)}</span>`:''}${date?`<span>◷ &nbsp;${escapeAttr(date)}</span>`:''}</div>${type?`<span class="tag">${escapeAttr(type)}</span>`:''}</div><div class="detail-actions"><a class="primary apply" href="${escapeAttr(m._job_apply_url||j?.applyUrl||'#')}" target="_blank" rel="noopener noreferrer nofollow">Apply Now</a></div></div></section><div class="wrap detail-grid"><article class="job-description"><h2>▣ Job Description</h2><div class="wordpress-content">${content}</div></article><aside><div class="overview"><h2>Job Overview</h2><dl>${date?`<dt>▣</dt><dd><b>Date Posted</b><span>${escapeAttr(date)}</span></dd>`:''}${location?`<dt>⌖</dt><dd><b>Location</b><span>${escapeAttr(location)}</span></dd>`:''}</dl></div></aside></div></main>`;
 }
 function employerDetail(e){
   const m=e?.metas||{},title=e?.title?.rendered||e?.title||'Employer',logo=m._employer_logo||e?.logo||'',category=m._employer_category?Object.values(m._employer_category).join(', '):e?.category||'Company',location=m._employer_location?Object.values(m._employer_location).join(', '):e?.location||'',content=e?.content?.rendered||e?.content||'<p>Company information will appear here.</p>';
   return `<main class="detail-page"><section class="detail-hero employer-hero"><div class="wrap detail-hero-inner">${logo?`<img class="detail-logo" src="${escapeAttr(logo)}" alt="${escapeAttr(title)}">`:''}<div class="detail-title"><h1>${escapeAttr(title)}</h1><div class="detail-meta"><span>▣ &nbsp;${escapeAttr(category)}</span>${location?`<span>⌖ &nbsp;${escapeAttr(location)}</span>`:''}</div><span class="tag">Open Jobs</span></div></div></section><div class="wrap detail-grid employer-detail-grid"><article class="job-description"><h2>About Company</h2><div class="wordpress-content">${content}</div></article></div></main>`;
 }
-function decodeHtml(value){const box=document.createElement('textarea');box.innerHTML=value;return box.value}
+function decodeHtml(value) {
+  if (!value) return '';
+  let str = String(value);
+  for (let i = 0; i < 3; i++) {
+    if (!str.includes('&')) break;
+    const box = document.createElement('textarea');
+    box.innerHTML = str;
+    str = box.value;
+  }
+  return str;
+}
 function faq(){return `<main><section class="subhero"><h1>FAQ</h1></section><div class="content faq"><h2>History Of Trikonet</h2>${[['Who is Trikonet?','Trikonet is a job platform connecting job seekers with employment opportunities in the UAE and other Middle Eastern countries.'],['How The Trikonet Started?','Trikonet was founded after the success of Medbiomate highlighted the need for a broader job platform.'],['How are Trikonet and Medbiomate connected?','Both platforms share founders and a commitment to connecting qualified candidates with trusted opportunities.']].map(x=>`<details><summary>${x[0]}</summary><p>${x[1]}</p></details>`).join('')}</div></main>`}
 function contact(){return `<main><section class="subhero"><h1>Contact Us</h1></section><div class="content contact-grid"><div><h2>Get in touch</h2><p>Questions about jobs, employers or your Trikonet account? Send us a message.</p><p><b>Email</b><br>info@trikonet.com</p></div><form class="form-card" id="contact"><label>Name<input required></label><label>Email<input type="email" required></label><label>Message<textarea required></textarea></label><button class="primary">Send Message</button></form></div></main>`}
+function employerSignupComingSoon(){return `<main class="employer-coming-soon"><section class="employer-coming-card"><div class="employer-coming-icon" aria-hidden="true">🏢</div><span class="employer-coming-eyebrow">FOR EMPLOYERS</span><h1>Employer job posting is coming soon</h1><p>Employer registration and job posting are not open yet. We are preparing the employer portal and will launch it shortly.</p><div class="employer-coming-actions"><a class="employer-coming-primary" href="/jobs">Browse Jobs</a><a class="employer-coming-secondary" href="/contact">Contact Us</a></div><small>Thank you for your interest in hiring through Trikonet.</small></section></main>`}
 function generic(){const title=path.split('/').filter(Boolean).map(s=>s.replaceAll('-',' ')).join(' / ')||'Trikonet';return `<main><section class="subhero"><h1>${title.replace(/\b\w/g,c=>c.toUpperCase())}</h1></section><div class="content"><p>This page keeps the existing Trikonet URL available in the local migration. Its content can be edited in the CMS.</p><a class="primary" href="/jobs">Browse Jobs</a></div></main>`}
-function accountPage(forcedMode) {
-  if (currentUser) {
-    return `<main class="auth-page">
-      <div class="auth-dashboard-wrap">
-        <div class="dashboard-hero-card">
-          <div class="dashboard-user-info">
-            <div class="dashboard-avatar">${escapeAttr((currentUser.name || 'U').charAt(0).toUpperCase())}</div>
-            <div class="dashboard-user-text">
-              <h1>Welcome, ${escapeAttr(currentUser.name)}</h1>
-              <p>${escapeAttr(currentUser.email)} · <span style="color:#16a34a;font-weight:600;">Active Account</span></p>
+const CANDIDATE_QUALIFICATION_LEVELS = [
+  "Doctorate / PhD",
+  "Master's / Post Graduate Degree (PG)",
+  "Post Graduate Diploma (PGD)",
+  "Bachelor's Degree (UG)",
+  "Fellowship / Super Specialty",
+  "Board Certification / Residency",
+  "Diploma / Advanced Diploma",
+  "High School / Secondary",
+  "Other Qualification"
+];
+
+const CANDIDATE_DEGREE_GROUPS = [
+  {
+    group: 'Computer Science, IT & Software',
+    options: [
+      'BTech / BE Computer Science',
+      'BSc Information Technology (IT)',
+      'BCA / MCA (Computer Applications)',
+      'MTech / MS Computer Science',
+      'MSc Data Science / Artificial Intelligence',
+      'BSc Cybersecurity / Cloud Computing',
+      'Diploma in Computer Engineering / IT',
+      'Full Stack Software Development Certification'
+    ]
+  },
+  {
+    group: 'Business, Management & Finance',
+    options: [
+      'Bachelor of Commerce (B.Com)',
+      'Bachelor of Business Administration (BBA)',
+      'MBA (Master of Business Administration)',
+      'Master of Commerce (M.Com)',
+      'Chartered Accountant (CA / CPA)',
+      'ACCA / CMA Certified',
+      'BSc Finance & Banking',
+      'Master in International Business'
+    ]
+  },
+  {
+    group: 'Engineering & Construction',
+    options: [
+      'BTech / BE Civil Engineering',
+      'BTech / BE Mechanical Engineering',
+      'BTech / BE Electrical Engineering',
+      'BTech / BE Electronics & Communication',
+      'Bachelor of Architecture (B.Arch)',
+      'MTech / ME in Engineering',
+      'Diploma in Engineering (Civil / Mech / Elec)',
+      'Quantity Surveying Certification'
+    ]
+  },
+  {
+    group: 'Marketing, Media & Design',
+    options: [
+      'BA in Marketing / Public Relations',
+      'BA in Mass Communication & Journalism',
+      'BSc Graphic Design / Multimedia',
+      'UI/UX Design Certification',
+      'Digital Marketing Professional Diploma'
+    ]
+  },
+  {
+    group: 'Human Resources & Law',
+    options: [
+      'MBA in Human Resource Management',
+      'Bachelor of Laws (LLB)',
+      'Master of Laws (LLM)',
+      'Diploma in Human Resources',
+      'SHRM / CIPD Human Resources Certification'
+    ]
+  },
+  {
+    group: 'Hospitality, Tourism & Aviation',
+    options: [
+      'BSc Hotel Management & Catering (BHM)',
+      'Diploma in Culinary Arts / F&B Operations',
+      'Diploma in Aviation & Cabin Crew Training',
+      'BSc Tourism & Travel Management'
+    ]
+  },
+  {
+    group: 'Education & Academics',
+    options: [
+      'Bachelor of Education (B.Ed)',
+      'Master of Education (M.Ed)',
+      'Bachelor of Arts (BA)',
+      'Bachelor of Science (BSc)',
+      'Master of Arts (MA)',
+      'Master of Science (MSc)',
+      'TEFL / TESOL Teaching Certification'
+    ]
+  },
+  {
+    group: 'Healthcare & Medicine',
+    options: [
+      'BSc Nursing / GNM',
+      'Post Basic BSc Nursing / MSc Nursing',
+      'MBBS (Bachelor of Medicine & Surgery)',
+      'MD / MS (Medical Specialist)',
+      'BDS / MDS (Dental Surgery)',
+      'B.Pharm / M.Pharm / PharmD (Pharmacy)',
+      'BPT / MPT (Physiotherapy)',
+      'BSc Medical Laboratory Technology (MLT)',
+      'Certified Medical Coder (CPC / CCS)',
+      'BSc Radiography & Medical Imaging'
+    ]
+  },
+  {
+    group: 'Doctorate & Advanced Research',
+    options: [
+      'Doctor of Philosophy (PhD)',
+      'Post-Doctoral Research Fellowship',
+      'Executive Leadership Certification'
+    ]
+  }
+];
+
+const CANDIDATE_TRACKED_ROLES = [
+  // Software & IT
+  { role: 'Software Engineer', category: 'Software & IT' },
+  { role: 'Frontend Developer', category: 'Software & IT' },
+  { role: 'Backend Developer', category: 'Software & IT' },
+  { role: 'Full Stack Developer', category: 'Software & IT' },
+  { role: 'Mobile App Developer (iOS/Android)', category: 'Software & IT' },
+  { role: 'DevOps / Cloud Engineer', category: 'Software & IT' },
+  { role: 'Data Analyst / Data Scientist', category: 'Software & IT' },
+  { role: 'UI/UX Designer', category: 'Software & IT' },
+  { role: 'QA & Automation Test Engineer', category: 'Software & IT' },
+  { role: 'Cybersecurity Analyst', category: 'Software & IT' },
+  { role: 'IT Support Specialist / System Admin', category: 'Software & IT' },
+  { role: 'Technical Product Manager', category: 'Software & IT' },
+
+  // Engineering & Construction
+  { role: 'Civil Engineer', category: 'Engineering & Technical' },
+  { role: 'Mechanical Engineer', category: 'Engineering & Technical' },
+  { role: 'Electrical Engineer', category: 'Engineering & Technical' },
+  { role: 'MEP Project Engineer', category: 'Engineering & Technical' },
+  { role: 'Site Engineer / Supervisor', category: 'Engineering & Technical' },
+  { role: 'Project Manager (Construction)', category: 'Engineering & Technical' },
+  { role: 'Architect / Interior Designer', category: 'Engineering & Technical' },
+  { role: 'Quantity Surveyor (QS)', category: 'Engineering & Technical' },
+  { role: 'HSE Safety Officer / Inspector', category: 'Engineering & Technical' },
+  { role: 'Structural Engineer', category: 'Engineering & Technical' },
+
+  // Finance & Accounting
+  { role: 'Accountant / General Accountant', category: 'Finance & Accounting' },
+  { role: 'Senior Accountant', category: 'Finance & Accounting' },
+  { role: 'Finance Manager / CFO', category: 'Finance & Accounting' },
+  { role: 'Financial Analyst', category: 'Finance & Accounting' },
+  { role: 'Auditor / Tax Consultant (VAT)', category: 'Finance & Accounting' },
+  { role: 'Payroll Specialist', category: 'Finance & Accounting' },
+  { role: 'Accounts Payable / Receivable Clerk', category: 'Finance & Accounting' },
+  { role: 'Credit Controller / Treasury Officer', category: 'Finance & Accounting' },
+
+  // Sales & Marketing
+  { role: 'Sales Executive / Business Development', category: 'Sales & Marketing' },
+  { role: 'Sales Manager / Director', category: 'Sales & Marketing' },
+  { role: 'Digital Marketing Specialist', category: 'Sales & Marketing' },
+  { role: 'Social Media & Content Manager', category: 'Sales & Marketing' },
+  { role: 'SEO / Performance Marketing Specialist', category: 'Sales & Marketing' },
+  { role: 'Brand & Marketing Manager', category: 'Sales & Marketing' },
+  { role: 'Public Relations (PR) Executive', category: 'Sales & Marketing' },
+  { role: 'Real Estate Consultant / Broker', category: 'Sales & Marketing' },
+
+  // Human Resources & Recruitment
+  { role: 'HR Executive / Generalist', category: 'Human Resources (HR)' },
+  { role: 'HR Manager / HR Director', category: 'Human Resources (HR)' },
+  { role: 'Talent Acquisition / Recruiter', category: 'Human Resources (HR)' },
+  { role: 'HR Operations & PRO Specialist', category: 'Human Resources (HR)' },
+  { role: 'Training & Development Specialist', category: 'Human Resources (HR)' },
+  { role: 'Compensation & Benefits Specialist', category: 'Human Resources (HR)' },
+
+  // Administration & Support
+  { role: 'Executive Assistant / Personal Assistant', category: 'Administration & Support' },
+  { role: 'Office Administrator / Office Manager', category: 'Administration & Support' },
+  { role: 'Receptionist / Front Desk Executive', category: 'Administration & Support' },
+  { role: 'Data Entry Operator / Clerk', category: 'Administration & Support' },
+  { role: 'Document Controller', category: 'Administration & Support' },
+  { role: 'Customer Service Representative', category: 'Customer Service' },
+  { role: 'Call Centre Team Leader', category: 'Customer Service' },
+
+  // Hospitality & Catering
+  { role: 'Hotel General Manager / Duty Manager', category: 'Hospitality & F&B' },
+  { role: 'Front Office Executive / Supervisor', category: 'Hospitality & F&B' },
+  { role: 'Executive Chef / Head Chef', category: 'Hospitality & F&B' },
+  { role: 'Sous Chef / Line Cook', category: 'Hospitality & F&B' },
+  { role: 'Restaurant Manager / F&B Supervisor', category: 'Hospitality & F&B' },
+  { role: 'Barista / Bartender', category: 'Hospitality & F&B' },
+  { role: 'Waiter / Waitress / Hostess', category: 'Hospitality & F&B' },
+  { role: 'Housekeeping Supervisor', category: 'Hospitality & F&B' },
+
+  // Logistics & Supply Chain
+  { role: 'Supply Chain Manager', category: 'Logistics & Supply Chain' },
+  { role: 'Logistics Coordinator / Specialist', category: 'Logistics & Supply Chain' },
+  { role: 'Procurement / Purchasing Officer', category: 'Logistics & Supply Chain' },
+  { role: 'Warehouse Supervisor / Manager', category: 'Logistics & Supply Chain' },
+  { role: 'Inventory Controller', category: 'Logistics & Supply Chain' },
+  { role: 'Fleet / Transport Supervisor', category: 'Logistics & Supply Chain' },
+
+  // Education & Teaching
+  { role: 'Primary / Kindergarten Teacher', category: 'Education & Training' },
+  { role: 'Secondary / High School Teacher', category: 'Education & Training' },
+  { role: 'English / ESL Teacher', category: 'Education & Training' },
+  { role: 'Mathematics / Science Teacher', category: 'Education & Training' },
+  { role: 'University Lecturer / Professor', category: 'Education & Training' },
+  { role: 'Academic Counselor / Special Needs Educator', category: 'Education & Training' },
+
+  // Healthcare & Nursing
+  { role: 'Staff Nurse', category: 'Nursing & Clinical' },
+  { role: 'Registered Nurse (RN)', category: 'Nursing & Clinical' },
+  { role: 'Assistant Nurse', category: 'Nursing & Clinical' },
+  { role: 'ICU / Critical Care Nurse', category: 'Nursing & Clinical' },
+  { role: 'Emergency (ER) Nurse', category: 'Nursing & Clinical' },
+  { role: 'Operating Theatre (OT) Nurse', category: 'Nursing & Clinical' },
+  { role: 'Derma / Aesthetic Nurse', category: 'Nursing & Clinical' },
+  { role: 'General Practitioner (GP)', category: 'Healthcare & Medical' },
+  { role: 'Consultant / Specialist Doctor', category: 'Healthcare & Medical' },
+  { role: 'Dentist / Dental Surgeon', category: 'Healthcare & Medical' },
+  { role: 'Pharmacist / Clinical Pharmacist', category: 'Healthcare & Medical' },
+  { role: 'Medical Coder / Billing Specialist', category: 'Healthcare & Medical' },
+  { role: 'Medical Lab Technologist (MLT)', category: 'Healthcare & Medical' },
+  { role: 'Physiotherapist', category: 'Healthcare & Medical' },
+  { role: 'Radiographer / X-Ray Technologist', category: 'Healthcare & Medical' }
+];
+
+const CANDIDATE_INDUSTRIES = [
+  'Information Technology & Software',
+  'Healthcare & Medical',
+  'Hospitality, Tourism & Catering',
+  'Finance, Banking & Accounting',
+  'Engineering & Construction',
+  'Sales, Marketing & Advertising',
+  'Human Resources & Recruitment',
+  'Logistics, Supply Chain & Aviation',
+  'Education & Teaching',
+  'Administration & Office Support',
+  'Customer Service & Call Centre',
+  'Retail & FMCG',
+  'Real Estate & Property',
+  'Legal & Compliance'
+];
+
+const CANDIDATE_CATEGORIES = [
+  'Software & IT',
+  'Engineering & Technical',
+  'Finance & Accounting',
+  'Sales & Marketing',
+  'Healthcare & Medical',
+  'Nursing & Clinical',
+  'Human Resources (HR)',
+  'Hospitality & F&B',
+  'Logistics & Supply Chain',
+  'Education & Training',
+  'Administration & Support',
+  'Customer Service'
+];
+
+const CANDIDATE_EXPERIENCES = ['Student / Intern', 'Fresher', '1–3 years', '4–7 years', '8–12 years', '12+ years'];
+const CANDIDATE_LICENSES = [
+  'No license / General Career',
+  'UAE Driving License',
+  'AWS / Azure / GCP Cloud Certified',
+  'PMP / Agile Scrum Certified',
+  'CPA / ACCA / CMA Certified',
+  'SHRM / CIPD HR Certified',
+  'DHA License (Dubai)',
+  'DOH / HAAD License (Abu Dhabi)',
+  'MOH License (UAE)',
+  'SCFHS License (Saudi Arabia)',
+  'Other Professional License'
+];
+const CANDIDATE_AVAILABILITY = ['Immediately', 'Within 15 days', 'Within 30 days', 'Within 60 days', 'More than 60 days'];
+const CANDIDATE_HOSPITAL_TYPES = ['Any Employer Type', 'Private Corporate Company', 'Government / Semi-Government', 'Multinational Corporation (MNC)', 'Hospital / Medical Centre', 'Startup / Tech Agency', 'Retail / Hospitality Chain', 'Educational Institution'];
+const CANDIDATE_LOCATIONS = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
+const CANDIDATE_COUNTRIES = [
+  { name: 'United Arab Emirates', code: 'AE', dial: '+971', flag: '🇦🇪' },
+  { name: 'Saudi Arabia', code: 'SA', dial: '+966', flag: '🇸🇦' },
+  { name: 'India', code: 'IN', dial: '+91', flag: '🇮🇳' },
+  { name: 'Philippines', code: 'PH', dial: '+63', flag: '🇵🇭' },
+  { name: 'Egypt', code: 'EG', dial: '+20', flag: '🇪🇬' },
+  { name: 'Pakistan', code: 'PK', dial: '+92', flag: '🇵🇰' },
+  { name: 'Jordan', code: 'JO', dial: '+962', flag: '🇯🇴' },
+  { name: 'Oman', code: 'OM', dial: '+968', flag: '🇴🇲' },
+  { name: 'Qatar', code: 'QA', dial: '+974', flag: '🇶🇦' },
+  { name: 'Kuwait', code: 'KW', dial: '+965', flag: '🇰🇼' },
+  { name: 'Bahrain', code: 'BH', dial: '+973', flag: '🇧🇭' },
+  { name: 'United Kingdom', code: 'GB', dial: '+44', flag: '🇬🇧' },
+  { name: 'United States', code: 'US', dial: '+1', flag: '🇺🇸' },
+  { name: 'Canada', code: 'CA', dial: '+1', flag: '🇨🇦' },
+  { name: 'Australia', code: 'AU', dial: '+61', flag: '🇦🇺' },
+  { name: 'South Africa', code: 'ZA', dial: '+27', flag: '🇿🇦' },
+  { name: 'Lebanon', code: 'LB', dial: '+961', flag: '🇱🇧' },
+  { name: 'Syria', code: 'SY', dial: '+963', flag: '🇸🇾' },
+  { name: 'Sudan', code: 'SD', dial: '+249', flag: '🇸🇩' },
+  { name: 'Yemen', code: 'YE', dial: '+967', flag: '🇾🇪' },
+  { name: 'Nigeria', code: 'NG', dial: '+234', flag: '🇳🇬' },
+  { name: 'Kenya', code: 'KE', dial: '+254', flag: '🇰🇪' },
+  { name: 'Nepal', code: 'NP', dial: '+977', flag: '🇳🇵' },
+  { name: 'Sri Lanka', code: 'LK', dial: '+94', flag: '🇱🇰' },
+  { name: 'Bangladesh', code: 'BD', dial: '+880', flag: '🇧🇩' },
+  { name: 'Germany', code: 'DE', dial: '+49', flag: '🇩🇪' },
+  { name: 'France', code: 'FR', dial: '+33', flag: '🇫🇷' },
+  { name: 'Turkey', code: 'TR', dial: '+90', flag: '🇹🇷' }
+];
+
+function calculateCandidateCompletion(p) {
+  if (!p || typeof p !== 'object') return 0;
+  let score = 0;
+  if (p.name?.trim()) score += 5;
+  if (p.email?.trim()) score += 5;
+  if (p.phone?.trim()) score += 5;
+  if (p.nationality?.trim()) score += 5;
+  if (p.currentLocation?.trim()) score += 5;
+  if (p.industry?.trim()) score += 5;
+  if (p.category?.trim()) score += 5;
+  if (p.role?.trim()) score += 5;
+  if (p.currentDesignation?.trim()) score += 5;
+  if (p.experience?.trim()) score += 5;
+  if (p.qualification?.trim()) score += 5;
+  if (p.degree?.trim()) score += 5;
+  if (p.specialization?.trim()) score += 5;
+  if ((Array.isArray(p.licenses) && p.licenses.length > 0) || p.licenseStatus?.trim()) score += 5;
+  if ((Array.isArray(p.languages) && p.languages.length > 0) || (typeof p.languages === 'string' && p.languages.trim())) score += 5;
+  if (p.salaryExpectation?.trim()) score += 5;
+  if (p.availability?.trim()) score += 5;
+  if (p.noticePeriod?.trim() || p.hospitalType?.trim()) score += 5;
+  if (Array.isArray(p.locations) && p.locations.length > 0) score += 5;
+  if (p.summary?.trim() || p.photo) score += 5;
+  return Math.min(100, Math.max(0, score));
+}
+
+function candidateProfileWorkspace(profile) {
+  const p = profile || {};
+  const currentPhoto = p.photo || currentUser?.avatar || '';
+  const initial = escapeAttr((p.name || currentUser?.name || 'U').charAt(0).toUpperCase());
+  const completion = typeof currentUser?.completionPercentage === 'number'
+    ? currentUser.completionPercentage
+    : calculateCandidateCompletion(p);
+
+  const phoneStr = String(p.phone || '').trim();
+  const matchedCountry = CANDIDATE_COUNTRIES.find(c => phoneStr.startsWith(c.dial)) || CANDIDATE_COUNTRIES[0];
+  const nationalNumber = phoneStr.startsWith(matchedCountry.dial)
+    ? phoneStr.slice(matchedCountry.dial.length).trim()
+    : phoneStr;
+
+  const currentNationality = CANDIDATE_COUNTRIES.find(c => c.name.toLowerCase() === (p.nationality || '').toLowerCase());
+  const selectedLicenses = Array.isArray(p.licenses) ? p.licenses : [];
+  const selectedLocations = Array.isArray(p.locations) ? p.locations : [];
+  const allStandardDegrees = CANDIDATE_DEGREE_GROUPS.flatMap(g => g.options);
+  const isCustomDegree = p.degree && !allStandardDegrees.includes(p.degree);
+  const isCustomQual = p.qualification && !CANDIDATE_QUALIFICATION_LEVELS.includes(p.qualification);
+
+  return `<main class="candidate-profile-shell">
+    <!-- Top Hero Banner -->
+    <section class="candidate-profile-hero">
+      <div class="profile-hero-top">
+        <div class="profile-hero-user">
+          <label class="profile-avatar-wrap" title="Click to upload profile photo">
+            ${currentPhoto ? `<img id="candAvatarImg" src="${escapeAttr(currentPhoto)}" alt="Candidate Avatar">` : `<span id="candAvatarInitial" class="profile-avatar-initial">${initial}</span>`}
+            <span class="profile-avatar-camera" title="Upload Photo">📷</span>
+            <input type="file" id="candPhotoInput" accept="image/*" style="display:none;">
+          </label>
+          <div class="profile-hero-info">
+            <span class="profile-hero-kicker">Candidate Profile & Workspace</span>
+            <h1>${escapeAttr(p.name || currentUser?.name || 'Candidate')} <span class="profile-hero-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Verified Candidate</span></h1>
+            <div class="profile-hero-meta">
+              <span>✉️ ${escapeAttr(p.email || currentUser?.email || '')}</span>
+              <span id="heroRoleMeta">💼 ${escapeAttr(p.role || p.currentDesignation || 'Professional')}</span>
+              <span id="heroLocationMeta">📍 ${escapeAttr(p.currentLocation || 'UAE')}</span>
             </div>
           </div>
-          <button class="outline" id="dashboardLogoutBtn" style="border-color:#e2e8f0;color:#64748b;padding:8px 18px;font-size:13px;border-radius:10px;">Sign Out</button>
         </div>
-        <div class="dashboard-actions-grid">
-          <a class="dashboard-action-card" href="/email-campaigns">
-            <div class="dashboard-action-icon">✉</div>
-            <h3>Email Campaigns</h3>
-            <p>Compose, save, and manage your private email campaigns & candidate outreach.</p>
+        <div class="profile-hero-actions">
+          <button type="button" class="profile-btn-primary" id="saveProfileHeroBtn">
+            <span>💾</span> Save Changes
+          </button>
+          <a href="/resume-library" class="profile-btn-secondary" title="Build ATS Resume">
+            <span>📄</span> ATS CV Builder
           </a>
-          <a class="dashboard-action-card" href="/jobs">
-            <div class="dashboard-action-icon">💼</div>
-            <h3>Browse <span class="hero-live-job-count" data-live-job-count>${(data.counts?.job_listing || 13621).toLocaleString()}+</span> Jobs</h3>
-            <p>Explore verified openings across Abu Dhabi, Dubai, Sharjah, and other GCC hubs.</p>
-          </a>
-          <a class="dashboard-action-card" href="/employers">
-            <div class="dashboard-action-icon">🏢</div>
-            <h3>Top ${(data.counts?.employer || 2728).toLocaleString()}+ Employers</h3>
-            <p>Connect directly with leading healthcare, education, hospitality, and corporate firms.</p>
-          </a>
-          <a class="dashboard-action-card" href="/submit-job">
-            <div class="dashboard-action-icon">➕</div>
-            <h3>Post a Job Opening</h3>
-            <p>Publish a job listing to recruit qualified talent across the Middle East network.</p>
-          </a>
+          <button type="button" class="profile-btn-secondary profile-btn-signout" id="dashboardLogoutBtn">
+            Sign Out
+          </button>
         </div>
       </div>
-    </main>`;
+    </section>
+
+    <!-- 2-Column Executive Dashboard -->
+    <div class="candidate-dashboard-grid">
+      <!-- Main Form Column -->
+      <div class="candidate-main-content">
+        <!-- Sticky Section Navigation Tabs -->
+        <nav class="candidate-section-tabs" id="profileSectionTabs" aria-label="Profile Sections">
+          <button type="button" class="tab-pill active" data-target="section-personal"><span>👤</span> Personal</button>
+          <button type="button" class="tab-pill" data-target="section-career"><span>💼</span> Career & Role</button>
+          <button type="button" class="tab-pill" data-target="section-education"><span>🎓</span> Education & Licenses</button>
+          <button type="button" class="tab-pill" data-target="section-preferences"><span>⚙️</span> Preferences & Salary</button>
+          <button type="button" class="tab-pill" data-target="section-locations"><span>📍</span> Locations & Bio</button>
+        </nav>
+
+        <!-- SECTION 1: Personal & Contact Information -->
+        <section class="profile-section-card" id="section-personal">
+          <div class="section-head">
+            <span class="section-eyebrow">ABOUT YOU</span>
+            <h2 class="section-title"><span>👤</span> Personal & Contact Details</h2>
+            <p class="section-subtitle">Recruiters and HR coordinators will use these details to contact you directly.</p>
+          </div>
+      <div class="profile-grid-2">
+        <div class="profile-field">
+          <label for="candName">Full Name *</label>
+          <input type="text" id="candName" value="${escapeAttr(p.name || currentUser?.name || '')}" placeholder="e.g. Sarah Jenkins">
+        </div>
+        <div class="profile-field">
+          <label for="candEmail">Email Address (Registered)</label>
+          <input type="email" id="candEmail" value="${escapeAttr(p.email || currentUser?.email || '')}" readonly style="background:#f8fafc;cursor:not-allowed;">
+        </div>
+        <div class="profile-field">
+          <label for="candPhoneNumber">Phone Number *</label>
+          <div class="phone-field-wrap">
+            <button type="button" class="phone-code-btn" id="phoneCodeBtn" title="Choose country dial code">
+              <span id="phoneCodeFlag">${matchedCountry.flag}</span>
+              <strong id="phoneCodeDial">${matchedCountry.dial}</strong>
+              <small>▼</small>
+            </button>
+            <input type="tel" id="candPhoneNumber" value="${escapeAttr(nationalNumber)}" placeholder="50 123 4567" style="flex:1;">
+          </div>
+        </div>
+        <div class="profile-field">
+          <label>Nationality *</label>
+          <button type="button" class="picker-trigger-btn ${p.nationality ? '' : 'empty'}" id="candNationalityBtn">
+            <span id="nationalityBtnText">${currentNationality ? `${currentNationality.flag} ${currentNationality.name}` : (p.nationality || 'Select your nationality')}</span>
+            <small>▼</small>
+          </button>
+          <input type="hidden" id="candNationality" value="${escapeAttr(p.nationality || '')}">
+        </div>
+        <div class="profile-field">
+          <label for="candCurrentLocation">Current City and Country *</label>
+          <input type="text" id="candCurrentLocation" value="${escapeAttr(p.currentLocation || '')}" placeholder="e.g. Dubai, UAE">
+        </div>
+        <div class="profile-field">
+          <label for="candGender">Gender</label>
+          <select id="candGender">
+            <option value="">Select gender</option>
+            <option value="Female" ${p.gender === 'Female' ? 'selected' : ''}>Female</option>
+            <option value="Male" ${p.gender === 'Male' ? 'selected' : ''}>Male</option>
+            <option value="Prefer not to say" ${p.gender === 'Prefer not to say' ? 'selected' : ''}>Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: Career Field & Professional Level -->
+    <section class="profile-section-card" id="section-career">
+      <div class="section-head">
+        <span class="section-eyebrow">YOUR CAREER</span>
+        <h2 class="section-title"><span>💼</span> Career Field & Professional Level</h2>
+        <p class="section-subtitle">Select your industry discipline, target role, and total experience.</p>
+      </div>
+
+      <div class="profile-grid-2 career-compact-selects">
+        <div class="profile-field">
+          <label for="candIndustry">Industry / Sector *</label>
+          <select id="candIndustry">
+            ${CANDIDATE_INDUSTRIES.map(item => `<option value="${escapeAttr(item)}" ${(p.industry || 'Information Technology & Software') === item ? 'selected' : ''}>${escapeAttr(item)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="profile-field">
+          <label for="candCategory">Job Category *</label>
+          <select id="candCategory">
+            ${CANDIDATE_CATEGORIES.map(item => `<option value="${escapeAttr(item)}" ${(p.category || 'Software & IT') === item ? 'selected' : ''}>${escapeAttr(item)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="profile-grid-2" style="margin-bottom:18px;">
+        <div class="profile-field">
+          <label>Target Job Role *</label>
+          <button type="button" class="picker-trigger-btn ${p.role ? '' : 'empty'}" id="candRoleBtn">
+            <span id="candRoleBtnText">💼 ${escapeAttr(p.role || 'Select target job role')}</span>
+            <small>🔍 Browse</small>
+          </button>
+          <input type="hidden" id="candRole" value="${escapeAttr(p.role || '')}">
+        </div>
+        <div class="profile-field">
+          <label for="candDesignation">Current / Most Recent Designation *</label>
+          <input type="text" id="candDesignation" value="${escapeAttr(p.currentDesignation || p.role || '')}" placeholder="e.g. Senior Software Engineer, Staff Nurse, Project Manager, Accountant">
+          ${p.role ? `<button type="button" class="suggestion-chip" id="sameAsRoleChip">✓ Same as role: “${escapeAttr(p.role)}”</button>` : ''}
+        </div>
+      </div>
+
+      <div class="profile-field">
+        <label for="candExperience">Total Professional Experience Level *</label>
+        <select id="candExperience">
+          ${CANDIDATE_EXPERIENCES.map(item => `<option value="${escapeAttr(item)}" ${(p.experience || '1–3 years') === item ? 'selected' : ''}>${escapeAttr(item)}</option>`).join('')}
+        </select>
+      </div>
+    </section>
+
+    <!-- SECTION 3: Education, Degrees & Credentials -->
+    <section class="profile-section-card" id="section-education">
+      <div class="section-head">
+        <span class="section-eyebrow">CREDENTIALS & EDUCATION</span>
+        <h2 class="section-title"><span>🎓</span> Education, Degrees & Qualifications</h2>
+        <p class="section-subtitle">Add your academic degrees, certifications, and professional credentials for UAE employers.</p>
+      </div>
+
+      <div class="profile-grid-2" style="margin-bottom:18px;">
+        <div class="profile-field">
+          <label for="candQualification">Highest Qualification Level *</label>
+          <select id="candQualification">
+            <option value="">Select qualification level</option>
+            ${CANDIDATE_QUALIFICATION_LEVELS.map(level => `
+              <option value="${escapeAttr(level)}" ${p.qualification === level ? 'selected' : ''}>${escapeAttr(level)}</option>
+            `).join('')}
+            <option value="Other Qualification" ${isCustomQual ? 'selected' : ''}>Other Qualification</option>
+          </select>
+          <input type="text" id="candCustomQual" value="${isCustomQual ? escapeAttr(p.qualification) : ''}" placeholder="Enter qualification" style="margin-top:6px;display:${isCustomQual ? 'block' : 'none'};">
+        </div>
+
+        <div class="profile-field">
+          <label for="candDegreeSelect">Degree / Certification *</label>
+          <select id="candDegreeSelect">
+            <option value="">Select degree / major</option>
+            ${CANDIDATE_DEGREE_GROUPS.map(g => `
+              <optgroup label="${escapeAttr(g.group)}">
+                ${g.options.map(opt => `
+                  <option value="${escapeAttr(opt)}" ${p.degree === opt ? 'selected' : ''}>${escapeAttr(opt)}</option>
+                `).join('')}
+              </optgroup>
+            `).join('')}
+            <option value="Other" ${isCustomDegree ? 'selected' : ''}>Other / Custom Degree</option>
+          </select>
+          <input type="text" id="candCustomDegree" value="${isCustomDegree ? escapeAttr(p.degree) : ''}" placeholder="Enter custom degree (e.g. BSc Computer Science, MBA, MBBS)" style="margin-top:6px;display:${isCustomDegree ? 'block' : 'none'};">
+        </div>
+
+        <div class="profile-field">
+          <label for="candSpecialization">Specialization / Major / Department</label>
+          <input type="text" id="candSpecialization" value="${escapeAttr(p.specialization || '')}" placeholder="e.g. Cloud Computing, Corporate Finance, Civil Engineering, Cardiology">
+        </div>
+
+        <div class="profile-field">
+          <label for="candUniversity">University / Institute / College</label>
+          <input type="text" id="candUniversity" value="${escapeAttr(p.university || '')}" placeholder="e.g. University of Dubai, AUS, Heriot-Watt, Cairo University">
+        </div>
+      </div>
+
+      <div class="profile-field" style="margin-bottom:18px;">
+        <label>Professional Certifications & Licenses (Technical, Medical & Professional)</label>
+        <div class="choice-pills-wrap" id="licensePillsWrap">
+          ${CANDIDATE_LICENSES.map(item => {
+            const isSel = selectedLicenses.includes(item);
+            return `
+              <button type="button" class="choice-pill ${isSel ? 'selected' : ''}" data-val="${escapeAttr(item)}">
+                ${isSel ? '<span class="choice-pill-icon">✓</span>' : ''} ${escapeAttr(item)}
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="profile-grid-2">
+        <div class="profile-field">
+          <label for="candLicenseStatus">License / Credential Verification Status</label>
+          <select id="candLicenseStatus">
+            <option value="">Select verification status</option>
+            <option value="Active License / Certified" ${p.licenseStatus === 'Active License / Certified' || p.licenseStatus === 'Active License' ? 'selected' : ''}>Active License / Certified</option>
+            <option value="Degree Attested (MoFA / UAE)" ${p.licenseStatus === 'Degree Attested (MoFA / UAE)' ? 'selected' : ''}>Degree Attested (MoFA / UAE)</option>
+            <option value="Eligibility Letter" ${p.licenseStatus === 'Eligibility Letter' ? 'selected' : ''}>Eligibility Letter (Healthcare)</option>
+            <option value="Dataflow Completed" ${p.licenseStatus === 'Dataflow Completed' ? 'selected' : ''}>Dataflow Completed</option>
+            <option value="Exam Passed / In Process" ${p.licenseStatus === 'Exam Passed / In Process' || p.licenseStatus === 'Exam Passed' ? 'selected' : ''}>Exam Passed / In Process</option>
+            <option value="Not Applicable / General Career" ${p.licenseStatus === 'Not Applicable / General Career' || p.licenseStatus === 'No license yet' ? 'selected' : ''}>Not Applicable / General Career</option>
+          </select>
+        </div>
+
+        <div class="profile-field">
+          <label for="candLanguages">Languages Known</label>
+          <input type="text" id="candLanguages" value="${escapeAttr(Array.isArray(p.languages) ? p.languages.join(', ') : (p.languages || 'English'))}" placeholder="e.g. English, Arabic, Hindi, Tagalog, French">
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: Work Preferences & Availability -->
+    <section class="profile-section-card" id="section-preferences">
+      <div class="section-head">
+        <span class="section-eyebrow">JOB PREFERENCES</span>
+        <h2 class="section-title"><span>⚙️</span> Availability & Career Expectations</h2>
+        <p class="section-subtitle">Specify your employment status, expected salary, and employer preferences.</p>
+      </div>
+
+      <div class="profile-grid-2" style="margin-bottom:18px;">
+        <div class="profile-field">
+          <label for="candEmployers">Previous / Current Employers</label>
+          <input type="text" id="candEmployers" value="${escapeAttr(p.previousEmployers || '')}" placeholder="e.g. Emirates Group, EMAAR, Mediclinic, Etisalat">
+        </div>
+        <div class="profile-field">
+          <label for="candSalary">Expected Monthly Salary</label>
+          <input type="text" id="candSalary" value="${escapeAttr(p.salaryExpectation || '')}" placeholder="e.g. AED 12,000 monthly">
+        </div>
+        <div class="profile-field">
+          <label for="candAvailability">Availability to Join</label>
+          <select id="candAvailability">
+            <option value="">Select availability</option>
+            ${CANDIDATE_AVAILABILITY.map(opt => `
+              <option value="${escapeAttr(opt)}" ${p.availability === opt ? 'selected' : ''}>${escapeAttr(opt)}</option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="profile-field">
+          <label for="candNotice">Notice Period</label>
+          <input type="text" id="candNotice" value="${escapeAttr(p.noticePeriod || '')}" placeholder="e.g. 30 days, Immediate">
+        </div>
+        <div class="profile-field">
+          <label for="candHospitalType">Preferred Employer Sector / Type</label>
+          <select id="candHospitalType">
+            <option value="">Select employer type</option>
+            ${CANDIDATE_HOSPITAL_TYPES.map(opt => `
+              <option value="${escapeAttr(opt)}" ${p.hospitalType === opt ? 'selected' : ''}>${escapeAttr(opt)}</option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="profile-field">
+          <label for="candVisaStatus">UAE Visa Status</label>
+          <select id="candVisaStatus">
+            <option value="">Select visa status</option>
+            <option value="Employment Visa" ${p.visaStatus === 'Employment Visa' ? 'selected' : ''}>Employment Visa</option>
+            <option value="Visit / Tourist Visa" ${p.visaStatus === 'Visit / Tourist Visa' ? 'selected' : ''}>Visit / Tourist Visa</option>
+            <option value="Residence / Golden Visa" ${p.visaStatus === 'Residence / Golden Visa' ? 'selected' : ''}>Residence / Golden Visa</option>
+            <option value="Citizen / GCC National" ${p.visaStatus === 'Citizen / GCC National' ? 'selected' : ''}>Citizen / GCC National</option>
+            <option value="Need Sponsorship" ${p.visaStatus === 'Need Sponsorship' ? 'selected' : ''}>Need Sponsorship</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: Preferred UAE Locations & Bio Summary -->
+    <section class="profile-section-card" id="section-locations">
+      <div class="section-head">
+        <span class="section-eyebrow">LOCATIONS & SUMMARY</span>
+        <h2 class="section-title"><span>📍</span> Preferred Work Locations & Summary</h2>
+        <p class="section-subtitle">Select your target UAE Emirates to receive personalized job matches.</p>
+      </div>
+
+      <div class="profile-field" style="margin-bottom:24px;">
+        <div class="location-header-row">
+          <div class="location-label-wrap">
+            <label style="margin-bottom:0;">Preferred UAE Work Locations</label>
+            <span class="location-selected-badge" id="locationSelectedBadge">${selectedLocations.length} selected</span>
+          </div>
+          <div class="location-quick-actions">
+            <button type="button" class="loc-quick-pill" id="locSelectAllBtn">Select All</button>
+            <button type="button" class="loc-quick-pill" id="locTopHubsBtn">Dubai & Abu Dhabi</button>
+            <button type="button" class="loc-quick-pill" id="locClearBtn">Clear</button>
+          </div>
+        </div>
+
+        <div class="location-cards-grid" id="locationCardsGrid">
+          ${CANDIDATE_LOCATIONS.map(loc => {
+            const isSel = selectedLocations.includes(loc);
+            return `
+              <button type="button" class="location-card-btn ${isSel ? 'selected' : ''}" data-val="${escapeAttr(loc)}">
+                <div class="loc-btn-left">
+                  <span class="loc-pin-icon">📍</span>
+                  <span class="loc-name">${escapeAttr(loc)}</span>
+                </div>
+                <span class="loc-check-circle">
+                  <svg class="loc-check-svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                  </svg>
+                </span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="profile-field" style="margin-bottom:14px;">
+        <div class="bio-header-row">
+          <label for="candSummary" style="margin-bottom:0;">Professional Summary / Career Bio</label>
+          <span class="bio-char-counter" id="bioCharCounter">${(p.summary || '').length} characters</span>
+        </div>
+
+        <div class="bio-templates-row">
+          <span class="bio-template-label">✨ Quick Templates:</span>
+          <button type="button" class="bio-template-chip" data-template="health">Healthcare Pro</button>
+          <button type="button" class="bio-template-chip" data-template="it">Software / Tech</button>
+          <button type="button" class="bio-template-chip" data-template="biz">Finance & Accounting</button>
+          <button type="button" class="bio-template-chip" data-template="exec">Operations / HR</button>
+        </div>
+
+        <div class="bio-box-wrap">
+          <textarea id="candSummary" class="bio-textarea" placeholder="Write a short summary of your professional background, key achievements, core skills, and UAE career goals...">${escapeAttr(p.summary || '')}</textarea>
+          <div class="bio-box-footer">
+            <span class="bio-tip-text">💡 Tip: Highlight your UAE credentials, key specializations, and availability for top recruiter discovery.</span>
+            <button type="button" class="bio-clear-btn" id="bioClearBtn" title="Clear text" ${p.summary ? '' : 'style="display:none;"'}>✕ Clear</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Right Column: Sticky Sidebar -->
+  <aside class="candidate-sidebar">
+    <!-- Widget 1: Profile Completeness Meter -->
+    <div class="sidebar-widget profile-strength-widget">
+      <div class="strength-header">
+        <span class="strength-title"><span>⚡</span> Profile Strength</span>
+        <span class="strength-percent" id="strengthPercentText">${completion}% Completed</span>
+      </div>
+      <div class="strength-bar-bg">
+        <div class="strength-bar-fill" id="strengthBarFill" style="width:${Math.max(5, completion)}%;"></div>
+      </div>
+      <p class="strength-tips" id="strengthTipsText">
+        ${completion >= 85
+          ? '✓ Excellent! Your candidate profile is verified and prioritized for top employers across the UAE.'
+          : '💡 Complete all sections to reach 100% and get 3x more recruiter contacts and direct interview requests.'}
+      </p>
+      <div class="strength-checklist" id="strengthChecklist">
+        <div class="strength-check-item ${p.name && p.phone && p.currentLocation ? 'done' : ''}">
+          <span class="strength-check-icon">${p.name && p.phone && p.currentLocation ? '✓' : '○'}</span> Personal & Contact
+        </div>
+        <div class="strength-check-item ${p.role && p.experience ? 'done' : ''}">
+          <span class="strength-check-icon">${p.role && p.experience ? '✓' : '○'}</span> Career Field & Role
+        </div>
+        <div class="strength-check-item ${p.qualification && p.degree ? 'done' : ''}">
+          <span class="strength-check-icon">${p.qualification && p.degree ? '✓' : '○'}</span> Degree & Credentials
+        </div>
+        <div class="strength-check-item ${selectedLicenses.length > 0 || p.licenseStatus ? 'done' : ''}">
+          <span class="strength-check-icon">${selectedLicenses.length > 0 || p.licenseStatus ? '✓' : '○'}</span> Certifications / Status
+        </div>
+        <div class="strength-check-item ${selectedLocations.length > 0 ? 'done' : ''}">
+          <span class="strength-check-icon">${selectedLocations.length > 0 ? '✓' : '○'}</span> Target Locations
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget 2: ATS CV Builder Promo Card -->
+    <div class="sidebar-widget cv-promo-widget">
+      <div class="cv-promo-header">
+        <span class="cv-promo-badge">⚡ ATS Optimized</span>
+      </div>
+      <h3>Professional CV Builder</h3>
+      <p>Convert your profile information into a clean, UAE-compliant PDF and Word résumé ready for recruiter applications.</p>
+      <a href="/resume-library" class="cv-promo-btn">
+        Create / Edit My CV →
+      </a>
+    </div>
+  </aside>
+</div>
+
+<!-- Floating Save Button Bar on Scroll -->
+<div class="floating-profile-save-bar" id="floatingSaveBar">
+  <span>Profile workspace</span>
+  <button type="button" class="floating-save-btn" id="floatingSaveBtn">
+    <span>💾</span> Save Changes
+  </button>
+  <a href="#" class="floating-top-btn" id="floatingTopBtn">↑ Top</a>
+</div>
+
+    <!-- Role Picker Modal -->
+    <div class="profile-modal-overlay" id="rolePickerModal" style="display:none;" role="dialog" aria-modal="true" aria-label="Select healthcare job role">
+      <div class="profile-modal-sheet">
+        <div class="modal-sheet-head">
+          <h3>Choose Healthcare Role</h3>
+          <button type="button" class="modal-close-btn" id="closeRoleModalBtn" aria-label="Close modal">✕</button>
+        </div>
+        <div class="modal-search-wrap">
+          <input type="text" class="modal-search-input" id="roleSearchInput" placeholder="Search role (e.g. Staff Nurse, GP, Coder, Pharmacist...)" autofocus>
+        </div>
+        <div class="modal-tabs-row" id="roleCategoryTabs">
+          <button type="button" class="modal-tab-pill active" data-cat="All">All Roles</button>
+          ${CANDIDATE_CATEGORIES.map(cat => `<button type="button" class="modal-tab-pill" data-cat="${escapeAttr(cat)}">${escapeAttr(cat)}</button>`).join('')}
+        </div>
+        <div class="modal-list-body" id="roleModalList"></div>
+      </div>
+    </div>
+
+    <!-- Country / Nationality Picker Modal -->
+    <div class="profile-modal-overlay" id="countryPickerModal" style="display:none;" role="dialog" aria-modal="true" aria-label="Select country">
+      <div class="profile-modal-sheet">
+        <div class="modal-sheet-head">
+          <h3 id="countryModalTitle">Select Country</h3>
+          <button type="button" class="modal-close-btn" id="closeCountryModalBtn" aria-label="Close modal">✕</button>
+        </div>
+        <div class="modal-search-wrap">
+          <input type="text" class="modal-search-input" id="countrySearchInput" placeholder="Search country name or calling code..." autofocus>
+        </div>
+        <div class="modal-list-body" id="countryModalList"></div>
+      </div>
+    </div>
+  </main>`;
+}
+
+function initCandidateProfile() {
+  const root = document.querySelector('.candidate-profile-shell');
+  if (!root || !currentUser) return;
+
+  const currentProf = currentUser.profile || {};
+  let currentCountryCode = (document.getElementById('phoneCodeDial')?.textContent || '+971').trim();
+  let currentCountryFlag = (document.getElementById('phoneCodeFlag')?.textContent || '🇦🇪').trim();
+  let currentNationalityName = document.getElementById('candNationality')?.value || '';
+  let countryModalTarget = 'phone';
+
+  const getProfileData = () => {
+    const rawNumber = (document.getElementById('candPhoneNumber')?.value || '').trim();
+    const phone = rawNumber ? `${currentCountryCode} ${rawNumber}` : '';
+    const degreeSelect = document.getElementById('candDegreeSelect')?.value || '';
+    const customDegree = (document.getElementById('candCustomDegree')?.value || '').trim();
+    const degree = degreeSelect === 'Other' ? customDegree : degreeSelect;
+
+    const qualSelect = document.getElementById('candQualification')?.value || '';
+    const customQual = (document.getElementById('candCustomQual')?.value || '').trim();
+    const qualification = qualSelect === 'Other Qualification' ? customQual : qualSelect;
+
+    const selectedLicenses = Array.from(document.querySelectorAll('#licensePillsWrap .choice-pill.selected'))
+      .map(btn => btn.dataset.val);
+    const selectedLocations = Array.from(document.querySelectorAll('#locationCardsGrid .location-card-btn.selected'))
+      .map(btn => btn.dataset.val);
+
+    const langStr = document.getElementById('candLanguages')?.value || '';
+    const languages = langStr.split(',').map(s => s.trim()).filter(Boolean);
+
+    return {
+      name: (document.getElementById('candName')?.value || '').trim(),
+      email: currentUser.email,
+      phone,
+      nationality: (document.getElementById('candNationality')?.value || '').trim(),
+      currentLocation: (document.getElementById('candCurrentLocation')?.value || '').trim(),
+      gender: document.getElementById('candGender')?.value || '',
+      industry: document.getElementById('candIndustry')?.value || 'Information Technology & Software',
+      category: document.getElementById('candCategory')?.value || 'Software & IT',
+      role: (document.getElementById('candRole')?.value || '').trim(),
+      currentDesignation: (document.getElementById('candDesignation')?.value || '').trim(),
+      experience: document.getElementById('candExperience')?.value || '',
+      qualification,
+      degree,
+      specialization: (document.getElementById('candSpecialization')?.value || '').trim(),
+      university: (document.getElementById('candUniversity')?.value || '').trim(),
+      licenses: selectedLicenses,
+      licenseStatus: document.getElementById('candLicenseStatus')?.value || '',
+      languages,
+      previousEmployers: (document.getElementById('candEmployers')?.value || '').trim(),
+      salaryExpectation: (document.getElementById('candSalary')?.value || '').trim(),
+      availability: document.getElementById('candAvailability')?.value || '',
+      noticePeriod: (document.getElementById('candNotice')?.value || '').trim(),
+      hospitalType: document.getElementById('candHospitalType')?.value || '',
+      visaStatus: document.getElementById('candVisaStatus')?.value || '',
+      locations: selectedLocations,
+      summary: (document.getElementById('candSummary')?.value || '').trim(),
+      photo: currentUser.avatar || currentProf.photo || ''
+    };
+  };
+
+  const updateCompletionUI = () => {
+    const pData = getProfileData();
+    const score = calculateCandidateCompletion(pData);
+
+    const percentText = document.getElementById('strengthPercentText');
+    if (percentText) percentText.textContent = `${score}% Completed`;
+
+    const barFill = document.getElementById('strengthBarFill');
+    if (barFill) barFill.style.width = `${Math.max(5, score)}%`;
+
+    const tipsText = document.getElementById('strengthTipsText');
+    if (tipsText) {
+      tipsText.textContent = score >= 85
+        ? '✓ Excellent! Your candidate profile is verified and prioritized for top healthcare employers in the UAE.'
+        : '💡 Complete your healthcare licenses, qualifications, and target locations to reach 100% and get 3x more recruiter contacts.';
+    }
+
+    const heroRole = document.getElementById('heroRoleMeta');
+    if (heroRole) heroRole.textContent = `💼 ${pData.role || pData.currentDesignation || 'Healthcare Professional'}`;
+
+    const heroLoc = document.getElementById('heroLocationMeta');
+    if (heroLoc) heroLoc.textContent = `📍 ${pData.currentLocation || 'UAE'}`;
+
+    const checklist = document.getElementById('strengthChecklist');
+    if (checklist) {
+      checklist.innerHTML = `
+        <span class="strength-check-item ${pData.name && pData.phone && pData.currentLocation ? 'done' : ''}">
+          ${pData.name && pData.phone && pData.currentLocation ? '✓' : '○'} Personal & Contact
+        </span>
+        <span class="strength-check-item ${pData.role && pData.experience ? 'done' : ''}">
+          ${pData.role && pData.experience ? '✓' : '○'} Healthcare Role & Experience
+        </span>
+        <span class="strength-check-item ${pData.qualification && pData.degree ? 'done' : ''}">
+          ${pData.qualification && pData.degree ? '✓' : '○'} Degree & Credentials
+        </span>
+        <span class="strength-check-item ${pData.licenses.length > 0 ? 'done' : ''}">
+          ${pData.licenses.length > 0 ? '✓' : '○'} License (DHA/DOH/MOH/SCFHS)
+        </span>
+        <span class="strength-check-item ${pData.locations.length > 0 ? 'done' : ''}">
+          ${pData.locations.length > 0 ? '✓' : '○'} Preferred Locations
+        </span>
+      `;
+    }
+  };
+
+  root.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', updateCompletionUI);
+    el.addEventListener('change', updateCompletionUI);
+  });
+
+  // Upgrade all profile-field selects into searchable custom selects matching the website
+  const enhanceSelectWithSearch = (selectEl) => {
+    if (!selectEl || selectEl.dataset.searchableEnhanced) return;
+    selectEl.dataset.searchableEnhanced = 'true';
+    selectEl.style.display = 'none';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'custom-searchable-select';
+    wrapper.dataset.selectId = selectEl.id || '';
+
+    // Trigger button
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'css-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const selectedTextSpan = document.createElement('span');
+    selectedTextSpan.className = 'css-selected-text';
+
+    const arrowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    arrowSvg.setAttribute('class', 'css-arrow');
+    arrowSvg.setAttribute('viewBox', '0 0 24 24');
+    arrowSvg.setAttribute('fill', 'none');
+    arrowSvg.setAttribute('stroke', 'currentColor');
+    arrowSvg.setAttribute('stroke-width', '2.2');
+    arrowSvg.setAttribute('stroke-linecap', 'round');
+    arrowSvg.setAttribute('stroke-linejoin', 'round');
+    arrowSvg.innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>';
+
+    trigger.appendChild(selectedTextSpan);
+    trigger.appendChild(arrowSvg);
+
+    // Dropdown panel
+    const dropdown = document.createElement('div');
+    dropdown.className = 'css-dropdown';
+
+    // Search box in dropdown
+    const searchBox = document.createElement('div');
+    searchBox.className = 'css-search-box';
+    searchBox.innerHTML = `
+      <svg class="css-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" class="css-search-input" placeholder="Search option..." autocomplete="off">
+      <button type="button" class="css-search-clear" style="display:none;" title="Clear">✕</button>
+    `;
+
+    const searchInput = searchBox.querySelector('.css-search-input');
+    const searchClear = searchBox.querySelector('.css-search-clear');
+
+    // Options list
+    const listEl = document.createElement('ul');
+    listEl.className = 'css-options-list';
+    listEl.setAttribute('role', 'listbox');
+
+    // Empty state
+    const emptyEl = document.createElement('div');
+    emptyEl.className = 'css-empty-state';
+    emptyEl.style.display = 'none';
+
+    dropdown.appendChild(searchBox);
+    dropdown.appendChild(listEl);
+    dropdown.appendChild(emptyEl);
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(dropdown);
+
+    // Insert wrapper right after the original select
+    selectEl.parentNode.insertBefore(wrapper, selectEl.nextSibling);
+
+    const updateSelectedDisplay = () => {
+      const selOpt = selectEl.options[selectEl.selectedIndex];
+      const text = selOpt ? selOpt.text : '';
+      const isPlaceholder = !selOpt || selOpt.value === '';
+      selectedTextSpan.textContent = text || 'Select option';
+      selectedTextSpan.classList.toggle('is-placeholder', isPlaceholder);
+
+      listEl.querySelectorAll('.css-option').forEach(li => {
+        const isSel = li.dataset.value === selectEl.value;
+        li.classList.toggle('selected', isSel);
+        const check = li.querySelector('.css-check');
+        if (isSel && !check) {
+          li.insertAdjacentHTML('beforeend', '<svg class="css-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>');
+        } else if (!isSel && check) {
+          check.remove();
+        }
+      });
+    };
+
+    const createOptionLi = (opt, groupName) => {
+      const li = document.createElement('li');
+      li.className = 'css-option';
+      li.dataset.value = opt.value;
+      li.setAttribute('role', 'option');
+      if (groupName) li.dataset.group = groupName;
+
+      const isSel = opt.selected || selectEl.value === opt.value;
+      if (isSel) li.classList.add('selected');
+
+      li.innerHTML = `
+        <span class="css-opt-text">${escapeAttr(opt.text)}</span>
+        ${isSel ? '<svg class="css-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>' : ''}
+      `;
+
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectEl.value = opt.value;
+        updateSelectedDisplay();
+        closeDropdown();
+        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        selectEl.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      return li;
+    };
+
+    const renderOptions = () => {
+      listEl.innerHTML = '';
+      const children = Array.from(selectEl.children);
+      children.forEach(child => {
+        if (child.tagName === 'OPTGROUP') {
+          const groupLi = document.createElement('li');
+          groupLi.className = 'css-optgroup-label';
+          groupLi.textContent = child.label;
+          listEl.appendChild(groupLi);
+
+          Array.from(child.children).forEach(opt => {
+            listEl.appendChild(createOptionLi(opt, child.label));
+          });
+        } else if (child.tagName === 'OPTION') {
+          listEl.appendChild(createOptionLi(child, null));
+        }
+      });
+      updateSelectedDisplay();
+    };
+
+    const filterOptions = (query) => {
+      const q = query.trim().toLowerCase();
+      searchClear.style.display = q ? 'flex' : 'none';
+
+      let matchCount = 0;
+      const groupCounts = new Map();
+
+      listEl.querySelectorAll('.css-option').forEach(li => {
+        const text = li.querySelector('.css-opt-text')?.textContent?.toLowerCase() || '';
+        const isMatch = !q || text.includes(q);
+        li.style.display = isMatch ? 'flex' : 'none';
+        if (isMatch) matchCount++;
+
+        const grp = li.dataset.group;
+        if (grp) {
+          groupCounts.set(grp, (groupCounts.get(grp) || 0) + (isMatch ? 1 : 0));
+        }
+      });
+
+      listEl.querySelectorAll('.css-optgroup-label').forEach(labelEl => {
+        const grpName = labelEl.textContent;
+        const count = groupCounts.get(grpName) || 0;
+        labelEl.style.display = count > 0 ? 'block' : 'none';
+      });
+
+      if (matchCount === 0) {
+        emptyEl.style.display = 'block';
+        emptyEl.innerHTML = `<span>🔍 No options matching "<strong>${escapeAttr(query)}</strong>"</span>`;
+      } else {
+        emptyEl.style.display = 'none';
+      }
+    };
+
+    const openDropdown = () => {
+      document.querySelectorAll('.custom-searchable-select.open').forEach(other => {
+        if (other !== wrapper) other.classList.remove('open');
+      });
+      wrapper.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      searchInput.value = '';
+      searchClear.style.display = 'none';
+      filterOptions('');
+      setTimeout(() => {
+        searchInput.focus();
+        const selectedLi = listEl.querySelector('.css-option.selected');
+        if (selectedLi) {
+          selectedLi.scrollIntoView({ block: 'nearest' });
+        }
+      }, 40);
+    };
+
+    const closeDropdown = () => {
+      wrapper.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const toggleDropdown = () => {
+      if (wrapper.classList.contains('open')) {
+        closeDropdown();
+      } else {
+        openDropdown();
+      }
+    };
+
+    trigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleDropdown();
+    });
+
+    searchInput.addEventListener('input', () => {
+      filterOptions(searchInput.value);
+    });
+
+    searchClear.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      searchInput.value = '';
+      filterOptions('');
+      searchInput.focus();
+    });
+
+    selectEl.addEventListener('change', () => {
+      updateSelectedDisplay();
+    });
+
+    renderOptions();
+  };
+
+  root.querySelectorAll('.profile-field select').forEach(enhanceSelectWithSearch);
+
+  // Close custom dropdowns on outside click or Escape
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-searchable-select')) {
+      document.querySelectorAll('.custom-searchable-select.open').forEach(w => {
+        w.classList.remove('open');
+        w.querySelector('.css-trigger')?.setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.custom-searchable-select.open').forEach(w => {
+        w.classList.remove('open');
+        w.querySelector('.css-trigger')?.setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+
+  const degreeSelect = document.getElementById('candDegreeSelect');
+  const customDegreeInput = document.getElementById('candCustomDegree');
+  if (degreeSelect && customDegreeInput) {
+    degreeSelect.addEventListener('change', () => {
+      customDegreeInput.style.display = degreeSelect.value === 'Other' ? 'block' : 'none';
+      if (degreeSelect.value === 'Other') customDegreeInput.focus();
+    });
+  }
+
+  const qualSelect = document.getElementById('candQualification');
+  const customQualInput = document.getElementById('candCustomQual');
+  if (qualSelect && customQualInput) {
+    qualSelect.addEventListener('change', () => {
+      customQualInput.style.display = qualSelect.value === 'Other Qualification' ? 'block' : 'none';
+      if (qualSelect.value === 'Other Qualification') customQualInput.focus();
+    });
+  }
+
+  const sameAsRoleChip = document.getElementById('sameAsRoleChip');
+  if (sameAsRoleChip) {
+    sameAsRoleChip.addEventListener('click', () => {
+      const role = document.getElementById('candRole')?.value || '';
+      const designationInput = document.getElementById('candDesignation');
+      if (designationInput && role) {
+        designationInput.value = role;
+        updateCompletionUI();
+      }
+    });
+  }
+
+  document.getElementById('candIndustry')?.addEventListener('change', updateCompletionUI);
+  document.getElementById('candCategory')?.addEventListener('change', updateCompletionUI);
+  document.getElementById('candExperience')?.addEventListener('change', updateCompletionUI);
+
+  const licenseWrap = document.getElementById('licensePillsWrap');
+  if (licenseWrap) {
+    licenseWrap.querySelectorAll('.choice-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isSel = btn.classList.toggle('selected');
+        const icon = btn.querySelector('.choice-pill-icon');
+        if (isSel && !icon) {
+          const iconSpan = document.createElement('span');
+          iconSpan.className = 'choice-pill-icon';
+          iconSpan.textContent = '✓';
+          btn.prepend(iconSpan);
+        } else if (!isSel && icon) {
+          icon.remove();
+        }
+        updateCompletionUI();
+      });
+    });
+  }
+
+  // Location Cards & Quick Select Actions
+  const locGrid = document.getElementById('locationCardsGrid');
+  const locBadge = document.getElementById('locationSelectedBadge');
+
+  const updateLocationBadge = () => {
+    if (!locGrid || !locBadge) return;
+    const count = locGrid.querySelectorAll('.location-card-btn.selected').length;
+    locBadge.textContent = `${count} selected`;
+    locBadge.classList.toggle('has-selection', count > 0);
+  };
+
+  if (locGrid) {
+    locGrid.querySelectorAll('.location-card-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('selected');
+        updateLocationBadge();
+        updateCompletionUI();
+      });
+    });
+
+    document.getElementById('locSelectAllBtn')?.addEventListener('click', () => {
+      locGrid.querySelectorAll('.location-card-btn').forEach(b => b.classList.add('selected'));
+      updateLocationBadge();
+      updateCompletionUI();
+    });
+
+    document.getElementById('locTopHubsBtn')?.addEventListener('click', () => {
+      locGrid.querySelectorAll('.location-card-btn').forEach(b => {
+        const val = b.dataset.val;
+        b.classList.toggle('selected', val === 'Dubai' || val === 'Abu Dhabi');
+      });
+      updateLocationBadge();
+      updateCompletionUI();
+    });
+
+    document.getElementById('locClearBtn')?.addEventListener('click', () => {
+      locGrid.querySelectorAll('.location-card-btn').forEach(b => b.classList.remove('selected'));
+      updateLocationBadge();
+      updateCompletionUI();
+    });
+
+    updateLocationBadge();
+  }
+
+  // Bio Summary Character Counter & Quick Templates
+  const summaryEl = document.getElementById('candSummary');
+  const bioCounter = document.getElementById('bioCharCounter');
+  const bioClearBtn = document.getElementById('bioClearBtn');
+
+  const updateBioCounter = () => {
+    if (!summaryEl || !bioCounter) return;
+    const len = summaryEl.value.length;
+    bioCounter.textContent = `${len} characters${len >= 120 ? ' (Strong)' : len >= 50 ? ' (Good)' : ''}`;
+    if (bioClearBtn) bioClearBtn.style.display = len > 0 ? 'inline-flex' : 'none';
+  };
+
+  if (summaryEl) {
+    summaryEl.addEventListener('input', () => {
+      updateBioCounter();
+      updateCompletionUI();
+    });
+
+    if (bioClearBtn) {
+      bioClearBtn.addEventListener('click', () => {
+        summaryEl.value = '';
+        updateBioCounter();
+        updateCompletionUI();
+        summaryEl.focus();
+      });
+    }
+
+    const bioTemplates = {
+      health: "Dedicated Healthcare Professional with 4+ years of clinical experience in high-volume hospital environments. Licensed/eligible with UAE credentials (DHA/DOH/MOH), committed to exceptional patient care and clinical quality standards.",
+      it: "Results-driven Software Engineer with 4+ years experience developing resilient web platforms and cloud-native services. Skilled in modern JavaScript/TypeScript architectures, APIs, and eager to contribute to forward-thinking UAE tech teams.",
+      biz: "Detail-oriented Finance & Accounting Professional with 5+ years expertise in financial modeling, compliance, VAT/tax reporting, and strategic audit across diverse Middle Eastern business environments.",
+      exec: "Accomplished Operations & HR Specialist with proven track record in talent acquisition, workforce planning, and organizational efficiency aligned with UAE labor laws and corporate standards."
+    };
+
+    document.querySelectorAll('.bio-template-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const key = chip.dataset.template;
+        if (bioTemplates[key]) {
+          summaryEl.value = bioTemplates[key];
+          updateBioCounter();
+          updateCompletionUI();
+          summaryEl.focus();
+        }
+      });
+    });
+
+    updateBioCounter();
+  }
+
+  const photoInput = document.getElementById('candPhotoInput');
+  if (photoInput) {
+    photoInput.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = async () => {
+          const size = 240;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+          const crop = Math.min(img.width, img.height);
+          const x = (img.width - crop) / 2;
+          const y = (img.height - crop) / 2;
+          ctx.drawImage(img, x, y, crop, crop, 0, 0, size, size);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+          currentUser.avatar = dataUrl;
+          if (!currentUser.profile) currentUser.profile = {};
+          currentUser.profile.photo = dataUrl;
+
+          const avatarImg = document.getElementById('candAvatarImg');
+          const avatarInitial = document.getElementById('candAvatarInitial');
+          if (avatarImg) {
+            avatarImg.src = dataUrl;
+          } else if (avatarInitial && avatarInitial.parentElement) {
+            avatarInitial.outerHTML = `<img id="candAvatarImg" src="${dataUrl}" alt="Candidate Avatar">`;
+          }
+
+          const headerAvatar = document.querySelector('.nav-profile-photo');
+          if (headerAvatar) headerAvatar.innerHTML = `<img src="${dataUrl}" alt="">`;
+
+          updateCompletionUI();
+
+          try {
+            const photoRes = await fetch('/api/candidate/photo', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ photo: dataUrl })
+            });
+            const photoData = await photoRes.json();
+            if (photoRes.ok) {
+              showToast('Profile photo updated and saved successfully!', 'success');
+            } else {
+              showToast(photoData.error || 'Photo updated locally. Click "Save Profile" to apply.', 'info');
+            }
+          } catch {
+            showToast('Profile photo selected. Click "Save Profile" to finish saving.', 'info');
+          }
+        };
+        img.src = String(reader.result);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ROLE PICKER MODAL
+  const roleModal = document.getElementById('rolePickerModal');
+  const roleBtn = document.getElementById('candRoleBtn');
+  const closeRoleBtn = document.getElementById('closeRoleModalBtn');
+  const roleSearch = document.getElementById('roleSearchInput');
+  const roleTabs = document.getElementById('roleCategoryTabs');
+  const roleList = document.getElementById('roleModalList');
+  let currentCatFilter = 'All';
+
+  const renderRoleList = () => {
+    if (!roleList) return;
+    const q = (roleSearch?.value || '').trim().toLowerCase();
+    const currentRole = (document.getElementById('candRole')?.value || '').toLowerCase();
+
+    const matches = CANDIDATE_TRACKED_ROLES.filter(item => {
+      const matchCat = currentCatFilter === 'All' || item.category === currentCatFilter;
+      const matchQ = !q || item.role.toLowerCase().includes(q) || item.category.toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+
+    let html = '';
+    if (q && !matches.some(m => m.role.toLowerCase() === q)) {
+      html += `
+        <button type="button" class="modal-list-item custom-role-item" style="background:#fef2f2;border:1px dashed #f87171;color:#b00008;margin-bottom:8px;">
+          <span><strong>+ Use custom role: “${escapeAttr(roleSearch.value.trim())}”</strong></span>
+          <small>Select</small>
+        </button>
+      `;
+    }
+
+    html += matches.map(item => {
+      const isSelected = item.role.toLowerCase() === currentRole;
+      return `
+        <button type="button" class="modal-list-item ${isSelected ? 'selected' : ''}" data-role="${escapeAttr(item.role)}" data-cat="${escapeAttr(item.category)}">
+          <span><strong>${escapeAttr(item.role)}</strong> <small style="color:#64748b;margin-left:6px;">${escapeAttr(item.category)}</small></span>
+          ${isSelected ? '<span style="color:#b00008;font-weight:700;">✓</span>' : ''}
+        </button>
+      `;
+    }).join('');
+
+    if (!html) {
+      html = `<div style="text-align:center;padding:24px;color:#64748b;">No roles found matching “${escapeAttr(q)}”. Type custom role above.</div>`;
+    }
+
+    roleList.innerHTML = html;
+
+    roleList.querySelectorAll('.modal-list-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const chosenRole = btn.classList.contains('custom-role-item')
+          ? roleSearch.value.trim()
+          : (btn.dataset.role || '');
+        const chosenCat = btn.dataset.cat || '';
+
+        const roleHidden = document.getElementById('candRole');
+        const roleBtnText = document.getElementById('candRoleBtnText');
+        if (roleHidden) roleHidden.value = chosenRole;
+        if (roleBtnText) roleBtnText.textContent = `💼 ${chosenRole}`;
+        if (roleBtn) roleBtn.classList.remove('empty');
+
+        const desigInput = document.getElementById('candDesignation');
+        if (desigInput && !desigInput.value.trim()) {
+          desigInput.value = chosenRole;
+        }
+
+        if (chosenCat) {
+          const categorySelect = document.getElementById('candCategory');
+          if (categorySelect && [...categorySelect.options].some(option => option.value === chosenCat)) categorySelect.value = chosenCat;
+        }
+
+        roleModal.style.display = 'none';
+        updateCompletionUI();
+      });
+    });
+  };
+
+  if (roleBtn && roleModal) {
+    roleBtn.addEventListener('click', () => {
+      roleModal.style.display = 'flex';
+      if (roleSearch) {
+        roleSearch.value = '';
+        setTimeout(() => roleSearch.focus(), 50);
+      }
+      currentCatFilter = 'All';
+      if (roleTabs) {
+        roleTabs.querySelectorAll('.modal-tab-pill').forEach(p => p.classList.toggle('active', p.dataset.cat === 'All'));
+      }
+      renderRoleList();
+    });
+  }
+
+  if (closeRoleBtn && roleModal) {
+    closeRoleBtn.addEventListener('click', () => { roleModal.style.display = 'none'; });
+    roleModal.addEventListener('click', e => { if (e.target === roleModal) roleModal.style.display = 'none'; });
+  }
+
+  if (roleSearch) {
+    roleSearch.addEventListener('input', renderRoleList);
+  }
+
+  if (roleTabs) {
+    roleTabs.querySelectorAll('.modal-tab-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        roleTabs.querySelectorAll('.modal-tab-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentCatFilter = pill.dataset.cat || 'All';
+        renderRoleList();
+      });
+    });
+  }
+
+  // COUNTRY & NATIONALITY MODAL
+  const countryModal = document.getElementById('countryPickerModal');
+  const countryModalTitle = document.getElementById('countryModalTitle');
+  const countrySearch = document.getElementById('countrySearchInput');
+  const countryList = document.getElementById('countryModalList');
+  const closeCountryBtn = document.getElementById('closeCountryModalBtn');
+  const phoneBtn = document.getElementById('phoneCodeBtn');
+  const natBtn = document.getElementById('candNationalityBtn');
+
+  const renderCountryList = () => {
+    if (!countryList) return;
+    const q = (countrySearch?.value || '').trim().toLowerCase();
+    const matches = CANDIDATE_COUNTRIES.filter(c => !q || c.name.toLowerCase().includes(q) || c.dial.includes(q) || c.code.toLowerCase().includes(q));
+
+    countryList.innerHTML = matches.map(c => `
+      <button type="button" class="modal-list-item" data-code="${c.code}" data-name="${escapeAttr(c.name)}" data-dial="${c.dial}" data-flag="${c.flag}">
+        <span><strong style="font-size:17px;margin-right:8px;">${c.flag}</strong> ${escapeAttr(c.name)}</span>
+        <span style="font-size:13px;color:#64748b;font-weight:600;">${countryModalTarget === 'phone' ? c.dial : c.code}</span>
+      </button>
+    `).join('');
+
+    countryList.querySelectorAll('.modal-list-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const flag = btn.dataset.flag || '';
+        const dial = btn.dataset.dial || '';
+        const name = btn.dataset.name || '';
+
+        if (countryModalTarget === 'phone') {
+          currentCountryCode = dial;
+          currentCountryFlag = flag;
+          const phoneFlagEl = document.getElementById('phoneCodeFlag');
+          const phoneDialEl = document.getElementById('phoneCodeDial');
+          if (phoneFlagEl) phoneFlagEl.textContent = flag;
+          if (phoneDialEl) phoneDialEl.textContent = dial;
+        } else {
+          currentNationalityName = name;
+          const natInput = document.getElementById('candNationality');
+          const natText = document.getElementById('nationalityBtnText');
+          if (natInput) natInput.value = name;
+          if (natText) natText.textContent = `${flag} ${name}`;
+          if (natBtn) natBtn.classList.remove('empty');
+        }
+
+        countryModal.style.display = 'none';
+        updateCompletionUI();
+      });
+    });
+  };
+
+  if (phoneBtn && countryModal) {
+    phoneBtn.addEventListener('click', () => {
+      countryModalTarget = 'phone';
+      if (countryModalTitle) countryModalTitle.textContent = 'Select Calling Code';
+      countryModal.style.display = 'flex';
+      if (countrySearch) {
+        countrySearch.value = '';
+        setTimeout(() => countrySearch.focus(), 50);
+      }
+      renderCountryList();
+    });
+  }
+
+  if (natBtn && countryModal) {
+    natBtn.addEventListener('click', () => {
+      countryModalTarget = 'nationality';
+      if (countryModalTitle) countryModalTitle.textContent = 'Select Nationality';
+      countryModal.style.display = 'flex';
+      if (countrySearch) {
+        countrySearch.value = '';
+        setTimeout(() => countrySearch.focus(), 50);
+      }
+      renderCountryList();
+    });
+  }
+
+  if (closeCountryBtn && countryModal) {
+    closeCountryBtn.addEventListener('click', () => { countryModal.style.display = 'none'; });
+    countryModal.addEventListener('click', e => { if (e.target === countryModal) countryModal.style.display = 'none'; });
+  }
+
+  if (countrySearch) {
+    countrySearch.addEventListener('input', renderCountryList);
+  }
+
+  const showToast = (msg, type = 'success') => {
+    const existing = document.querySelector('.profile-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = `profile-toast ${type}`;
+    toast.innerHTML = `<span>${type === 'success' ? '✓' : 'ℹ'}</span> <span>${escapeAttr(msg)}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 3500);
+  };
+
+  const saveProfile = async (btn) => {
+    if (!currentUser) return;
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳</span> Saving profile…`;
+    }
+
+    try {
+      const payload = getProfileData();
+      const res = await fetch('/api/candidate/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save candidate profile');
+
+      currentUser.profile = data.profile;
+      currentUser.completionPercentage = data.completionPercentage;
+      if (data.profile.name) currentUser.name = data.profile.name;
+      if (data.profile.photo) currentUser.avatar = data.profile.photo;
+
+      const isComplete = data.completionPercentage >= 85;
+      const navBadge = document.querySelector('.nav-profile-badge');
+      if (navBadge) {
+        if (isComplete) navBadge.remove();
+        else navBadge.setAttribute('title', `Profile ${data.completionPercentage}% complete`);
+      }
+
+      updateCompletionUI();
+      showToast('Profile saved successfully! Your candidate profile is updated.', 'success');
+      return true;
+    } catch (err) {
+      showToast(err.message || 'Error saving profile', 'error');
+      return false;
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
+  };
+
+  const heroSaveBtn = document.getElementById('saveProfileHeroBtn');
+  if (heroSaveBtn) heroSaveBtn.addEventListener('click', () => saveProfile(heroSaveBtn));
+
+  // Section Navigation Tabs
+  const tabPills = document.querySelectorAll('.candidate-section-tabs .tab-pill');
+  tabPills.forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = pill.dataset.target;
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        tabPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // Floating save bar on scroll
+  const floatingSaveBar = document.getElementById('floatingSaveBar');
+  const floatingSaveBtn = document.getElementById('floatingSaveBtn');
+  const floatingTopBtn = document.getElementById('floatingTopBtn');
+  if (floatingSaveBar) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        floatingSaveBar.classList.add('visible');
+      } else {
+        floatingSaveBar.classList.remove('visible');
+      }
+    }, { passive: true });
+  }
+  if (floatingSaveBtn) {
+    floatingSaveBtn.addEventListener('click', () => saveProfile(floatingSaveBtn));
+  }
+  if (floatingTopBtn) {
+    floatingTopBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // Active section indicator on scroll
+  const profileSections = document.querySelectorAll('.candidate-main-content .profile-section-card');
+  if ('IntersectionObserver' in window && profileSections.length > 0) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          tabPills.forEach(pill => {
+            pill.classList.toggle('active', pill.dataset.target === id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    profileSections.forEach(sec => observer.observe(sec));
+  }
+
+  // Add individual quick Save button to each section card header
+  document.querySelectorAll('.profile-section-card').forEach((section, index) => {
+    const sectionHead = section.querySelector('.section-head');
+    if (!sectionHead) return;
+
+    const controls = document.createElement('div');
+    controls.className = 'section-edit-controls';
+    controls.style.position = 'absolute';
+    controls.style.top = '0';
+    controls.style.right = '0';
+    controls.innerHTML = `
+      <button type="button" class="section-save-btn" style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:all 0.15s ease;">Save Section</button>
+    `;
+    sectionHead.style.position = 'relative';
+    sectionHead.appendChild(controls);
+
+    const sectionSaveBtn = controls.querySelector('.section-save-btn');
+    sectionSaveBtn.addEventListener('mouseenter', () => {
+      sectionSaveBtn.style.background = '#b00008';
+      sectionSaveBtn.style.color = '#ffffff';
+      sectionSaveBtn.style.borderColor = '#b00008';
+    });
+    sectionSaveBtn.addEventListener('mouseleave', () => {
+      sectionSaveBtn.style.background = '#f8fafc';
+      sectionSaveBtn.style.color = '#475569';
+      sectionSaveBtn.style.borderColor = '#e2e8f0';
+    });
+    sectionSaveBtn.addEventListener('click', async () => {
+      await saveProfile(sectionSaveBtn);
+    });
+  });
+
+  // Dashboard Sign Out
+  document.getElementById('dashboardLogoutBtn')?.addEventListener('click', async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    location.href = '/';
+  });
+}
+
+function memberCollectionKey(kind){
+  const userKey=currentUser?.id||currentUser?.email||'member';
+  return `trikonet_${kind}_${userKey}`;
+}
+function readMemberCollection(kind){
+  try{const value=JSON.parse(localStorage.getItem(memberCollectionKey(kind))||'[]');return Array.isArray(value)?value:[]}catch{return []}
+}
+function memberWorkspacePage(kind){
+  if(!currentUser)return `<main class="member-workspace member-workspace-locked"><section><h1>Sign in to continue</h1><p>Your personal career lists are available after signing in.</p><a href="/login?redirect=${encodeURIComponent(path)}">Sign in</a></section></main>`;
+  const config={
+    'saved_jobs':{title:'Saved jobs',eyebrow:'YOUR SHORTLIST',description:'Jobs you saved to review and apply for later.',emptyTitle:'No saved jobs yet',emptyText:'Save a role from any job page and it will appear here.',action:'/jobs',actionText:'Browse jobs'},
+    'applied_jobs':{title:'Applied jobs',eyebrow:'APPLICATION TRACKER',description:'Keep track of the opportunities you have opened to apply.',emptyTitle:'No applications tracked yet',emptyText:'When you select Apply Now on a job, it will be added here.',action:'/jobs',actionText:'Find jobs'},
+    'followed_companies':{title:'Followed companies',eyebrow:'YOUR EMPLOYERS',description:'Companies you follow for quick access to their profiles and openings.',emptyTitle:'No followed companies yet',emptyText:'Follow a company from its employer page and it will appear here.',action:'/employers',actionText:'Explore employers'}
+  }[kind];
+  const items=readMemberCollection(kind);
+  const isCompanies=kind==='followed_companies';
+  const cards=items.map(item=>{
+    const href=isCompanies?`/employer/${escapeAttr(item.slug||'')}`:`/job/${escapeAttr(item.slug||'')}`;
+    const title=escapeAttr(item.title||item.name||'Untitled');
+    const subtitle=escapeAttr(isCompanies?(item.category||item.location||'Employer'):[item.company,item.location,item.type].filter(Boolean).join(' · ')||'Job opportunity');
+    const initial=escapeAttr(String(item.title||item.name||'T').charAt(0).toUpperCase());
+    return `<article class="member-list-card"><a class="member-list-logo" href="${href}">${item.logo?`<img src="${escapeAttr(item.logo)}" alt="">`:`<span>${initial}</span>`}</a><div><a href="${href}" class="member-list-title">${title}</a><p>${subtitle}</p>${item.savedAt||item.appliedAt||item.followedAt?`<small>${kind==='applied_jobs'?'Opened to apply':'Saved'} ${new Date(item.appliedAt||item.savedAt||item.followedAt).toLocaleDateString()}</small>`:''}</div><a class="member-list-open" href="${href}">View <span>→</span></a></article>`;
+  }).join('');
+  return `<main class="member-workspace"><div class="member-workspace-wrap"><header><span>${config.eyebrow}</span><h1>${config.title}</h1><p>${config.description}</p></header>${items.length?`<section class="member-list-grid">${cards}</section>`:`<section class="member-list-empty"><div>${isCompanies?'⌂':'☆'}</div><h2>${config.emptyTitle}</h2><p>${config.emptyText}</p><a href="${config.action}">${config.actionText}</a></section>`}</div></main>`;
+}
+
+function accountPage(forcedMode) {
+  if (currentUser) {
+    return candidateProfileWorkspace(currentUser.profile || {});
   }
 
   const isRegister = forcedMode === 'register' || path === '/register' || path === '/signup' || path === '/sign-up' || queryParams.get('tab') === 'register' || queryParams.get('mode') === 'signup';
@@ -2929,11 +4870,8 @@ function getAdminAuth() {
     if (!raw) return null;
     const session = JSON.parse(raw);
     if (!session?.expiresAt || Number(session.expiresAt) <= Date.now()) return null;
-    const users = JSON.parse(localStorage.getItem('trikonet_users_cms') || '[]');
-    const user = users.find(item => item.username === session.username && item.email === session.email);
-    if (!user || !user.passwordHash || user.status === 'inactive') return null;
-    if (user.role !== 'Administrator' && user.role !== 'Editor') return null;
-    return { ...session, name: user.name, role: user.role };
+    if (session.role !== 'Administrator' && session.role !== 'Editor') return null;
+    return session;
   } catch {}
   return null;
 }
@@ -3075,42 +5013,27 @@ function initAdminLogin() {
       return;
     }
 
-    let cmsUsers = [];
+    if (btn) { btn.disabled = true; btn.textContent = 'Verifying credentials…'; }
+    let response;
     try {
-      const raw = localStorage.getItem('trikonet_users_cms');
-      if (raw) cmsUsers = JSON.parse(raw);
-    } catch {}
-
-    const allowedList = cmsUsers.filter(u =>
-      (u.role === 'Administrator' || u.role === 'Editor') &&
-      u.status !== 'inactive' &&
-      Boolean(u.passwordHash)
-    );
-    const lowerUser = userInput.toLowerCase();
-    const matched = allowedList.find(u => 
-      (u.username && u.username.toLowerCase() === lowerUser) ||
-      (u.email && u.email.toLowerCase() === lowerUser)
-    );
-
-    if (!matched || await hashAdminPassword(passInput) !== matched.passwordHash) {
-      if (errBox) {
-        errBox.textContent = 'Invalid administrator username or password.';
-        errBox.style.display = 'block';
-      }
+      response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: userInput, password: passInput })
+      });
+    } catch {
+      if (errBox) { errBox.textContent = 'The administration service is unavailable. Please try again.'; errBox.style.display = 'block'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Sign in securely <span aria-hidden="true">→</span>'; }
+      return;
+    }
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.admin) {
+      if (errBox) { errBox.textContent = payload.error || 'Invalid administrator username or password.'; errBox.style.display = 'block'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Sign in securely <span aria-hidden="true">→</span>'; }
       return;
     }
 
-    if (btn) { btn.disabled = true; btn.textContent = 'Verifying credentials…'; }
-
-    const session = {
-      username: matched.username,
-      email: matched.email,
-      role: matched.role,
-      name: matched.name,
-      token: 'adm_' + Math.random().toString(36).slice(2) + Date.now(),
-      loginAt: new Date().toISOString(),
-      expiresAt: Date.now() + (8 * 60 * 60 * 1000)
-    };
+    const session = { ...payload.admin, loginAt: new Date().toISOString() };
 
     localStorage.removeItem('trikonet_admin_session');
     sessionStorage.setItem('trikonet_admin_session', JSON.stringify(session));
@@ -3120,7 +5043,8 @@ function initAdminLogin() {
 }
 
 function isResumeBuilderPath(p) {
-  return p === '/services/resume-maker' ||
+  return p === '/resume-library' ||
+         p === '/services/resume-maker' ||
          p === '/resume-maker' ||
          p === '/services/resume-builder' ||
          p === '/resume-builder' ||
@@ -3128,6 +5052,52 @@ function isResumeBuilderPath(p) {
          p === '/ats-resume-builder' ||
          p === '/cv-builder' ||
          p === '/services/cv-builder';
+}
+
+function fitEmployerLogos() {
+  document.querySelectorAll('.emp-profile-logo-img').forEach(sourceImage => {
+    if (sourceImage.dataset.trimAttempted === 'true') return;
+    sourceImage.dataset.trimAttempted = 'true';
+    const probe = new Image();
+    probe.crossOrigin = 'anonymous';
+    probe.onload = () => {
+      try {
+        const maxSample = 320;
+        const scale = Math.min(1, maxSample / Math.max(probe.naturalWidth, probe.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(probe.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(probe.naturalHeight * scale));
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        context.drawImage(probe, 0, 0, canvas.width, canvas.height);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            const offset = (y * canvas.width + x) * 4;
+            const visible = pixels[offset + 3] > 18 && Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]) < 242;
+            if (!visible) continue;
+            left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y);
+          }
+        }
+        if (right < left || bottom < top) return;
+        const contentWidth = right - left + 1;
+        const contentHeight = bottom - top + 1;
+        const occupiedArea = (contentWidth * contentHeight) / (canvas.width * canvas.height);
+        if (occupiedArea > .68) return;
+        const padding = Math.max(2, Math.round(Math.max(contentWidth, contentHeight) * .08));
+        const output = document.createElement('canvas');
+        output.width = contentWidth + padding * 2;
+        output.height = contentHeight + padding * 2;
+        output.getContext('2d').drawImage(canvas, left, top, contentWidth, contentHeight, padding, padding, contentWidth, contentHeight);
+        sourceImage.src = output.toDataURL('image/png');
+        sourceImage.classList.add('is-trimmed-logo');
+      } catch {
+        sourceImage.classList.add('is-logo-fallback-enlarged');
+      }
+    };
+    probe.onerror = () => sourceImage.classList.add('is-logo-fallback-enlarged');
+    probe.src = sourceImage.currentSrc || sourceImage.src;
+  });
 }
 
 function render() {
@@ -3148,11 +5118,14 @@ function render() {
   }
   let body;
   if (path === '/') body = home();
-  else if (path === '/login' || path === '/signin' || path === '/sign-in' || path === '/login-register' || path === '/register' || path === '/signup' || path === '/sign-up') body = accountPage();
+  else if (path === '/login' || path === '/signin' || path === '/sign-in' || path === '/login-register' || path === '/register' || path === '/signup' || path === '/sign-up' || path === '/profile') body = accountPage();
+  else if (path === '/saved-jobs') body = memberWorkspacePage('saved_jobs');
+  else if (path === '/applied-jobs') body = memberWorkspacePage('applied_jobs');
+  else if (path === '/followed-companies') body = memberWorkspacePage('followed_companies');
   else if (path === '/email-campaigns') body = campaignsPage();
   else if (path === '/nurse-jobs-in-uae') body = nurseJobsPage();
   else if (path.startsWith('/category/')) body = categoryPage();
-  else if (path === '/jobs' || path === '/job-list' || path === '/job-openings') body = jobs();
+  else if (path === '/jobs' || path === '/job-list' || path === '/job-openings' || path.startsWith('/job-location/')) body = jobs();
   else if (path === '/employers') body = employers();
   else if (path === '/services/medical-coder-class' || path === '/medical-coder-class') body = medicalCoderClassPage();
   else if (path.startsWith('/employer/')) {
@@ -3192,10 +5165,53 @@ function render() {
   }
   else if (path === '/faq') body = faq();
   else if (path === '/contact') body = contact();
+  else if (path === '/submit-job') body = employerSignupComingSoon();
   else if (path.startsWith('/job/')) {
     const local = data.jobs.find(j => j.local && path === `/job/${j.slug}`);
+    const currentJob = local || wpRecord || data.jobs.find(j => path.endsWith(j.slug));
     const employer = wpEmployer || (local ? data.employers?.find(e => e.slug === local.employerSlug || e.title === local.company) : null) || (data.employers?.find(e => wpRecord?.metas?._job_employer_name && e.title?.toLowerCase() === wpRecord.metas._job_employer_name.toLowerCase())) || null;
-    body = renderJobDetail(local || wpRecord || data.jobs.find(j => path.endsWith(j.slug)), employer, path, orgJobs);
+    const relatedValue = (job, field, metaField) => {
+      const direct = job?.[field];
+      const meta = job?.metas?.[metaField];
+      const value = Array.isArray(direct) ? direct.join(' ') : (direct || (meta && typeof meta === 'object' ? Object.values(meta).join(' ') : meta) || '');
+      return String(value).toLowerCase();
+    };
+    const currentCategory = relatedValue(currentJob, 'categories', '_job_category') || relatedValue(currentJob, 'category', '_job_category');
+    const currentLocation = relatedValue(currentJob, 'locations', '_job_location') || relatedValue(currentJob, 'location', '_job_location');
+    const currentCompany = (currentJob?.metas?._job_employer_name || currentJob?.company || employer?.title?.rendered || employer?.title || '').trim().toLowerCase();
+    const currentEmployerId = currentJob?.metas?._job_employer_posted_by || employer?.id;
+
+    const isSameCompany = (job) => {
+      const comp = (job?.metas?._job_employer_name || job?.company || '').trim().toLowerCase();
+      if (currentCompany && comp && (comp === currentCompany || comp.includes(currentCompany) || currentCompany.includes(comp))) {
+        return true;
+      }
+      if (currentEmployerId && job?.metas?._job_employer_posted_by && String(job.metas._job_employer_posted_by) === String(currentEmployerId)) {
+        return true;
+      }
+      return false;
+    };
+
+    // Related jobs pool MUST come from the same category and EXCLUDE the same company!
+    const relatedPool = [...categoryJobs, ...(data.jobs || [])];
+    const seenRelated = new Set();
+    const catTokens = currentCategory.split(/[\s,]+/).filter(w => w.length > 2);
+    const relatedMatches = relatedPool
+      .filter(job => job && job.slug && job.slug !== currentJob?.slug && !isSameCompany(job) && !seenRelated.has(job.slug) && seenRelated.add(job.slug))
+      .map((job, index) => {
+        const jobCategory = relatedValue(job, 'categories', '_job_category') || relatedValue(job, 'category', '_job_category');
+        const jobLocation = relatedValue(job, 'locations', '_job_location') || relatedValue(job, 'location', '_job_location');
+        const matchCount = catTokens.filter(t => jobCategory.includes(t)).length;
+        const hasMatch = matchCount > 0 || (currentCategory && jobCategory && (jobCategory.includes(currentCategory) || currentCategory.includes(jobCategory)));
+        const score = (hasMatch ? (matchCount * 4 || 4) : 0)
+          + (currentLocation && jobLocation && (jobLocation.includes(currentLocation) || currentLocation.includes(jobLocation)) ? 2 : 0);
+        return { job, score, index, hasMatch };
+      })
+      .filter(item => item.hasMatch)
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .slice(0, 4)
+      .map(item => item.job);
+    body = renderJobDetail(currentJob, employer, path, orgJobs, relatedMatches);
   }
   else {
     const pathParts = path.split('/').filter(Boolean);
@@ -3212,11 +5228,30 @@ function render() {
   if (memberAuthPaths.includes(path)) return body + footer();
   return header() + body + footer();
 }
-await Promise.all([loadLocalJobs(),loadLocalEmployers(),loadTopEmployers(),loadCounts(),loadWordPressRecord(),loadConnectedContent(),loadAccount()]);
+const initialLoads=[loadAccount()];
+if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadCounts(),loadConnectedContent());
+else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadCounts(),loadConnectedContent());
+else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
+else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord(),loadLocalJobs(),loadCounts());
+else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord(),loadCounts());
+else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent(),loadCounts());
+else initialLoads.push(loadConnectedContent(),loadCounts());
+await Promise.all(initialLoads);
 // Published article data comes from the backend. The admin screen also keeps
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+fitEmployerLogos();
+initCandidateProfile();
+document.querySelectorAll('.emp-follow-btn').forEach(button => {
+  if (!currentUser || !button.dataset.slug) return;
+  const userKey = currentUser.id || currentUser.email || 'member';
+  try {
+    const isFollowing = localStorage.getItem(`trikonet_follow_employer_${userKey}_${button.dataset.slug}`) === 'true';
+    button.classList.toggle('following', isFollowing);
+    button.textContent = isFollowing ? '✓ Following' : '+ Follow';
+  } catch {}
+});
 {
   const filterToggle = document.getElementById('empMobileFilterToggle');
   const expandableFilters = document.getElementById('empExpandableFilters');
@@ -3241,7 +5276,15 @@ document.querySelector('#app').innerHTML=render();
         return;
       }
       const copyTop = descriptionCopy.getBoundingClientRect().top;
-      const secondBottom = paragraphs[1].getBoundingClientRect().bottom - copyTop;
+      let targetP = paragraphs[Math.min(1, paragraphs.length - 1)];
+      for (let i = 1; i < paragraphs.length && i < 8; i++) {
+        const h = paragraphs[i].getBoundingClientRect().bottom - copyTop;
+        if (h >= 180) {
+          targetP = paragraphs[i];
+          break;
+        }
+      }
+      const secondBottom = Math.max(targetP.getBoundingClientRect().bottom - copyTop, 180);
       descriptionCopy.style.setProperty('--job-description-collapsed-height', `${Math.ceil(secondBottom)}px`);
       descriptionToggle.hidden = false;
     };
@@ -3255,6 +5298,49 @@ document.querySelector('#app').innerHTML=render();
       if (!expanded) descriptionCopy.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+}
+{
+  const reportModal = document.getElementById('jobReportModal');
+  const reportOpen = document.getElementById('openJobReportBtn');
+  const reportClose = document.getElementById('closeJobReportBtn');
+  const reportForm = document.getElementById('jobReportForm');
+  const closeReportModal = () => {
+    if (!reportModal) return;
+    reportModal.hidden = true;
+    reportModal.setAttribute('aria-hidden', 'true');
+    document.body.style.removeProperty('overflow');
+  };
+  reportOpen?.addEventListener('click', () => {
+    reportModal.hidden = false;
+    reportModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    reportModal.querySelector('input[name="reason"]')?.focus();
+  });
+  reportClose?.addEventListener('click', closeReportModal);
+  reportModal?.addEventListener('click', event => { if (event.target === reportModal) closeReportModal(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && reportModal && !reportModal.hidden) closeReportModal(); });
+  reportForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = reportForm.querySelector('.job-report-submit');
+    const message = reportForm.querySelector('.job-report-message');
+    const formData = new FormData(reportForm);
+    const payload = Object.fromEntries(formData.entries());
+    payload.jobPath = `${location.pathname}${location.search}`;
+    submit.disabled = true;
+    message.textContent = 'Submitting your report…';
+    try {
+      const response = await fetch('/api/job-reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to submit report.');
+      message.textContent = 'Thank you. This job has been reported for review.';
+      reportForm.reset();
+      window.setTimeout(closeReportModal, 1400);
+    } catch (error) {
+      message.textContent = error.message || 'Unable to submit report.';
+    } finally {
+      submit.disabled = false;
+    }
+  });
 }
 if (isResumeBuilderPath(path)) {
   initCVBuilder('#cv-builder-root');
@@ -3402,9 +5488,9 @@ function applySavedSeoMeta(){
     let canonical=document.querySelector('link[rel="canonical"]');
     if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical)}
     if(record && data.posts && data.posts.some(p => p.slug === record.slug)){
-      canonical.href=`${location.origin}${getPostUrl(record)}`;
+      canonical.href=`${SITE_ORIGIN}${getPostUrl(record)}`;
     } else {
-      canonical.href=`${location.origin}${path==='/'?'/':`/${record.slug}`}`;
+      canonical.href=`${SITE_ORIGIN}${path==='/'?'/':`/${record.slug}`}`;
     }
   }catch{}
 }
@@ -3413,7 +5499,7 @@ function cleanSchemaText(value=''){const box=document.createElement('div');box.i
 function isoSchemaDate(value){const date=new Date(value||'');return Number.isNaN(date.getTime())?'':date.toISOString()}
 function addStructuredData(){
   if(path.startsWith('/admin'))return;
-  const origin=location.origin,currentUrl=`${origin}${location.pathname}${location.search}`;
+  const origin=SITE_ORIGIN,currentUrl=`${origin}${location.pathname}${location.search}`;
   const orgId=`${origin}/#organization`,siteId=`${origin}/#website`,pageId=`${origin}${location.pathname}#webpage`;
   const graph=[
     {'@type':'Organization','@id':orgId,name:'Trikonet',url:`${origin}/`,logo:{'@type':'ImageObject',url:`${origin}/assets/logo-black.png?${LOGO_VERSION}`},email:'info@trikonet.com'},
@@ -3487,13 +5573,70 @@ document.querySelectorAll('.detail-exact .detail-hero .detail-meta').forEach((ro
 });
 const employerSave=document.querySelector('.employer-hero .save');
 if(employerSave)employerSave.innerHTML=detailSvg('bookmark');
+const upsertMemberCollection=(kind,item,remove=false)=>{
+  if(!currentUser)return;
+  const key=memberCollectionKey(kind);
+  let items=readMemberCollection(kind);
+  const identity=String(item.slug||item.id||'');
+  items=items.filter(entry=>String(entry.slug||entry.id||'')!==identity);
+  if(!remove)items.unshift(item);
+  try{localStorage.setItem(key,JSON.stringify(items.slice(0,200)))}catch{}
+};
+const currentDetailJob=path.startsWith('/job/')?(wpRecord||data.jobs.find(job=>path.endsWith(`/${job.slug}`))):null;
+const currentJobView=currentDetailJob?mapJob(currentDetailJob):null;
+const jobSaveButton=document.querySelector('.detail-actions .save');
+if(jobSaveButton&&currentJobView){
+  const saved=readMemberCollection('saved_jobs').some(item=>String(item.slug)===String(currentJobView.slug));
+  jobSaveButton.classList.toggle('is-saved',saved);
+  jobSaveButton.setAttribute('aria-label',saved?'Remove saved job':'Save job');
+  jobSaveButton.addEventListener('click',()=>{
+    if(!currentUser){location.href=`/login?redirect=${encodeURIComponent(path)}`;return}
+    const willSave=!jobSaveButton.classList.contains('is-saved');
+    jobSaveButton.classList.toggle('is-saved',willSave);
+    jobSaveButton.setAttribute('aria-label',willSave?'Remove saved job':'Save job');
+    upsertMemberCollection('saved_jobs',{...currentJobView,savedAt:new Date().toISOString()},!willSave);
+  });
+}
+const applyButton=document.querySelector('.detail-actions .apply');
+if(applyButton&&currentJobView)applyButton.addEventListener('click',()=>{
+  if(currentUser)upsertMemberCollection('applied_jobs',{...currentJobView,appliedAt:new Date().toISOString()});
+});
 const hambBtn=document.querySelector('.hamb');
 hambBtn?.addEventListener('click',function(){
   const links=document.querySelector('.links');
   const isOpen=links?.classList.toggle('open');
   this.classList.toggle('open',!!isOpen);
   this.setAttribute('aria-expanded',isOpen?'true':'false');
+  document.body.classList.toggle('mobile-nav-open',!!isOpen);
 });
+const closeMobileNavigation=()=>{
+  document.querySelector('.links')?.classList.remove('open');
+  document.querySelector('.hamb')?.classList.remove('open');
+  document.querySelector('.hamb')?.setAttribute('aria-expanded','false');
+  document.body.classList.remove('mobile-nav-open');
+};
+const accountMenu = document.querySelector('.nav-account-menu');
+const accountToggle = document.querySelector('#navAccountToggle');
+const accountDropdown = document.querySelector('#navAccountDropdown');
+const closeAccountMenu = () => {
+  accountMenu?.classList.remove('is-open');
+  accountToggle?.setAttribute('aria-expanded', 'false');
+  accountDropdown?.setAttribute('aria-hidden', 'true');
+};
+accountToggle?.addEventListener('click', event => {
+  event.stopPropagation();
+  const willOpen = !accountMenu?.classList.contains('is-open');
+  accountMenu?.classList.toggle('is-open', willOpen);
+  accountToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  accountDropdown?.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+});
+accountDropdown?.addEventListener('click', event => event.stopPropagation());
+document.addEventListener('click', closeAccountMenu);
+document.querySelectorAll('.nav-profile-photo img, .nav-account-summary-avatar img, .mobile-account-avatar img').forEach(image => {
+  image.addEventListener('error', () => image.remove(), { once: true });
+});
+document.querySelectorAll('.mobile-nav-actions a').forEach(link=>link.addEventListener('click',closeMobileNavigation));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMobileNavigation();closeAccountMenu()}});
 document.querySelectorAll('.nav-has-mega > .nav-link, .nav-has-dropdown > .nav-link').forEach(link => {
   link.addEventListener('click', e => {
     if (window.innerWidth <= 1100) {
@@ -3515,10 +5658,12 @@ window.addEventListener('resize', () => {
   button?.classList.remove('open');
   button?.setAttribute('aria-expanded', 'false');
   document.querySelectorAll('.nav-item.mobile-expanded').forEach(item => item.classList.remove('mobile-expanded'));
+  document.body.classList.remove('mobile-nav-open');
 });
 document.querySelector('#logoutBtn')?.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/'});
 document.querySelector('#mobileLogoutBtn')?.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/'});
 document.querySelector('#dashboardLogoutBtn')?.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/'});
+document.querySelector('#navAccountLogout')?.addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/'});
 
 async function submitAuth(form,endpoint){
   const message=form.querySelector('.form-message');
@@ -3555,7 +5700,7 @@ async function submitAuth(form,endpoint){
       message.textContent=endpoint.includes('register')?'Account created successfully! Redirecting…':'Welcome back! Redirecting…';
     }
     const requestedRedirect=new URLSearchParams(location.search).get('redirect');
-    const safeRedirect=requestedRedirect&&requestedRedirect.startsWith('/')&&!requestedRedirect.startsWith('//')?requestedRedirect:'/email-campaigns';
+    const safeRedirect=requestedRedirect&&requestedRedirect.startsWith('/')&&!requestedRedirect.startsWith('//')?requestedRedirect:'/';
     setTimeout(()=>{location.href=safeRedirect},500);
   }catch(err){
     if(message){
@@ -3880,26 +6025,91 @@ document.addEventListener('click', e => {
   if (nextBtn) {
     const wrap = nextBtn.closest('.featured-companies-carousel-wrap');
     const track = wrap?.querySelector('.featured-companies-track');
-    if (track) track.scrollBy({ left: 272 * 2, behavior: 'smooth' });
+    if (track) {
+      const card = track.querySelector('.featured-company-card');
+      const cardWidth = card ? card.getBoundingClientRect().width : 240;
+      const gap = parseFloat(getComputedStyle(track).gap) || 16;
+      const scrollStep = cardWidth + gap;
+      const visibleCount = Math.max(1, Math.round(track.clientWidth / scrollStep));
+      track.scrollBy({ left: scrollStep * visibleCount, behavior: 'smooth' });
+    }
     return;
   }
   const prevBtn = e.target.closest('.carousel-arrow-prev');
   if (prevBtn) {
     const wrap = prevBtn.closest('.featured-companies-carousel-wrap');
     const track = wrap?.querySelector('.featured-companies-track');
-    if (track) track.scrollBy({ left: -272 * 2, behavior: 'smooth' });
+    if (track) {
+      const card = track.querySelector('.featured-company-card');
+      const cardWidth = card ? card.getBoundingClientRect().width : 240;
+      const gap = parseFloat(getComputedStyle(track).gap) || 16;
+      const scrollStep = cardWidth + gap;
+      const visibleCount = Math.max(1, Math.round(track.clientWidth / scrollStep));
+      track.scrollBy({ left: -scrollStep * visibleCount, behavior: 'smooth' });
+    }
     return;
   }
 });
 
-// Employer Directory Top Categories Strip Navigation
+// Employer Directory Top Categories Strip Navigation & How It Works Slider
 document.addEventListener('click', e => {
+  const prevBtn = e.target.closest('#empTopPrevBtn');
+  if (prevBtn) {
+    const track = document.getElementById('empTopHiringTrack');
+    if (track) {
+      const scrollAmount = Math.max(240, Math.floor(track.clientWidth * 0.75));
+      track.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    }
+    return;
+  }
   const nextBtn = e.target.closest('#empTopNextBtn');
   if (nextBtn) {
     const track = document.getElementById('empTopHiringTrack');
-    if (track) track.scrollBy({ left: 240 * 2, behavior: 'smooth' });
+    if (track) {
+      const scrollAmount = Math.max(240, Math.floor(track.clientWidth * 0.75));
+      track.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+    return;
+  }
+
+  // How It Works Mobile Slider Interactive Dots
+  const howDot = e.target.closest('.how-dot');
+  if (howDot) {
+    const index = parseInt(howDot.getAttribute('data-index'), 10);
+    const track = document.getElementById('howStepsTrack');
+    if (track) {
+      const cards = track.querySelectorAll('.how-step-card');
+      if (cards[index]) {
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+    return;
   }
 });
+
+// Update active dot on scroll for How It Works mobile slider
+document.addEventListener('scroll', e => {
+  if (e.target && e.target.id === 'howStepsTrack') {
+    const track = e.target;
+    const dots = document.querySelectorAll('.how-dot');
+    if (!dots.length) return;
+    const trackCenter = track.scrollLeft + track.clientWidth / 2;
+    const cards = track.querySelectorAll('.how-step-card');
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    cards.forEach((card, idx) => {
+      const cardCenter = card.offsetLeft + card.clientWidth / 2;
+      const diff = Math.abs(trackCenter - cardCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', i === closestIdx);
+    });
+  }
+}, true);
 
 // Employer Detail Page Interactions
 window.handleClaimFileSelect = function(input) {
@@ -4333,8 +6543,23 @@ document.addEventListener('click', e => {
   // Employer follow button toggle
   const followBtn = e.target.closest('.emp-follow-btn');
   if (followBtn) {
+    if (!currentUser) {
+      const returnPath = `${location.pathname}${location.search}${location.hash}`;
+      location.href = `/login?redirect=${encodeURIComponent(returnPath)}`;
+      return;
+    }
     const isFollowing = followBtn.classList.toggle('following');
     followBtn.textContent = isFollowing ? '✓ Following' : '+ Follow';
+    const employerSlug = followBtn.dataset.slug;
+    if (employerSlug) {
+      const userKey = currentUser.id || currentUser.email || 'member';
+      try { localStorage.setItem(`trikonet_follow_employer_${userKey}_${employerSlug}`, String(isFollowing)); } catch {}
+      const employerTitle=document.querySelector('.emp-profile-title, .employer-hero h1, .detail-hero h1')?.textContent?.trim()||employerSlug.replace(/-/g,' ');
+      const employerLogo=document.querySelector('.emp-profile-logo-img, .employer-hero img')?.getAttribute('src')||'';
+      const employerCategory=document.querySelector('.emp-cat-pill')?.textContent?.trim()||'';
+      const employerLocation=document.querySelector('.emp-location-pill')?.textContent?.trim()||'';
+      upsertMemberCollection('followed_companies',{slug:employerSlug,title:employerTitle,logo:employerLogo,category:employerCategory,location:employerLocation,followedAt:new Date().toISOString()},!isFollowing);
+    }
     return;
   }
 });

@@ -8352,28 +8352,15 @@
 						const image = new Image();
 						image.src = url;
 						await image.decode();
-						let ratio = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+						const ratio = Math.min(1, 300 / Math.max(image.naturalWidth, image.naturalHeight));
 						const canvas = document.createElement('canvas');
-						let quality = .82;
-						let compressed = '';
-						const encodedBytes = value => {
-							const base64 = String(value || '').split(',')[1] || '';
-							return Math.max(0, Math.floor(base64.length * .75) - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0));
-						};
-						for (let attempt = 0; attempt < 12; attempt++) {
-							canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
-							canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
-							const context = canvas.getContext('2d');
-							context.fillStyle = '#ffffff';
-							context.fillRect(0, 0, canvas.width, canvas.height);
-							context.drawImage(image, 0, 0, canvas.width, canvas.height);
-							compressed = canvas.toDataURL('image/jpeg', quality);
-							if (encodedBytes(compressed) <= 100 * 1024) break;
-							if (quality > .48) quality -= .08;
-							else ratio *= .82;
-						}
-						if (!compressed || encodedBytes(compressed) > 100 * 1024) throw new Error('Photo compression failed');
-						state.photo = compressed;
+						canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+						canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+						const context = canvas.getContext('2d');
+						context.fillStyle = '#ffffff';
+						context.fillRect(0, 0, canvas.width, canvas.height);
+						context.drawImage(image, 0, 0, canvas.width, canvas.height);
+						state.photo = canvas.toDataURL('image/jpeg', .70);
 						save();
 						renderAll();
 						renderContentDashboard();

@@ -186,10 +186,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 24px;
+  font-size: 19px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 20px;
+  letter-spacing: -0.015em;
 }
 
 .detail-exact .desc-heading-icon {
@@ -199,13 +200,31 @@
 }
 
 .detail-exact .wordpress-content {
-  font-size: 15px;
-  line-height: 1.75;
+  font-size: 14px;
+  line-height: 1.65;
   color: #475569;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .detail-exact .wordpress-content p {
-  margin: 0 0 20px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.detail-exact .wordpress-content h1,
+.detail-exact .wordpress-content h2,
+.detail-exact .wordpress-content h3,
+.detail-exact .wordpress-content h4,
+.detail-exact .wordpress-content h5,
+.detail-exact .wordpress-content h6 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 18px 0 8px;
+  line-height: 1.4;
 }
 
 .detail-exact .wordpress-content a {
@@ -228,77 +247,106 @@
 
 .detail-exact .wordpress-content ul,
 .detail-exact .wordpress-content ol {
-  padding-left: 22px;
-  margin: 0 0 22px;
+  padding-left: 20px;
+  margin: 0 0 16px;
 }
 
 .detail-exact .wordpress-content li {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
-/* Job Overview Card */
+.detail-exact .wordpress-content [style*="font-size"] {
+  font-size: inherit !important;
+}
+
+/* Job Overview Card - Unified Card Design */
 .detail-exact .overview {
-  background: #f8fafc;
-  border: 1px solid #edf2f7;
-  border-radius: 12px;
-  padding: 32px 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
 }
 
-.detail-exact .overview h2 {
-  font-size: 19px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 26px;
+.detail-exact .overview-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.detail-exact .overview-eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.detail-exact .overview-heading {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 750;
+  color: #0f172a;
+  line-height: 1.3;
 }
 
 .detail-exact .overview-list {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
 }
 
 .detail-exact .overview-item {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 14px;
 }
 
 .detail-exact .overview-icon {
-  width: 26px;
-  height: 26px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #b00008;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   flex-shrink: 0;
-  color: #b00008;
-  margin-top: 2px;
 }
 
 .detail-exact .overview-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   stroke: #b00008;
 }
 
 .detail-exact .overview-content {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .detail-exact .overview-title {
-  font-size: 14.5px;
-  font-weight: 500;
-  color: #1e293b;
-  line-height: 1.25;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
 }
 
 .detail-exact .overview-val {
   font-size: 14px;
-  font-weight: 400;
-  color: #64748b;
+  font-weight: 650;
+  color: #0f172a;
   line-height: 1.35;
 }
 
@@ -306,56 +354,144 @@
 .detail-exact .overview dl {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   margin: 0;
 }
 .detail-exact .overview dd {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .detail-exact .overview dd b {
-  font-size: 14.5px;
-  font-weight: 500;
-  color: #1e293b;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .detail-exact .overview dd span {
   font-size: 14px;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+/* Detail tags */
+.detail-exact .detail-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.detail-exact .detail-tags-label {
+  font-size: 13px;
+  font-weight: 700;
   color: #64748b;
 }
 
-/* Detail tags & share */
-.detail-exact .detail-tags {
-  margin-top: 30px;
-  color: #64748b;
-  font-size: 14px;
+.detail-exact .detail-tags-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
+.detail-exact .detail-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Share Section */
 .detail-exact .share {
   display: flex;
-  gap: 18px;
   align-items: center;
-  border-top: 1px solid #edf2f7;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-top: 1px solid #f1f5f9;
   padding-top: 24px;
-  margin-top: 36px;
+  margin-top: 32px;
 }
 
-.detail-exact .share h3 {
+.detail-exact .share-header h3 {
   font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 2px;
 }
 
-.detail-exact .share a {
-  color: #b00008;
-  font-weight: 500;
-  text-decoration: none;
-  font-size: 14px;
+.detail-exact .share-subtitle {
+  font-size: 12.5px;
+  color: #64748b;
 }
-.detail-exact .share a:hover {
-  text-decoration: underline;
+
+.detail-exact .share-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.detail-exact .detail-share-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+.detail-exact .detail-share-pill svg {
+  flex-shrink: 0;
+}
+
+.detail-exact .detail-share-pill:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.detail-exact .detail-share-pill.share-linkedin:hover {
+  color: #0a66c2;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.detail-exact .detail-share-pill.share-wa:hover {
+  color: #16a34a;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.detail-exact .detail-share-pill.share-fb:hover {
+  color: #1877f2;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.detail-exact .detail-share-pill.share-x:hover {
+  color: #000000;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
 }
 
 /* Related Jobs */
@@ -416,21 +552,22 @@
 }
 
 .detail-exact .detail-job-row {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 18px;
-  padding: 22px 24px;
-  margin: 0 0 16px;
+  padding: 18px 22px;
+  margin: 0 0 14px;
   position: relative;
   background: #ffffff;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .detail-exact .detail-job-row:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  border-color: #fca5a5;
+  box-shadow: 0 6px 18px -3px rgba(176, 0, 8, 0.08);
+  transform: translateY(-2px);
 }
 
 .detail-exact .detail-job-row > img {
@@ -479,7 +616,7 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .detail-exact .detail-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -498,6 +635,36 @@
     flex: 1;
   }
   .detail-exact .detail-grid {
-    padding: 30px 16px 60px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 24px 15px 50px;
+    gap: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .detail-exact .job-description,
+  .detail-exact .detail-sidebar {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .detail-exact .overview {
+    padding: 22px 18px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+  }
+  .detail-exact .job-desc-heading {
+    font-size: 17px;
+    margin: 0 0 16px;
+  }
+  .detail-exact .wordpress-content,
+  .detail-exact .wordpress-content p,
+  .detail-exact .wordpress-content li {
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .detail-exact .wordpress-content p {
+    margin-bottom: 10px;
   }
 }

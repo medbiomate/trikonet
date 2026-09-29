@@ -6315,7 +6315,33 @@ body::-webkit-scrollbar,
 
   body.cv-mobile-topbar-collapsed .cv-workspace-topbar,
   body.cv-mobile-topbar-collapsed.cv-editor-chrome-hidden .cv-workspace-topbar {
+    display: block !important;
+    position: relative !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 8px 12px 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body.cv-mobile-topbar-collapsed .cv-workspace-topbar > :not(.cv-mobile-topbar-toggle) {
     display: none !important;
+  }
+
+  body.cv-mobile-topbar-collapsed .cv-mobile-topbar-toggle {
+    right: 2px !important;
+    top: 2px !important;
+    transform: none !important;
+  }
+
+  body.cv-mobile-topbar-collapsed .cv-mobile-topbar-toggle svg {
+    transform: rotate(180deg) !important;
   }
 }
 
@@ -6656,6 +6682,58 @@ body::-webkit-scrollbar,
     top: 0 !important;
     left: 0 !important;
   }
+}
+
+/* Final preview pager guard. */
+#cv-builder-workspace .cv-workspace-pagination-bar:not(.cv-hidden) {
+  width: max-content !important;
+  max-width: calc(100% - 24px) !important;
+  min-height: 58px !important;
+  display: grid !important;
+  grid-template-columns: 48px minmax(86px, auto) 48px !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 14px auto 20px !important;
+  padding: 6px !important;
+  border: 1px solid #cdddef !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, .98) !important;
+  box-shadow: 0 10px 26px rgba(31, 55, 97, .13) !important;
+  box-sizing: border-box !important;
+}
+
+#cv-builder-workspace .cv-workspace-pagination-bar .cv-pagination-btn {
+  width: 48px !important;
+  height: 46px !important;
+  min-width: 48px !important;
+  min-height: 46px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 1px solid #c9daf0 !important;
+  border-radius: 13px !important;
+  background: #edf5ff !important;
+  color: #1769e0 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+#cv-builder-workspace .cv-workspace-pagination-bar .cv-pagination-btn span { display: none !important; }
+#cv-builder-workspace .cv-workspace-pagination-bar .cv-pagination-btn svg { display: block !important; width: 20px !important; height: 20px !important; }
+#cv-builder-workspace .cv-workspace-pagination-bar .cv-pagination-btn:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  border-color: #1769e0 !important;
+  background: #1769e0 !important;
+  color: #ffffff !important;
+}
+#cv-builder-workspace .cv-workspace-pagination-bar .cv-pagination-btn:disabled { opacity: .38 !important; cursor: not-allowed !important; }
+#cv-builder-workspace .cv-workspace-pagination-bar .cv-pagination-info {
+  display: block !important;
+  min-width: 86px !important;
+  color: #263b59 !important;
+  font: 800 12px/1 'Manrope', sans-serif !important;
+  text-align: center !important;
+  white-space: nowrap !important;
 }
 
 /* Keep capture overrides last so laptop preview media queries cannot rescale it. */

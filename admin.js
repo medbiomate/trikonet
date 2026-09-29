@@ -248,6 +248,7 @@ export function renderAdmin() {
         </button>
         <div class="admin-submenu" id="jobs-submenu">
           <a href="#jobs" class="admin-sub-item active" data-view="jobs">All Jobs</a>
+          <a href="#reported-jobs" class="admin-sub-item" data-view="reported-jobs" id="reported-jobs-link">Reported Jobs <span class="admin-menu-badge" id="admin-reports-badge" style="display:none;background:#b00008;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:auto;">0</span></a>
           <a href="#job-new" class="admin-sub-item" data-view="job-new" id="new-job-link">Add New Job</a>
           <a href="#taxonomy-types" class="admin-sub-item" data-view="taxonomy-types">Types</a>
           <a href="#taxonomy-categories" class="admin-sub-item" data-view="taxonomy-categories">Categories</a>
@@ -430,7 +431,6 @@ export function renderAdmin() {
               <thead>
                 <tr>
                   <td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox" aria-label="Select All"></td>
-                  <th scope="col" id="logo" class="manage-column column-logo"></th>
                   <th scope="col" id="title" class="manage-column column-title sortable desc"><a href="#"><span>Title</span><span class="sorting-indicator"></span></a></th>
                   <th scope="col" id="views" class="manage-column column-views">Views</th>
                   <th scope="col" id="type" class="manage-column column-type">Type</th>
@@ -442,7 +442,7 @@ export function renderAdmin() {
                 </tr>
               </thead>
               <tbody id="admin-job-rows">
-                <tr><td colspan="10" style="text-align:center;padding:30px;color:#646970;">Loading jobs…</td></tr>
+                <tr><td colspan="9" style="text-align:center;padding:30px;color:#646970;">Loading jobs…</td></tr>
               </tbody>
             </table>
           </div>
@@ -1146,6 +1146,99 @@ export function renderAdmin() {
             <button type="button" id="adminCredCopyBtn" class="modern-filter-btn" style="background:#0f172a;color:#fff;border-color:#0f172a;">Copy Credentials</button>
             <button type="button" class="modern-filter-btn" onclick="document.getElementById('adminClaimCredentialsModal').style.display='none'">Done</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: Reported Jobs -->
+    <div class="admin-view" id="view-reported-jobs">
+      <div class="modern-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <h1 class="modern-page-title">Reported Jobs</h1>
+            <span class="modern-heading-badge" id="admin-reports-count-chip" style="background:#fee2e2;color:#b00008;border-color:#fecaca;">User Flags</span>
+          </div>
+          <p class="modern-page-subtitle">Track job listings reported by job seekers (broken links, expired posts, inaccurate info, suspicious listings). Review reports, draft/unpublish problematic jobs, or edit details directly.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="modern-filter-btn" id="admin-reports-refresh-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Summary Metric Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Reported Listings</div>
+          <div id="stat-reported-jobs" style="font-size:26px;font-weight:800;color:#0f172a;margin-top:4px;">0</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Total Reports</div>
+          <div id="stat-total-reports" style="font-size:26px;font-weight:800;color:#b00008;margin-top:4px;">0</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Broken Apply Links</div>
+          <div id="stat-broken-links" style="font-size:26px;font-weight:800;color:#e11d48;margin-top:4px;">0</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Expired Listings</div>
+          <div id="stat-expired-reports" style="font-size:26px;font-weight:800;color:#d97706;margin-top:4px;">0</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Drafted / Hidden</div>
+          <div id="stat-drafted-jobs" style="font-size:26px;font-weight:800;color:#475569;margin-top:4px;">0</div>
+        </div>
+      </div>
+
+      <div class="modern-card">
+        <div class="modern-search-row">
+          <div class="modern-search-left" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="modern-filter-btn active" data-report-filter="all">All Reported</button>
+            <button type="button" class="modern-filter-btn" data-report-filter="pending">Pending (Live)</button>
+            <button type="button" class="modern-filter-btn" data-report-filter="draft">Drafted</button>
+            <button type="button" class="modern-filter-btn" data-report-filter="resolved">Resolved</button>
+          </div>
+          <div class="modern-search-right" style="display:flex;gap:10px;align-items:center;">
+            <input type="text" id="admin-reports-search" placeholder="Search reported job or company…" style="padding:7px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;width:240px;outline:none;">
+            <div class="modern-count-badge" id="admin-reports-total-count">0 jobs</div>
+          </div>
+        </div>
+
+        <div class="modern-table-wrap">
+          <table class="wp-list-table widefat fixed striped modern-table-clean">
+            <thead>
+              <tr>
+                <th style="width:260px;">Reported Job Listing</th>
+                <th style="width:140px;text-align:center;">People Reported</th>
+                <th>Reason-wise Breakdown & Notes</th>
+                <th style="width:120px;">Job Status</th>
+                <th style="width:230px;text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-reports-rows">
+              <tr><td colspan="5" style="text-align:center;padding:35px;color:#646970;">Loading reported jobs…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job Report Details Modal (to view full notes / submissions) -->
+    <div id="adminReportDetailsModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;">
+      <div style="background:#fff;border-radius:14px;max-width:620px;width:100%;max-height:85vh;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #e2e8f0;display:flex;flex-direction:column;">
+        <div style="background:#0f172a;color:#fff;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <h3 id="reportModalJobTitle" style="margin:0;font-size:17px;font-weight:700;">Report Details</h3>
+            <p id="reportModalJobMeta" style="margin:3px 0 0;font-size:12.5px;color:#94a3b8;">User-submitted flag feedback</p>
+          </div>
+          <button type="button" onclick="document.getElementById('adminReportDetailsModal').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;line-height:1;">×</button>
+        </div>
+        <div id="reportModalBody" style="padding:20px;overflow-y:auto;display:grid;gap:12px;"></div>
+        <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+          <div id="reportModalJobActions" style="display:flex;gap:8px;"></div>
+          <button type="button" class="modern-filter-btn" onclick="document.getElementById('adminReportDetailsModal').style.display='none'">Close</button>
         </div>
       </div>
     </div>
@@ -3356,50 +3449,51 @@ export function renderAdmin() {
           </ul>
         </div>
 
-        <!-- 2. Integrated Command Bar -->
+        <!-- 2. Integrated Command & Filter Bar -->
         <div class="modern-card-toolbar">
-          <div class="modern-toolbar-left" style="flex-wrap:wrap; gap:8px;">
-            <div class="modern-search-group">
-              <div class="modern-search-input-wrap" style="width: 250px;">
-                <svg class="modern-search-icon" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M13 13l4.5 4.5"/></svg>
-                <input type="search" id="admin-candidate-search" placeholder="Search Candidates…" aria-label="Search candidates">
-              </div>
+          <div class="modern-toolbar-left">
+            <div class="modern-search-box-unified">
+              <svg class="search-icon-svg" viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
+              <input type="search" id="admin-candidate-search" placeholder="Search by name, role, email, or skill…" aria-label="Search Candidates">
+              <button type="button" id="btn-candidate-search-submit" class="modern-search-submit-btn">Search</button>
             </div>
 
-            <div class="modern-filter-group">
-              <select id="filter-candidate-category" class="modern-filter-select" aria-label="Filter by category">
+            <div class="modern-filter-dropdowns">
+              <select id="filter-candidate-category" class="modern-select-pill" aria-label="Filter by category">
                 <option value="">All Categories</option>
+                <option value="Healthcare & Medical">Healthcare & Medical</option>
+                <option value="Nursing">Nursing</option>
                 <option value="Information Technology">Information Technology</option>
                 <option value="Engineering">Engineering</option>
                 <option value="Finance & Banking">Finance & Banking</option>
-                <option value="Healthcare & Medical">Healthcare & Medical</option>
                 <option value="Marketing & Sales">Marketing & Sales</option>
                 <option value="Human Resources">Human Resources</option>
                 <option value="Construction">Construction</option>
               </select>
 
-              <select id="filter-candidate-location" class="modern-filter-select" aria-label="Filter by location">
+              <select id="filter-candidate-location" class="modern-select-pill" aria-label="Filter by location">
                 <option value="">All Locations</option>
                 <option value="Dubai">Dubai</option>
                 <option value="Abu Dhabi">Abu Dhabi</option>
                 <option value="Sharjah">Sharjah</option>
                 <option value="Ajman">Ajman</option>
+                <option value="Ras Al Khaimah">Ras Al Khaimah</option>
                 <option value="Remote UAE">Remote UAE</option>
               </select>
 
-              <button type="button" class="modern-filter-btn" id="btn-filter-candidates">Filter</button>
+              <button type="button" class="modern-btn-filter" id="btn-filter-candidates">Filter</button>
             </div>
           </div>
 
           <div class="modern-toolbar-right">
-            <div class="modern-bulk-group">
-              <select id="bulk-action-candidates-selector" class="modern-bulk-select" aria-label="Bulk actions">
+            <div class="modern-bulk-action-group">
+              <select id="bulk-action-candidates-selector" class="modern-select-pill" aria-label="Bulk actions">
                 <option value="-1">Bulk actions</option>
                 <option value="feature">Mark Featured</option>
                 <option value="activate">Set Active</option>
                 <option value="trash">Move to Trash</option>
               </select>
-              <button type="button" class="modern-bulk-apply-btn" id="btn-apply-candidates-bulk">Apply</button>
+              <button type="button" class="modern-btn-apply" id="btn-apply-candidates-bulk">Apply</button>
             </div>
           </div>
         </div>
@@ -3410,18 +3504,23 @@ export function renderAdmin() {
             <thead>
               <tr>
                 <td id="cb-candidates" class="manage-column column-cb check-column"><input id="cb-select-all-candidates" type="checkbox" aria-label="Select All"></td>
-                <th scope="col" class="manage-column column-candidate-name" style="width:26%;"><span>Candidate</span></th>
+                <th scope="col" class="manage-column column-candidate-name sortable desc" style="width:28%;"><span>Candidate</span></th>
                 <th scope="col" class="manage-column column-candidate-title" style="width:20%;"><span>Professional Title</span></th>
                 <th scope="col" class="manage-column column-candidate-category" style="width:14%;"><span>Category</span></th>
                 <th scope="col" class="manage-column column-candidate-location" style="width:13%;"><span>Location</span></th>
-                <th scope="col" class="manage-column column-candidate-exp" style="width:14%;"><span>Experience</span></th>
-                <th scope="col" class="manage-column column-candidate-status" style="width:13%;"><span>Status</span></th>
+                <th scope="col" class="manage-column column-candidate-exp" style="width:13%;"><span>Experience</span></th>
+                <th scope="col" class="manage-column column-candidate-status" style="width:12%;"><span>Status</span></th>
               </tr>
             </thead>
             <tbody id="admin-candidate-rows">
               <!-- Rendered via JS -->
             </tbody>
           </table>
+        </div>
+
+        <!-- 4. Card Summary / Pagination Footer -->
+        <div class="modern-card-footer" id="candidate-card-footer">
+          <div class="modern-footer-info" id="candidate-footer-info">Showing candidate profiles</div>
         </div>
       </div>
     </div>
@@ -3615,7 +3714,8 @@ window.showAdminNotice = showAdminNotice;
 
 export async function initAdmin() {
   // Logout handler
-  document.getElementById('admin-logout-btn')?.addEventListener('click', () => {
+  document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('trikonet_admin_session');
     sessionStorage.removeItem('trikonet_admin_session');
     location.href = '/admin-login';
@@ -3708,6 +3808,7 @@ export async function initAdmin() {
   function switchView(viewName) {
     const views = {
       'jobs': 'view-jobs',
+      'reported-jobs': 'view-reported-jobs',
       'job-new': 'view-job-editor',
       'job-edit': 'view-job-editor',
       'employers': 'view-employers',
@@ -3872,6 +3973,8 @@ export async function initAdmin() {
 
     if (targetId === 'view-jobs') {
       renderJobRows();
+    } else if (targetId === 'view-reported-jobs') {
+      renderReportedJobs();
     } else if (targetId === 'view-employers') {
       renderEmployerRows();
     } else if (targetId === 'view-employer-claims') {
@@ -4033,6 +4136,8 @@ export async function initAdmin() {
       switchView('taxonomy-tags');
     } else if (hash === 'employers') {
       switchView('employers');
+    } else if (hash === 'reported-jobs') {
+      switchView('reported-jobs');
     } else if (hash === 'employer-claims') {
       switchView('employer-claims');
     } else if (hash === 'users') {
@@ -4804,11 +4909,6 @@ export async function initAdmin() {
       jobRows.innerHTML = pagedJobs.length ? pagedJobs.map(j => `
       <tr id="job-${esc(j.slug)}">
         <th scope="row" class="check-column"><input type="checkbox" name="post[]" value="${esc(j.slug)}"></th>
-        <td class="column-logo">
-          <div class="modern-job-logo-box">
-            ${j.logo ? `<img class="wp-job-logo" src="${esc(j.logo)}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="wp-job-logo-fallback" style="display:none;">${esc((j.company || j.title || 'J').charAt(0))}</div>` : `<div class="wp-job-logo-fallback">${esc((j.company || j.title || 'J').charAt(0))}</div>`}
-          </div>
-        </td>
         <td class="column-title">
           <div class="modern-title-line">
             <a class="row-title" href="#job-editor" data-job-edit="${esc(j.slug)}">${esc(j.title)}</a>
@@ -4849,7 +4949,7 @@ export async function initAdmin() {
           </span>
         </td>
       </tr>
-    `).join('') : '<tr><td colspan="10" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">No matching jobs found.</td></tr>';
+    `).join('') : '<tr><td colspan="9" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">No matching jobs found.</td></tr>';
     }
   }
 
@@ -4921,7 +5021,7 @@ export async function initAdmin() {
     qeTr.id = `edit-${slug}`;
     qeTr.className = 'inline-edit-row inline-edit-row-post quick-edit-row-post modern-qe-row';
     qeTr.innerHTML = `
-      <td colspan="10" class="modern-qe-td">
+      <td colspan="9" class="modern-qe-td">
         <div class="modern-qe-card">
           <!-- Top Header Bar -->
           <div class="modern-qe-header">
@@ -4931,7 +5031,7 @@ export async function initAdmin() {
                 <span class="modern-qe-heading-label">Editing:</span>
                 <strong class="modern-qe-heading-title">${esc(job.title || 'Untitled Job')}</strong>
               </div>
-              <span class="modern-qe-slug-chip">/jobs/${esc(job.slug || '')}</span>
+              <span class="modern-qe-slug-chip">/job/${esc(job.slug || '')}</span>
             </div>
             <button type="button" class="modern-qe-close-btn" title="Close (Esc)">✕</button>
           </div>
@@ -5614,14 +5714,382 @@ export async function initAdmin() {
     }
   });
 
+  // --- Reported Jobs Management ---
+  let reportedJobsData = { reports: [], grouped: [], stats: {} };
+  let currentReportFilter = 'all';
+
+  async function loadReportedJobs() {
+    try {
+      const res = await fetch('/api/admin/job-reports');
+      if (res.ok) {
+        reportedJobsData = await res.json();
+      }
+    } catch {
+      reportedJobsData = { reports: [], grouped: [], stats: {} };
+    }
+    updateReportsBadge();
+  }
+
+  function updateReportsBadge() {
+    const badge = document.getElementById('admin-reports-badge');
+    const pendingJobs = (reportedJobsData.grouped || []).filter(g => g.jobStatus !== 'draft' && g.status !== 'resolved');
+    const count = pendingJobs.length;
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  const reasonLabels = {
+    broken_link: { text: 'Broken Apply Link', icon: '🔗', class: 'broken_link' },
+    expired: { text: 'Expired Job', icon: '⏳', class: 'expired' },
+    incorrect: { text: 'Incorrect Info', icon: '⚠️', class: 'incorrect' },
+    duplicate: { text: 'Duplicate Listing', icon: '📑', class: 'duplicate' },
+    suspicious: { text: 'Suspicious / Fraud', icon: '🚨', class: 'suspicious' },
+    other: { text: 'Other Issue', icon: '💬', class: 'other' }
+  };
+
+  async function renderReportedJobs() {
+    await loadReportedJobs();
+    const rowsEl = document.getElementById('admin-reports-rows');
+    const countEl = document.getElementById('admin-reports-total-count');
+    const chipEl = document.getElementById('admin-reports-count-chip');
+    const searchVal = (document.getElementById('admin-reports-search')?.value || '').trim().toLowerCase();
+
+    const stats = reportedJobsData.stats || {};
+    const grouped = reportedJobsData.grouped || [];
+    const statJobs = document.getElementById('stat-reported-jobs');
+    const statTotal = document.getElementById('stat-total-reports');
+    const statBroken = document.getElementById('stat-broken-links');
+    const statExpired = document.getElementById('stat-expired-reports');
+    const statDrafted = document.getElementById('stat-drafted-jobs');
+
+    if (statJobs) statJobs.textContent = stats.totalReportedJobs ?? grouped.length;
+    if (statTotal) statTotal.textContent = stats.totalReports ?? (reportedJobsData.reports || []).length;
+    if (statBroken) statBroken.textContent = stats.brokenLinks ?? 0;
+    if (statExpired) statExpired.textContent = stats.expiredReports ?? 0;
+    if (statDrafted) statDrafted.textContent = stats.draftedJobs ?? grouped.filter(g => g.jobStatus === 'draft').length;
+
+    if (!rowsEl) return;
+
+    let filtered = grouped;
+    if (currentReportFilter === 'pending') {
+      filtered = filtered.filter(g => g.jobStatus !== 'draft' && g.status !== 'resolved');
+    } else if (currentReportFilter === 'draft') {
+      filtered = filtered.filter(g => g.jobStatus === 'draft');
+    } else if (currentReportFilter === 'resolved') {
+      filtered = filtered.filter(g => g.status === 'resolved');
+    }
+
+    if (searchVal) {
+      filtered = filtered.filter(g => 
+        (g.jobTitle && g.jobTitle.toLowerCase().includes(searchVal)) ||
+        (g.company && g.company.toLowerCase().includes(searchVal)) ||
+        (g.jobSlug && g.jobSlug.toLowerCase().includes(searchVal))
+      );
+    }
+
+    if (countEl) countEl.textContent = `${filtered.length} ${filtered.length === 1 ? 'job' : 'jobs'}`;
+    if (chipEl) chipEl.textContent = `${grouped.length} Flagged Listings`;
+
+    if (!filtered.length) {
+      rowsEl.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:45px 20px;color:#64748b;font-size:14px;">No reported jobs found matching this criteria.</td></tr>`;
+      return;
+    }
+
+    rowsEl.innerHTML = filtered.map(job => {
+      const isDraft = job.jobStatus === 'draft';
+      const isResolved = job.status === 'resolved';
+
+      const reasonBadges = Object.entries(job.reasons || {})
+        .filter(([_, count]) => count > 0)
+        .map(([key, count]) => {
+          const cfg = reasonLabels[key] || { text: key, icon: '•', class: 'other' };
+          return `<span class="report-reason-tag ${cfg.class}">${cfg.icon} ${cfg.text} (${count})</span>`;
+        }).join(' ');
+
+      const latestNote = job.detailsList?.[0]?.details || '';
+      const previewText = latestNote ? `<div style="margin-top:6px;font-size:12.5px;color:#475569;background:#f8fafc;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0;font-style:italic;">“${esc(latestNote)}”</div>` : '';
+
+      let statusBadge = `<span class="modern-status-badge status-publish" style="display:inline-flex;align-items:center;gap:6px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;"><span class="status-pulse-dot" style="background:#10b981;"></span>Live / Publish</span>`;
+      if (isDraft) {
+        statusBadge = `<span class="modern-status-badge status-draft" style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;"><span style="width:6px;height:6px;border-radius:50%;background:#94a3b8;"></span>Draft (Hidden)</span>`;
+      } else if (isResolved) {
+        statusBadge = `<span class="modern-status-badge" style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">✓ Resolved</span>`;
+      }
+
+      const draftBtnHtml = isDraft
+        ? `<button type="button" class="report-action-btn btn-publish" data-report-job-publish="${esc(job.jobSlug)}" title="Make job active on live site">▶️ Publish</button>`
+        : `<button type="button" class="report-action-btn btn-draft" data-report-job-draft="${esc(job.jobSlug)}" title="Hide job from public view immediately">⏸️ Draft Job</button>`;
+
+      return `
+        <tr id="reported-row-${esc(job.jobSlug)}">
+          <td class="column-title">
+            <div style="font-weight:700;font-size:14px;color:#0f172a;line-height:1.35;margin-bottom:3px;">
+              <a href="/job/${encodeURIComponent(job.jobSlug)}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;">${esc(job.jobTitle)} ↗</a>
+            </div>
+            ${job.company ? `<div style="font-size:12px;color:#64748b;display:flex;align-items:center;gap:4px;margin-bottom:3px;">🏢 <span>${esc(job.company)}</span></div>` : ''}
+            <div style="font-size:11px;font-family:monospace;color:#94a3b8;">/job/${esc(job.jobSlug)}</div>
+          </td>
+          <td style="text-align:center;">
+            <span class="report-count-badge">👥 ${job.totalReports} ${job.totalReports === 1 ? 'Report' : 'Reports'}</span>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">${formatWpDate(job.latestReportAt)}</div>
+          </td>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+              ${reasonBadges}
+            </div>
+            ${previewText}
+            <div style="margin-top:6px;">
+              <a href="#" style="font-size:12px;font-weight:600;color:#2563eb;text-decoration:none;" data-view-report-details="${esc(job.jobSlug)}">View details & notes (${job.detailsList.length}) →</a>
+            </div>
+          </td>
+          <td>
+            ${statusBadge}
+          </td>
+          <td style="text-align:right;">
+            <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+              ${draftBtnHtml}
+              <button type="button" class="report-action-btn btn-edit" data-report-job-edit="${esc(job.jobSlug)}" title="Edit in job editor">✏️ Edit</button>
+              <button type="button" class="report-action-btn" data-report-job-resolve="${esc(job.jobSlug)}" title="Mark reports as resolved">✓ Resolve</button>
+              <button type="button" class="report-action-btn" data-report-job-delete="${esc(job.jobSlug)}" title="Delete/dismiss reports" style="color:#dc2626;">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function toggleDraftReportedJob(slug, newStatus = 'draft') {
+    try {
+      const res = await fetch('/api/admin/job-reports/draft-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobSlug: slug, status: newStatus })
+      });
+      const result = await res.json();
+      if (res.ok && result.ok) {
+        showAdminNotice(newStatus === 'draft' ? `Job “${slug}” has been moved to Draft (hidden from live site).` : `Job “${slug}” has been restored to Published status.`);
+        await renderReportedJobs();
+      } else {
+        showAdminNotice(result.error || 'Failed to update job status.', 'error');
+      }
+    } catch (err) {
+      showAdminNotice('Error updating job status: ' + err.message, 'error');
+    }
+  }
+
+  async function editReportedJob(slug) {
+    let job = allJobs().find(j => j.slug === slug);
+    if (!job) {
+      try {
+        const res = await fetch(`/api/wp/job_listing?slug=${encodeURIComponent(slug)}`);
+        if (res.ok) {
+          const records = await res.json();
+          if (records.length) {
+            const r = records[0];
+            const m = r.metas || {};
+            job = {
+              title: r.title?.rendered || r.title || '',
+              slug: r.slug,
+              description: r.content?.rendered || r.content || '',
+              company: m._job_employer_name || '',
+              status: r.status || 'publish',
+              applyUrl: m._job_apply_url || '',
+              deadline: m._job_expires || '',
+              expiryDate: m._job_expires || '',
+              types: r.types || [],
+              categories: r.categories || [],
+              locations: r.locations || []
+            };
+          }
+        }
+      } catch {}
+    }
+    if (!job) {
+      try {
+        const res = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}`);
+        if (res.ok) job = await res.json();
+      } catch {}
+    }
+    if (job) {
+      fillJob(job);
+      location.hash = 'job-editor';
+      switchView('job-editor');
+      showAdminNotice(`Loaded “${job.title || slug}” into editor.`);
+    } else {
+      showAdminNotice(`Could not load job “${slug}” for editing.`, 'error');
+    }
+  }
+
+  async function resolveJobReports(slug) {
+    try {
+      const res = await fetch('/api/admin/job-reports/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobSlug: slug })
+      });
+      if (res.ok) {
+        showAdminNotice(`Reports for “${slug}” marked as resolved.`);
+        await renderReportedJobs();
+      }
+    } catch (err) {
+      showAdminNotice('Error resolving reports: ' + err.message, 'error');
+    }
+  }
+
+  async function deleteJobReport(reportId, slug) {
+    try {
+      const res = await fetch('/api/admin/job-reports', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId, jobSlug: slug })
+      });
+      if (res.ok) {
+        showAdminNotice('Report dismissed successfully.');
+        await renderReportedJobs();
+      }
+    } catch (err) {
+      showAdminNotice('Error dismissing report: ' + err.message, 'error');
+    }
+  }
+
+  function openReportDetailsModal(slug) {
+    const job = (reportedJobsData.grouped || []).find(g => g.jobSlug === slug);
+    if (!job) return;
+    const modal = document.getElementById('adminReportDetailsModal');
+    const titleEl = document.getElementById('reportModalJobTitle');
+    const metaEl = document.getElementById('reportModalJobMeta');
+    const bodyEl = document.getElementById('reportModalBody');
+    const actionsEl = document.getElementById('reportModalJobActions');
+    if (!modal) return;
+
+    if (titleEl) titleEl.textContent = job.jobTitle;
+    if (metaEl) metaEl.textContent = `${job.totalReports} reports submitted · Slug: ${job.jobSlug} · Status: ${job.jobStatus}`;
+
+    if (bodyEl) {
+      bodyEl.innerHTML = job.detailsList.map(item => {
+        const cfg = reasonLabels[item.reason] || { text: item.reason, icon: '•', class: 'other' };
+        const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        return `
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span class="report-reason-tag ${cfg.class}">${cfg.icon} ${cfg.text}</span>
+              <span style="font-size:11.5px;color:#94a3b8;">${dateStr}</span>
+            </div>
+            <div style="font-size:13.5px;color:#1e293b;line-height:1.5;">
+              ${item.details ? esc(item.details) : '<span style="color:#94a3b8;font-style:italic;">No additional notes provided.</span>'}
+            </div>
+            ${item.reporterEmail ? `<div style="margin-top:8px;font-size:11.5px;color:#64748b;">Reported by: ${esc(item.reporterEmail)}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (actionsEl) {
+      const isDraft = job.jobStatus === 'draft';
+      actionsEl.innerHTML = `
+        <button type="button" class="report-action-btn ${isDraft ? 'btn-publish' : 'btn-draft'}" onclick="document.getElementById('adminReportDetailsModal').style.display='none'; toggleDraftReportedJob('${esc(job.jobSlug)}', '${isDraft ? 'publish' : 'draft'}');">
+          ${isDraft ? '▶️ Publish Job' : '⏸️ Draft Job'}
+        </button>
+        <button type="button" class="report-action-btn btn-edit" onclick="document.getElementById('adminReportDetailsModal').style.display='none'; editReportedJob('${esc(job.jobSlug)}');">
+          ✏️ Edit Job
+        </button>
+        <a href="/job/${encodeURIComponent(job.jobSlug)}" target="_blank" class="report-action-btn">
+          👁️ Live Link ↗
+        </a>
+      `;
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  // Delegated events for Reported Jobs view
+  const reportsViewEl = document.getElementById('view-reported-jobs');
+  reportsViewEl?.addEventListener('click', async e => {
+    if (e.target.closest('#admin-reports-refresh-btn')) {
+      await renderReportedJobs();
+      showAdminNotice('Reported jobs refreshed.');
+      return;
+    }
+
+    const filterBtn = e.target.closest('[data-report-filter]');
+    if (filterBtn) {
+      reportsViewEl.querySelectorAll('[data-report-filter]').forEach(b => b.classList.remove('active'));
+      filterBtn.classList.add('active');
+      currentReportFilter = filterBtn.dataset.reportFilter;
+      renderReportedJobs();
+      return;
+    }
+
+    const viewDetailsLink = e.target.closest('[data-view-report-details]');
+    if (viewDetailsLink) {
+      e.preventDefault();
+      const slug = viewDetailsLink.dataset.viewReportDetails;
+      openReportDetailsModal(slug);
+      return;
+    }
+
+    const draftBtn = e.target.closest('[data-report-job-draft]');
+    if (draftBtn) {
+      e.preventDefault();
+      const slug = draftBtn.dataset.reportJobDraft;
+      if (!confirm(`Are you sure you want to set “${slug}” to Draft? It will be hidden from the live website immediately.`)) return;
+      await toggleDraftReportedJob(slug, 'draft');
+      return;
+    }
+
+    const publishBtn = e.target.closest('[data-report-job-publish]');
+    if (publishBtn) {
+      e.preventDefault();
+      const slug = publishBtn.dataset.reportJobPublish;
+      await toggleDraftReportedJob(slug, 'publish');
+      return;
+    }
+
+    const editBtn = e.target.closest('[data-report-job-edit]');
+    if (editBtn) {
+      e.preventDefault();
+      const slug = editBtn.dataset.reportJobEdit;
+      editReportedJob(slug);
+      return;
+    }
+
+    const resolveBtn = e.target.closest('[data-report-job-resolve]');
+    if (resolveBtn) {
+      e.preventDefault();
+      const slug = resolveBtn.dataset.reportJobResolve;
+      await resolveJobReports(slug);
+      return;
+    }
+
+    const deleteBtn = e.target.closest('[data-report-job-delete]');
+    if (deleteBtn) {
+      e.preventDefault();
+      const slug = deleteBtn.dataset.reportJobDelete;
+      if (!confirm(`Delete/dismiss all reports for “${slug}”?`)) return;
+      await deleteJobReport(null, slug);
+      return;
+    }
+  });
+
+  document.getElementById('admin-reports-search')?.addEventListener('input', () => {
+    renderReportedJobs();
+  });
+
   // Load all data
   async function loadData() {
-    const [local, tax, remote, employers, wpEmployers] = await Promise.all([
+    const [local, tax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
       fetch('/api/local/jobs').then(r => r.json()).catch(() => []),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => defaults),
       fetch('/api/wp/job_listing?per_page=30&_fields=id,slug,title,status,date,metas,content,excerpt').then(r => r.ok ? r.json() : []).catch(() => []),
       fetch('/api/local/employers').then(r => r.json()).catch(() => []),
-      fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => [])
+      fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))
     ]);
 
     localJobs = local;
@@ -5647,6 +6115,25 @@ export async function initAdmin() {
         local: false
       };
     });
+
+    if (Array.isArray(registeredCandidates) && registeredCandidates.length) {
+      const mergedMap = new Map();
+      registeredCandidates.forEach(account => {
+        const key = String(account.id || account.email);
+        mergedMap.set(key, account);
+      });
+      candidates.forEach(c => {
+        const key = String(c.id || c.email);
+        if (mergedMap.has(key)) {
+          mergedMap.set(key, { ...mergedMap.get(key), ...c });
+        } else {
+          mergedMap.set(key, c);
+        }
+      });
+      candidates = Array.from(mergedMap.values());
+      saveCandidates();
+      renderCandidateRows();
+    }
 
     const normalize = (items, defaultItems = []) => {
       const list = Array.isArray(items) && items.length ? items : defaultItems;
@@ -5683,11 +6170,10 @@ export async function initAdmin() {
     };
 
     try {
-      const [pRes, pgRes, mRes, cRes] = await Promise.all([
+      const [pRes, pgRes, mRes] = await Promise.all([
         fetch('/api/wp/posts?per_page=100').catch(() => null),
         fetch('/api/wp/pages?per_page=30').catch(() => null),
-        fetch('/api/wp/media?per_page=5000').catch(() => null),
-        fetch('/api/wp/candidate?per_page=30').catch(() => null)
+        fetch('/api/wp/media?per_page=5000').catch(() => null)
       ]);
       if (pRes && pRes.ok) {
         const wpPosts = await pRes.json();
@@ -5790,33 +6276,6 @@ export async function initAdmin() {
           saveMedia();
         }
       }
-      if (cRes && cRes.ok) {
-        const wpCandidates = await cRes.json();
-        if (Array.isArray(wpCandidates)) {
-          wpCandidates.forEach(wc => {
-            if (!candidates.some(c => c.slug === wc.slug || c.id === wc.id)) {
-              const m = wc.metas || {};
-              candidates.push({
-                id: wc.id,
-                name: wc.title?.rendered || `Candidate ${wc.id}`,
-                slug: wc.slug,
-                jobTitle: m._candidate_job_title || 'Professional Candidate',
-                email: m._candidate_email || `${wc.slug}@trikonet.ae`,
-                phone: m._candidate_phone || '',
-                category: 'Information Technology',
-                location: 'Dubai',
-                experience: m._candidate_experience || '3+ Years',
-                qualification: m._candidate_qualification || 'Degree Holder',
-                status: wc.status === 'publish' ? 'Active' : 'Pending',
-                featured: !!m._candidate_featured,
-                bio: wc.content?.rendered?.replace(/<[^>]+>/g, '').trim() || '',
-                date: wc.date?.slice(0, 10) || '2026-09-23'
-              });
-            }
-          });
-          saveCandidates();
-        }
-      }
     } catch {}
 
     renderJobRows();
@@ -5827,6 +6286,8 @@ export async function initAdmin() {
     if (typeof renderPageRows === 'function') renderPageRows();
     if (typeof renderMediaGrid === 'function') renderMediaGrid();
     if (typeof renderCandidateRows === 'function') renderCandidateRows();
+    if (typeof loadEmployerClaims === 'function') loadEmployerClaims();
+    if (typeof loadReportedJobs === 'function') loadReportedJobs();
 
   }
 
@@ -5884,7 +6345,7 @@ export async function initAdmin() {
     bulkTr.id = 'bulk-edit-row';
     bulkTr.className = 'inline-edit-row bulk-edit-row';
     bulkTr.innerHTML = `
-      <td colspan="10" class="colspanchange">
+      <td colspan="9" class="colspanchange">
         <div class="inline-edit-wrapper">
           <div class="inline-edit-fields-grid">
             <!-- Column 1: Selected Jobs List -->
@@ -13053,12 +13514,18 @@ export async function initAdmin() {
     }
   ];
 
+  const candidateDataVersion = 'fresh-candidate-accounts-v1';
   let candidates = (() => {
     try {
+      if (localStorage.getItem('trikonet_candidates_version') !== candidateDataVersion) {
+        localStorage.setItem('trikonet_candidates_cms', '[]');
+        localStorage.setItem('trikonet_candidates_version', candidateDataVersion);
+        return [];
+      }
       const stored = localStorage.getItem('trikonet_candidates_cms');
-      return stored ? JSON.parse(stored) : defaultCandidates;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return defaultCandidates;
+      return [];
     }
   })();
 
@@ -13069,6 +13536,13 @@ export async function initAdmin() {
       localStorage.setItem('trikonet_candidates_cms', JSON.stringify(candidates));
     } catch {}
     updateCandidateCountBadges();
+  }
+
+  function candidateCreatedTime(candidate) {
+    const timestamp = Date.parse(candidate.createdAt || candidate.date || candidate.registered || '');
+    if (Number.isFinite(timestamp)) return timestamp;
+    const numericId = Number(candidate.id);
+    return numericId > 1_000_000_000_000 ? numericId : 0;
   }
 
   function updateCandidateCountBadges() {
@@ -13139,7 +13613,7 @@ export async function initAdmin() {
         if (!matchName && !matchTitle && !matchEmail && !matchCat && !matchLoc) return false;
       }
       return true;
-    });
+    }).sort((a, b) => candidateCreatedTime(b) - candidateCreatedTime(a));
 
     if (!filtered.length) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:#94a3b8; font-size:13px;">No candidates found matching the criteria.</td></tr>`;
@@ -13309,7 +13783,8 @@ export async function initAdmin() {
         status,
         featured,
         bio,
-        date: new Date().toISOString().slice(0, 10)
+        date: new Date().toISOString().slice(0, 10),
+        createdAt: new Date().toISOString()
       };
       candidates.unshift(newCand);
     }

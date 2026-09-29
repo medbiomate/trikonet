@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-<url><loc>http://localhost:4173/</loc></url><url><loc>http://localhost:4173/jobs</loc></url><url><loc>http://localhost:4173/blog</loc></url><url><loc>http://localhost:4173/employers</loc></url><url><loc>http://localhost:4173/contact</loc></url><url><loc>http://localhost:4173/about</loc></url><url><loc>http://localhost:4173/faq</loc></url><url><loc>http://localhost:4173/terms</loc></url>
-</urlset>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<sitemap><loc>https://www.trikonet.com/page-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/job_listing-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/employer-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/post-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/job_listing_category-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/job_listing_location-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/employer_category-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+<sitemap><loc>https://www.trikonet.com/employer_location-sitemap.xml</loc><lastmod>2026-09-29T13:16:03.359Z</lastmod></sitemap>
+</sitemapindex>

@@ -7,6 +7,7 @@ const CV_STATE_KEY = 'cvBuilderPluginState';
 const CV_LIBRARY_KEY = 'trikonet_cv_library_v1';
 const CV_ACTIVE_KEY = 'trikonet_cv_active_id_v1';
 const CV_DEFAULT_JOB_KEY = 'trikonet_cv_default_job_id_v1';
+const CV_PENDING_SAVE_KEY = 'trikonet_cv_pending_cloud_save_v1';
 const CV_STYLE_KEY = `${CV_STATE_KEY}-template-styles-v1`;
 const MAX_CV_LIBRARY = 3;
 
@@ -206,6 +207,9 @@ export async function exportCvAsVectorPdf(sourceDocument, sourcePreview, fileNam
     });
 
     const pageHeightPixels = Math.round(background.width * A4_HEIGHT_MM / A4_WIDTH_MM);
+    if (!window.jspdf?.jsPDF) {
+      await import('/cv-builder-plugin/assets/js/jspdf.umd.min.js').catch(() => null);
+    }
     const jsPDFConstructor = window.jspdf?.jsPDF || (typeof jsPDF !== 'undefined' ? jsPDF : null);
     if (!jsPDFConstructor) throw new Error('jsPDF library not available');
 
@@ -341,25 +345,38 @@ const ICONS = {
 class CVBuilderApp {
   constructor(container) {
     this.container = container;
-    this.view = 'library'; // 'library' | 'editor'
-    this.editorDestination = 'templates'; // 'templates' | 'workspace'
+    // Allow users to start using the CV builder directly without any upfront barrier
+    const hasExistingDraft = !!localStorage.getItem(CV_STATE_KEY);
+    const routeParams = new URLSearchParams(location.search);
+    const editorRequested = routeParams.has('editor') || routeParams.has('resume');
+    this.view = editorRequested ? 'editor' : 'library'; // 'library' | 'editor'
+    this.editorDestination = hasExistingDraft ? 'workspace' : 'templates'; // 'templates' | 'workspace'
     this.editorNonce = 1;
     this.library = [];
-    this.accountState = 'loading';
+    this.accountState = 'ready';
     this.accountUser = null;
-    this.activeId = localStorage.getItem(CV_ACTIVE_KEY) || '';
+    this.activeId = routeParams.get('resume') || localStorage.getItem(CV_ACTIVE_KEY) || '';
     this.defaultId = localStorage.getItem(CV_DEFAULT_JOB_KEY) || '';
     this.searchQuery = '';
     this.pendingDelete = null;
     this.downloadState = 'idle'; // 'idle' | 'preparing' | 'done' | 'error'
     this.downloadFormat = 'pdf';
     this.visibleActionTab = 'hidden';
-    this.isNew = false;
+    this.isNew = !hasExistingDraft;
     this.userDidEdit = false;
+    this.authSavePrompt = false;
+
+    if (!editorRequested && location.pathname !== '/resume-library') {
+      history.replaceState({ cvView: 'library' }, '', '/resume-library');
+    }
 
     this.bindMessages();
     this.render();
     this.loadCloudLibrary();
+  }
+
+  setRoute(url, replace = false) {
+    history[replace ? 'replaceState' : 'pushState']({ cvView: this.view }, '', url);
   }
 
   async loadCloudLibrary() {
@@ -372,16 +389,36 @@ class CVBuilderApp {
         const result = await response.json();
         this.accountState = 'ready';
         this.library = Array.isArray(result.resumes) ? result.resumes : [];
+        if (localStorage.getItem(CV_PENDING_SAVE_KEY) === 'true' && localStorage.getItem(CV_STATE_KEY)) {
+          localStorage.removeItem(CV_PENDING_SAVE_KEY);
+          const saved = await this.saveCurrentResume(true);
+          if (saved) {
+            this.isNew = false;
+            this.userDidEdit = false;
+          }
+        }
       } else {
-        throw new Error('Unable to load résumé library.');
+        this.accountState = 'signed-out';
+        this.library = [];
       }
     } catch {
-      this.accountState = 'error';
+      this.accountState = 'signed-out';
+      this.library = [];
     }
-    this.render();
+    // Only re-render if user is on the library view
+    if (this.view === 'library') {
+      this.render();
+    }
   }
 
   bindMessages() {
+    window.addEventListener('popstate', () => {
+      const params = new URLSearchParams(location.search);
+      const editorRequested = params.has('editor') || params.has('resume');
+      this.view = editorRequested ? 'editor' : 'library';
+      if (params.get('resume')) this.activeId = params.get('resume');
+      this.render();
+    });
     window.addEventListener('message', async (event) => {
       const frame = this.container.querySelector('#cv-builder-iframe');
       if (frame && event.source === frame.contentWindow) {
@@ -504,27 +541,27 @@ class CVBuilderApp {
         body: JSON.stringify(entry)
       });
       const result = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        this.accountState = 'signed-out';
-        this.render();
-        return false;
-      }
       if (!response.ok) {
+        if (response.status === 401) {
+          this.accountState = 'signed-out';
+          this.authSavePrompt = true;
+          return false;
+        }
         alert(result.error || 'Unable to save this résumé.');
         return false;
       }
+      this.accountState = 'ready';
+      this.authSavePrompt = false;
       this.library = [result.resume, ...entries.filter(r => r.id !== id)];
       return true;
-    } catch {
+    } catch (error) {
+      console.error('Resume save error:', error);
+      this.authSavePrompt = this.accountState === 'signed-out';
       return false;
     }
   }
 
   openNewResume() {
-    if (this.accountState !== 'ready') {
-      this.render();
-      return;
-    }
     if (this.library.length >= MAX_CV_LIBRARY) {
       alert(`CV library limit reached (${MAX_CV_LIBRARY} CVs). Please delete an existing résumé to create a new one.`);
       return;
@@ -538,6 +575,7 @@ class CVBuilderApp {
     this.editorDestination = 'templates';
     this.editorNonce++;
     this.view = 'editor';
+    this.setRoute('/services/resume-maker?editor=new');
     this.render();
   }
 
@@ -557,6 +595,7 @@ class CVBuilderApp {
     this.editorDestination = resume.state ? 'workspace' : 'templates';
     this.editorNonce++;
     this.view = 'editor';
+    this.setRoute(`/services/resume-maker?resume=${encodeURIComponent(resume.id)}`);
     this.render();
   }
 
@@ -571,6 +610,7 @@ class CVBuilderApp {
       await this.saveCurrentResume(true);
     }
     this.view = 'library';
+    this.setRoute('/resume-library');
     this.render();
   }
 
@@ -590,12 +630,14 @@ class CVBuilderApp {
         const label = button.querySelector('span');
         if (label) label.textContent = 'Save résumé';
       }
-      alert('Unable to save this résumé. Please try again.');
+      if (this.authSavePrompt) this.showSaveAccountPrompt();
+      else alert('Unable to save this résumé. Please try again.');
       return;
     }
     this.userDidEdit = false;
     this.isNew = false;
     this.view = 'library';
+    this.setRoute('/resume-library');
     this.render();
   }
 
@@ -780,14 +822,6 @@ class CVBuilderApp {
   }
 
   render() {
-    if (this.accountState === 'loading') {
-      this.renderAccountGate('loading');
-      return;
-    }
-    if (this.accountState !== 'ready') {
-      this.renderAccountGate(this.accountState);
-      return;
-    }
     if (this.view === 'library') {
       this.renderLibrary();
     } else {
@@ -795,9 +829,37 @@ class CVBuilderApp {
     }
   }
 
+  showSaveAccountPrompt() {
+    this.authSavePrompt = false;
+    localStorage.setItem(CV_PENDING_SAVE_KEY, 'true');
+    const redirect = encodeURIComponent('/resume-library');
+    const existing = document.querySelector('.cv-save-account-modal');
+    existing?.remove();
+    const modal = document.createElement('div');
+    modal.className = 'cv-modal-backdrop cv-save-account-modal';
+    modal.innerHTML = `<div class="cv-modal-box cv-save-account-box" role="dialog" aria-modal="true" aria-labelledby="cvSaveAccountTitle" style="position:relative;">
+      <button type="button" class="cv-modal-close-btn" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;line-height:1;padding:4px 8px;" aria-label="Close">✕</button>
+      <div class="cv-modal-icon-badge">${ICONS.fileText}</div>
+      <h2 id="cvSaveAccountTitle">Save your résumé securely</h2>
+      <p>Your résumé is ready. Sign in or create a free account to save this exact résumé to your cloud library. Your work will remain on this device while you continue.</p>
+      <div class="cv-save-account-actions"><a href="/login?redirect=${redirect}">Sign in and save</a><a href="/register?redirect=${redirect}">Create account</a></div>
+      <button type="button" class="cv-save-account-later">Continue editing</button>
+    </div>`;
+    document.body.appendChild(modal);
+    const closeModal = () => {
+      localStorage.removeItem(CV_PENDING_SAVE_KEY);
+      modal.remove();
+    };
+    modal.querySelector('.cv-save-account-later')?.addEventListener('click', closeModal);
+    modal.querySelector('.cv-modal-close-btn')?.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
   renderAccountGate(state) {
     const isLoading = state === 'loading';
-    const redirect = encodeURIComponent('/services/resume-maker');
+    const redirect = encodeURIComponent('/resume-library');
     this.container.innerHTML = `
       <main class="cv-embed-screen cv-account-screen">
         <header class="cv-embed-header">

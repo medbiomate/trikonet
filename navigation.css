@@ -83,15 +83,20 @@
 
 /* 1. JOBS MEGA MENU - Minimal & Modern */
 .nav-jobs-mega {
-  width: 790px;
+  position: fixed;
+  width: min(790px, calc(100vw - 32px));
+  max-height: calc(100vh - 88px);
   left: 50%;
-  transform: translateX(-40%) translateY(8px);
+  right: auto;
+  overflow-y: auto;
+  box-sizing: border-box;
+  transform: translateX(-50%) translateY(8px);
   padding: 22px 26px;
 }
 
 .nav-item:hover .nav-jobs-mega,
 .nav-item:focus-within .nav-jobs-mega {
-  transform: translateX(-40%) translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 .mega-grid {
@@ -276,15 +281,20 @@
 
 /* 2. EMPLOYERS MEGA MENU - Minimal & Modern (Matches Jobs Mega Menu) */
 .nav-employers-mega {
-  width: 790px;
+  position: fixed;
+  width: min(790px, calc(100vw - 32px));
+  max-height: calc(100vh - 88px);
   left: 50%;
-  transform: translateX(-48%) translateY(8px);
+  right: auto;
+  overflow-y: auto;
+  box-sizing: border-box;
+  transform: translateX(-50%) translateY(8px);
   padding: 22px 26px;
 }
 
 .nav-item:hover .nav-employers-mega,
 .nav-item:focus-within .nav-employers-mega {
-  transform: translateX(-48%) translateY(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 .mega-employers-grid {
@@ -436,9 +446,17 @@
 
 /* 3. SERVICES DROPDOWN */
 .nav-services-dropdown {
-  width: 360px;
-  left: 0;
+  width: min(360px, calc(100vw - 24px));
+  left: auto;
+  right: 0;
+  box-sizing: border-box;
   padding: 14px;
+}
+
+.nav-services-dropdown .service-text,
+.nav-services-dropdown .service-text p {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .service-item {

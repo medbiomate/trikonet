@@ -21,6 +21,7 @@ const types = {
   '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.xml': 'application/xml; charset=utf-8',
+  '.xsl': 'application/xml; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
   '.ico': 'image/x-icon',
   '.ttf': 'font/ttf',
@@ -55,9 +56,10 @@ async function getLocalDb() {
     parsed.savedJobs = parsed.savedJobs || [];
     parsed.employerClaims = parsed.employerClaims || [];
     parsed.resumes = parsed.resumes || [];
+    parsed.jobReports = parsed.jobReports || [];
     return parsed;
   } catch {
-    return { users: [], emailCampaigns: [], savedJobs: [], employerClaims: [], resumes: [] };
+    return { users: [], emailCampaigns: [], savedJobs: [], employerClaims: [], resumes: [], jobReports: [] };
   }
 }
 
@@ -110,6 +112,39 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { status: 'ok', domain: 'dev.trikonet.com' });
   }
 
+  if (path === '/api/job-reports' && req.method === 'POST') {
+    try {
+      const payload = await readJsonBody(req);
+      const allowedReasons = ['broken_link', 'expired', 'incorrect', 'duplicate', 'suspicious', 'other'];
+      const jobSlug = String(payload.jobSlug || '').trim();
+      const jobTitle = String(payload.jobTitle || '').trim();
+      const reason = String(payload.reason || '').trim();
+      const details = String(payload.details || '').trim().slice(0, 1000);
+      if (!jobSlug || !jobTitle || !allowedReasons.includes(reason)) {
+        return sendJson(res, 400, { error: 'Please select a valid reason for reporting this job.' });
+      }
+      const session = sessions.get(parseCookies(req).trikonet_session);
+      const db = await getLocalDb();
+      const report = {
+        id: crypto.randomUUID(),
+        jobSlug,
+        jobTitle,
+        jobPath: String(payload.jobPath || '').slice(0, 500),
+        reason,
+        details,
+        reporterUserId: session?.id || null,
+        reporterEmail: session?.email || null,
+        status: 'new',
+        createdAt: new Date().toISOString()
+      };
+      db.jobReports.push(report);
+      await saveLocalDb(db);
+      return sendJson(res, 201, { ok: true, reportId: report.id });
+    } catch {
+      return sendJson(res, 400, { error: 'Unable to submit this report.' });
+    }
+  }
+
   // API: Taxonomies (Job Categories, Locations, Types)
   if (path === '/api/wp/taxonomies' || path === '/api/local/taxonomies') {
     if (!memoryTaxonomies) {
@@ -130,14 +165,39 @@ const server = http.createServer(async (req, res) => {
     const jobType = (params.get('job_type') || '').trim();
     const employerId = Number(params.get('employer_id'));
 
-    let filtered = list;
+    let filtered = [...list];
 
     if (query) {
+      const terms = [...new Set(query.split(/\s+/).filter(Boolean))];
+      const searchableText = item => {
+        const metas = item.metas || {};
+        const metaText = Object.entries(metas)
+          .filter(([key]) => key.startsWith('_job_') || key.startsWith('custom-text-'))
+          .flatMap(([, value]) => typeof value === 'object' && value ? Object.values(value) : [value]);
+        return [
+          item.title?.rendered || item.title,
+          item.content?.rendered || item.content,
+          item.excerpt?.rendered || item.excerpt,
+          item.company,
+          ...(item.categories || []), ...(item.locations || []), ...(item.types || []), ...(item.tags || []),
+          ...metaText
+        ].filter(Boolean).join(' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+      };
+      const score = item => {
+        const title = String(item.title?.rendered || item.title || '').toLowerCase();
+        const company = String(item.metas?._job_employer_name || item.company || '').toLowerCase();
+        const body = searchableText(item);
+        if (title === query) return 100;
+        if (title.startsWith(query)) return 90;
+        if (title.includes(query)) return 80;
+        if (company === query) return 75;
+        if (company.includes(query)) return 65;
+        return body.includes(query) ? 40 : 20;
+      };
       filtered = filtered.filter(item => {
-        const title = (item.title?.rendered || item.title || '').toLowerCase();
-        const cats = Object.values(item.metas?._job_category || {}).join(' ').toLowerCase();
-        return title.includes(query) || cats.includes(query);
-      });
+        const text = searchableText(item);
+        return terms.every(term => text.includes(term));
+      }).sort((a, b) => score(b) - score(a));
     }
 
     if (location && location !== 'Country or City' && location !== 'All Locations') {
@@ -584,11 +644,157 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  function calculateProfileCompletion(profile) {
+    if (!profile || typeof profile !== 'object') return 0;
+    let score = 0;
+    if (profile.name?.trim()) score += 5;
+    if (profile.email?.trim()) score += 5;
+    if (profile.phone?.trim()) score += 5;
+    if (profile.nationality?.trim()) score += 5;
+    if (profile.currentLocation?.trim()) score += 5;
+    if (profile.industry?.trim()) score += 5;
+    if (profile.category?.trim()) score += 5;
+    if (profile.role?.trim()) score += 5;
+    if (profile.currentDesignation?.trim()) score += 5;
+    if (profile.experience?.trim()) score += 5;
+    if (profile.qualification?.trim()) score += 5;
+    if (profile.degree?.trim()) score += 5;
+    if (profile.specialization?.trim()) score += 5;
+    if ((Array.isArray(profile.licenses) && profile.licenses.length > 0) || profile.licenseStatus?.trim()) score += 5;
+    if ((Array.isArray(profile.languages) && profile.languages.length > 0) || (typeof profile.languages === 'string' && profile.languages.trim())) score += 5;
+    if (profile.salaryExpectation?.trim()) score += 5;
+    if (profile.availability?.trim()) score += 5;
+    if (profile.noticePeriod?.trim() || profile.hospitalType?.trim()) score += 5;
+    if (Array.isArray(profile.locations) && profile.locations.length > 0) score += 5;
+    if (profile.summary?.trim() || profile.photo) score += 5;
+    return Math.min(100, Math.max(0, score));
+  }
+
   // API: Auth - Me
   if (path === '/api/auth/me' && req.method === 'GET') {
     const cookies = parseCookies(req);
     const session = sessions.get(cookies.trikonet_session);
-    return sendJson(res, session ? 200 : 401, session ? { user: session } : { error: 'Not authenticated' });
+    if (!session) return sendJson(res, 401, { error: 'Not authenticated' });
+    const db = await getLocalDb();
+    const user = (db.users || []).find(u => u.id === session.userId || u.email === session.email);
+    const profile = user?.profile || session.profile || null;
+    const completionPercentage = profile ? calculateProfileCompletion(profile) : 0;
+    return sendJson(res, 200, {
+      user: {
+        id: session.userId || user?.id,
+        name: user?.name || session.name,
+        email: user?.email || session.email,
+        role: user?.role || session.role || 'candidate',
+        avatar: user?.avatar || session.avatar || profile?.photo || '',
+        profile,
+        completionPercentage
+      }
+    });
+  }
+
+  // API: Candidate Profile
+  if (path === '/api/candidate/profile' && req.method === 'GET') {
+    const cookies = parseCookies(req);
+    const session = sessions.get(cookies.trikonet_session);
+    if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+    const db = await getLocalDb();
+    const user = (db.users || []).find(u => u.id === session.userId || u.email === session.email);
+    if (!user) return sendJson(res, 404, { error: 'User not found' });
+    const profile = user.profile || {
+      name: user.name || '',
+      email: user.email || '',
+      phone: '',
+      photo: user.avatar || '',
+      industry: 'Information Technology & Software',
+      category: 'Software & IT',
+      languages: ['English']
+    };
+    const completionPercentage = calculateProfileCompletion(profile);
+    return sendJson(res, 200, { profile, completionPercentage });
+  }
+
+  if (path === '/api/candidate/profile' && (req.method === 'POST' || req.method === 'PUT')) {
+    const cookies = parseCookies(req);
+    const session = sessions.get(cookies.trikonet_session);
+    if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+    try {
+      const body = await readBody(req);
+      const db = await getLocalDb();
+      let user = (db.users || []).find(u => u.id === session.userId || u.email === session.email);
+      if (!user) return sendJson(res, 404, { error: 'User not found' });
+      const MAX_PHOTO_BYTES = 1000 * 1024;
+      if (body.photo && dataUrlBytes(body.photo) > MAX_PHOTO_BYTES) {
+        return sendJson(res, 413, { error: 'Profile photo must be smaller than 1 MB.' });
+      }
+      const existingProfile = user.profile || {};
+      const updatedProfile = {
+        ...existingProfile,
+        name: String(body.name || user.name || '').trim(),
+        email: String(body.email || user.email || '').trim().toLowerCase(),
+        phone: String(body.phone ?? existingProfile.phone ?? '').trim(),
+        nationality: String(body.nationality ?? existingProfile.nationality ?? '').trim(),
+        currentLocation: String(body.currentLocation ?? existingProfile.currentLocation ?? '').trim(),
+        photo: body.photo !== undefined ? String(body.photo) : (existingProfile.photo || user.avatar || ''),
+        industry: String(body.industry ?? existingProfile.industry ?? 'Information Technology & Software').trim(),
+        category: String(body.category ?? existingProfile.category ?? 'Software & IT').trim(),
+        role: String(body.role ?? existingProfile.role ?? '').trim(),
+        currentDesignation: String(body.currentDesignation ?? existingProfile.currentDesignation ?? '').trim(),
+        experience: String(body.experience ?? existingProfile.experience ?? '').trim(),
+        qualification: String(body.qualification ?? existingProfile.qualification ?? '').trim(),
+        degree: String(body.degree ?? existingProfile.degree ?? '').trim(),
+        specialization: String(body.specialization ?? existingProfile.specialization ?? '').trim(),
+        university: String(body.university ?? existingProfile.university ?? '').trim(),
+        licenses: Array.isArray(body.licenses) ? body.licenses : (existingProfile.licenses || []),
+        licenseStatus: String(body.licenseStatus ?? existingProfile.licenseStatus ?? '').trim(),
+        languages: Array.isArray(body.languages) ? body.languages : (typeof body.languages === 'string' ? body.languages.split(',').map(s=>s.trim()).filter(Boolean) : (existingProfile.languages || ['English'])),
+        previousEmployers: String(body.previousEmployers ?? existingProfile.previousEmployers ?? '').trim(),
+        salaryExpectation: String(body.salaryExpectation ?? existingProfile.salaryExpectation ?? '').trim(),
+        availability: String(body.availability ?? existingProfile.availability ?? '').trim(),
+        noticePeriod: String(body.noticePeriod ?? existingProfile.noticePeriod ?? '').trim(),
+        hospitalType: String(body.hospitalType ?? existingProfile.hospitalType ?? '').trim(),
+        visaStatus: String(body.visaStatus ?? existingProfile.visaStatus ?? '').trim(),
+        locations: Array.isArray(body.locations) ? body.locations : (existingProfile.locations || []),
+        summary: String(body.summary ?? existingProfile.summary ?? '').trim(),
+        updatedAt: new Date().toISOString()
+      };
+      const completionPercentage = calculateProfileCompletion(updatedProfile);
+      updatedProfile.completionPercentage = completionPercentage;
+      user.profile = updatedProfile;
+      if (updatedProfile.name) user.name = updatedProfile.name;
+      if (updatedProfile.photo) user.avatar = updatedProfile.photo;
+      await saveLocalDb(db);
+      session.name = user.name;
+      session.avatar = user.avatar;
+      session.profile = user.profile;
+      session.completionPercentage = completionPercentage;
+      return sendJson(res, 200, { ok: true, profile: user.profile, completionPercentage });
+    } catch (error) {
+      return sendJson(res, 400, { error: error.message });
+    }
+  }
+
+  if (path === '/api/candidate/photo' && req.method === 'POST') {
+    const cookies = parseCookies(req);
+    const session = sessions.get(cookies.trikonet_session);
+    if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+    try {
+      const body = await readBody(req);
+      const photo = String(body.photo || '').trim();
+      if (!photo) return sendJson(res, 400, { error: 'Photo data required' });
+      const db = await getLocalDb();
+      let user = (db.users || []).find(u => u.id === session.userId || u.email === session.email);
+      if (!user) return sendJson(res, 404, { error: 'User not found' });
+      user.avatar = photo;
+      if (!user.profile) user.profile = {};
+      user.profile.photo = photo;
+      user.profile.completionPercentage = calculateProfileCompletion(user.profile);
+      await saveLocalDb(db);
+      session.avatar = photo;
+      session.profile = user.profile;
+      return sendJson(res, 200, { ok: true, photo });
+    } catch (error) {
+      return sendJson(res, 400, { error: error.message });
+    }
   }
 
   // API: Auth - Logout
