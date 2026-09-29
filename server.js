@@ -38,8 +38,29 @@ let memoryPosts = null;
 let memoryJobs = null;
 let memoryEmployers = null;
 const sessions = new Map();
+const adminSessions = new Map();
 const MAX_RESUMES_PER_USER = 3;
 const MAX_PROFILE_PHOTO_BYTES = 100 * 1024;
+
+function passwordMatches(password, user) {
+  if (!user || !password) return false;
+  const salt = user.passwordSalt || user.salt;
+  const hash = user.passwordHash || user.hash;
+  if (!salt || !hash) return false;
+  try {
+    const scryptHash = crypto.scryptSync(password, salt, 64).toString('hex');
+    const expected = Buffer.from(hash, 'hex');
+    const actual = Buffer.from(scryptHash, 'hex');
+    if (expected.length === actual.length && crypto.timingSafeEqual(actual, expected)) return true;
+  } catch {}
+  try {
+    const pbkdf2Hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    const expected = Buffer.from(hash, 'hex');
+    const actual = Buffer.from(pbkdf2Hash, 'hex');
+    if (expected.length === actual.length && crypto.timingSafeEqual(actual, expected)) return true;
+  } catch {}
+  return hash === password;
+}
 
 async function loadData(filename) {
   try {
@@ -657,6 +678,57 @@ const server = http.createServer(async (req, res) => {
       }
     });
     return;
+  }
+
+  // API: Admin - Login
+  if (path === '/api/admin/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const identity = String(data.identity || '').trim().toLowerCase();
+        const password = String(data.password || '');
+        const db = await getLocalDb();
+        const user = (db.users || []).find(u => String(u.email || '').toLowerCase() === identity || String(u.username || '').toLowerCase() === identity);
+        const role = String(user?.role || '').toLowerCase();
+        if (!user || user.status === 'inactive' || !['administrator', 'editor', 'content editor'].includes(role) || !passwordMatches(password, user)) {
+          return sendJson(res, 401, { error: 'Invalid administrator username or password.' });
+        }
+        const token = crypto.randomUUID();
+        const roleLabel = role === 'administrator' ? 'Administrator' : role === 'content editor' ? 'Content Editor' : 'Editor';
+        const admin = {
+          userId: user.id,
+          username: user.username || user.email,
+          email: user.email,
+          name: user.name || user.username || 'Administrator',
+          role: roleLabel,
+          expiresAt: Date.now() + (8 * 60 * 60 * 1000)
+        };
+        adminSessions.set(token, admin);
+        res.setHeader('Set-Cookie', `trikonet_admin_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800`);
+        return sendJson(res, 200, { admin });
+      } catch (err) {
+        return sendJson(res, 400, { error: 'Unable to sign in. Please try again.' });
+      }
+    });
+    return;
+  }
+
+  // API: Admin - Me
+  if (path === '/api/admin/me' && req.method === 'GET') {
+    const cookies = parseCookies(req);
+    const admin = adminSessions.get(cookies.trikonet_admin_session);
+    if (!admin || admin.expiresAt <= Date.now()) return sendJson(res, 401, { error: 'Administrator authentication required' });
+    return sendJson(res, 200, { admin });
+  }
+
+  // API: Admin - Logout
+  if (path === '/api/admin/logout' && req.method === 'POST') {
+    const cookies = parseCookies(req);
+    adminSessions.delete(cookies.trikonet_admin_session);
+    res.setHeader('Set-Cookie', 'trikonet_admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+    return sendJson(res, 200, { ok: true });
   }
 
   function calculateProfileCompletion(profile) {
