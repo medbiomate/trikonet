@@ -1,7 +1,8 @@
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const defaults = {
   types: ['Freelance', 'Full Time', 'Internship', 'Part Time', 'Temporary'],
-  categories: ['Agriculture and Forestry', 'Airlines and Aviation', 'Architecture and Planning', 'Automotive', 'Banking', 'Business Consulting and Services', 'Chemical Manufacturing', 'Conglomerate', 'Accounting or Finance', 'Accountant', 'Chartered Accountant Jobs', 'Finance & Accounts Manager Jobs', 'Financial Auditor Jobs', 'Payroll Jobs', 'Administration', 'Construction', 'Customer Service', 'Education and Training', 'HealthCare', 'Human Resource', 'Marketing and Sales', 'Technology'],
+  categories: ["Academic Social Worker Jobs","Academic Supervisor Jobs","Accountant","Accounting or Finance","Accounting Teaching Jobs","Admin Officer Jobs","Administration","Admissions Counsellor Jobs","Anaesthia Specialist Jobs","Anesthesia Technician Jobs","Arabic Teacher Jobs","Art and Design Teaching Jobs","Assistant Teacher Jobs","Automotive","Beauty Therapist Jobs","Biomedical Jobs","Cashier Jobs","Chartered Accountant Jobs","Chemistry Teacher Jobs","Civil Engineer Jobs","Civil Technician Jobs","Computer Science Jobs","Computer Science Teacher Jobs","Construction","Consultant doctor Jobs","Content Marketing Jobs","Cook Jobs","CSSD Technician Jobs","Customer Service Associate Jobs","Data Analyst","Data Entry","Dental Assistant Jobs","Dental Jobs","Dentist Jobs","Dermatology","Design or Art","Dialysis Technician Jobs","Digital Marketing Internship Jobs","Digital Marketing Jobs","Digital Marketing Specialist Jobs","Document Controller Jobs","Draftsman Jobs","Driver","E-commerce Marketing Jobs","Education and Training","Electrical Engineer Jobs","Electrical Engineer Jobs","Electrical Supervisor Jobs","Electronics Engineer Jobs","EMT Paramedic Jobs","Engineering","English Teacher Jobs","ENT Department Jobs","Environment","Facility Management Jobs","Finance &amp; Accounts Manager Jobs","Financial Auditor Jobs","Food and Beverage Jobs","French Teacher Jobs","General Practitioner Jobs","Geography Teacher Jobs","Graphic Designer Jobs","Gynecologist Jobs","Health","Health, Safety, Environment","HealthCare","Healthcare Assistant Jobs","Hindi Teacher Jobs","Histo Technician Jobs","Homecare Nurse Jobs","Hospitality and Tourism","House Keeping Service","Human Resource","Human Resources Officer Jobs","ICT Teacher Jobs","Influencer Marketing Jobs","Information Technology Jobs","Instructor Jobs","Instrumentation Engineer Jobs","Insurance","Insurance Coordinator Jobs","Islamic Teacher Jobs","IT Department","KG Teacher Jobs","Language Teacher Jobs","Law and Enforcement","Logistics and Warehousing ","Maintenance Engineer Jobs","Marketing and Sales","Marketing Manager Jobs","Mathematics Teacher Jobs","Mechanical Engineer Jobs","Mechanical Supervisor Jobs","Medical Billing Jobs","Medical Coder Jobs","Medical Insurance Jobs","Medical Laboratory Jobs","Medical Laser Technician Jobs","Medical RCM Jobs","Medical Records Jobs","Medical Sales Jobs","MEP Jobs","Microbiologist Jobs","Midwife Jobs","Music Teacher Jobs","Neonatology Specialist Jobs","Nurse Jobs","Office Assistant Jobs","Oil and Gas Jobs","Operation","Optometrist Jobs","OT Technician Jobs","Payroll Jobs","PE Teacher Jobs","Pediatrician Jobs","Performance Marketing Jobs","Pharmacist Jobs","Pharmacy Jobs","Photographer Jobs","Physician Jobs","Physics Teacher","Physiotherapist Jobs","Plastic Surgeon Jobs","Procurement and Supply Chain","Psychology Jobs","Psychology Teacher","QA/QC Engineer Jobs","Quality Assurance &amp; Control","Radiographer Jobs","Receptionist","Receptionist Jobs","Registered Nurse Jobs","Research and Development","Retail","Safety","School Administration Jobs","School Nurse Jobs","School Teacher Jobs","Science Teacher Jobs","Search Engine Optimization SEO Job","Security","Skilled Jobs","Social Media Marketing Jobs","Social Studies Teacher Jobs","Software Engineer Jobs","Sonographer Jobs","Specialist Internal Medicine Jobs","Support Services","Surgery Doctor Jobs","System Support","Talent Acquisition Specialist Jobs","Teacher Jobs","Technician","Technology","Telecommunication","Testing Laboratory Jobs","Transportation","Ultrasound Job","Unskilled Jobs","Urologist Jobs","Video Editor Jobs","Videographer Jobs"],
+  employerCategories: ["Accounting","Advertising Services","Agriculture and Forestry","Airlines and Aviation","Architecture and Planning","Automotive","Banking","Business Consulting and Services","Chemical Manufacturing","Conglomerate","Construction","Educational Services","Energy","Engineering","Entertainment","Eye Clinic or Optical Shop","Facilities Services","Finance and Insurance","Food &amp; Beverages","Food and Dining","Furniture and Home Furnishings Manufacturing","Government Administration","Healthcare","Healthcare Group","Holding Companies","Home Health Care Services","Hospital","Hospitality","Information Technology","Interior Design","Investment Management","IT Services and IT Consulting","Legal Services","Manufacturing","Marketing Services","Medical Center","Medical Clinic","Medical Company","Medical Laboratory","Mining and Extraction","Oil and Gas","Other Services","Pharmaceutical Manufacturing","Pharmacy","Procurement and Supply Chain","Real Estate","Research Services","Retail","School","Software Development","Staffing and Recruiting","Telecommunications","Transportation","Travel and Tourism","University","Utilities","Warehousing and Logistics","Wellness &amp; Fitness","Wholesale","Wholesale Building Materials"],
   locations: ['United Arab Emirates', 'Abu Dhabi', 'Al Ain', 'Ajman', 'Dubai', 'Fujairah', 'Ras Al Khaimah', 'Sharjah', 'Umm Al Quwain'],
   tags: [],
   postCategories: [
@@ -3947,6 +3948,18 @@ export async function initAdmin() {
       if (catSlugInput) catSlugInput.placeholder = 'e.g. career-tips';
       if (catDescInput) catDescInput.placeholder = 'Category overview or topic scope…';
       if (catSubmitBtn) catSubmitBtn.textContent = 'Add New Post Category';
+    } else if (viewName === 'employer-categories') {
+      currentTaxonomyCategoryMode = 'employerCategories';
+      if (catPageTitle) catPageTitle.textContent = 'Employer Categories';
+      if (catPageBadge) catPageBadge.textContent = 'Employer Industries';
+      if (catFormTitle) catFormTitle.textContent = 'Add New Employer Category';
+      if (catFormSubtitle) catFormSubtitle.textContent = 'Create an employer industry category or sub-category.';
+      if (catFieldHint) catFieldHint.textContent = 'The category name displayed across employer filters.';
+      if (catSlugHint) catSlugHint.textContent = 'URL-friendly slug for employer category.';
+      if (catNameInput) catNameInput.placeholder = 'e.g. Healthcare Group';
+      if (catSlugInput) catSlugInput.placeholder = 'e.g. healthcare-group';
+      if (catDescInput) catDescInput.placeholder = 'Category overview or industry scope…';
+      if (catSubmitBtn) catSubmitBtn.textContent = 'Add New Employer Category';
     } else {
       currentTaxonomyCategoryMode = 'categories';
       if (catFormTitle) catFormTitle.textContent = 'Add New Category';
@@ -3958,10 +3971,7 @@ export async function initAdmin() {
       if (catDescInput) catDescInput.placeholder = 'Category overview or sector scope…';
       if (catSubmitBtn) catSubmitBtn.textContent = 'Add New Category';
 
-      if (viewName === 'employer-categories') {
-        if (catPageTitle) catPageTitle.textContent = 'Employer Categories';
-        if (catPageBadge) catPageBadge.textContent = 'Employer Industries';
-      } else if (viewName === 'candidate-categories') {
+      if (viewName === 'candidate-categories') {
         if (catPageTitle) catPageTitle.textContent = 'Candidate Categories';
         if (catPageBadge) catPageBadge.textContent = 'Candidate Specializations';
       } else if (viewName === 'taxonomy-categories') {
@@ -4729,13 +4739,14 @@ export async function initAdmin() {
     const catsWrap = document.getElementById('employer-checklist-categories');
     if (catsWrap) {
       const currentChecked = checkedCats instanceof Set ? checkedCats : new Set(checkedCats || [...catsWrap.querySelectorAll('input:checked')].map(x => x.value));
-      const hierCats = buildHierarchy(taxonomies.categories);
+      const empCats = (taxonomies.employerCategories && taxonomies.employerCategories.length) ? taxonomies.employerCategories : taxonomies.categories;
+      const hierCats = buildHierarchy(empCats);
       catsWrap.innerHTML = hierCats.map(c => {
         const isChecked = currentChecked.has(c.name) ? 'checked' : '';
         const lvlClass = c.depth ? `level-${c.depth}` : '';
         return `<label class="${lvlClass}"><input type="checkbox" name="employer_categories" value="${esc(c.name)}" ${isChecked}> ${esc(c.name)}</label>`;
       }).join('');
-      populateTaxonomyParentDropdown('select-new-employer-cat-parent', taxonomies.categories, '— Parent Category —');
+      populateTaxonomyParentDropdown('select-new-employer-cat-parent', empCats, '— Parent Category —');
     }
 
     // 2. Locations Hierarchical Tree Checklist
@@ -6102,9 +6113,10 @@ export async function initAdmin() {
 
   // Load all data
   async function loadData() {
-    const [local, tax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
+    const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
       fetch('/api/local/jobs').then(r => r.json()).catch(() => []),
-      fetch('/api/local/taxonomies').then(r => r.json()).catch(() => defaults),
+      fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
+      fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
       fetch('/api/wp/job_listing?per_page=30&_fields=id,slug,title,status,date,metas,content,excerpt').then(r => r.ok ? r.json() : []).catch(() => []),
       fetch('/api/local/employers').then(r => r.json()).catch(() => []),
       fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => []),
@@ -6154,6 +6166,39 @@ export async function initAdmin() {
       renderCandidateRows();
     }
 
+    let cachedTax = null;
+    const cachedTaxStr = localStorage.getItem('wp_admin_taxonomies');
+    if (cachedTaxStr) {
+      try {
+        cachedTax = JSON.parse(cachedTaxStr);
+      } catch {}
+    }
+
+    const mergeTerms = (primary = [], secondary = [], cached = []) => {
+      const map = new Map();
+      const add = (item) => {
+        if (!item) return;
+        const obj = typeof item === 'string'
+          ? { name: item, slug: item.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), parent: '', description: '', count: 0 }
+          : { ...item };
+        const key = (obj.slug || obj.name || '').toLowerCase();
+        if (!key) return;
+        const existing = map.get(key);
+        if (existing) {
+          map.set(key, { ...existing, ...obj, count: obj.count !== undefined ? obj.count : existing.count });
+        } else {
+          map.set(key, obj);
+        }
+      };
+      (primary || []).forEach(add);
+      (secondary || []).forEach(add);
+      // Merge cached terms if they add or update, but ignore if cached is just an old truncated array
+      if (Array.isArray(cached) && (cached.length > 25 || (!primary?.length && !secondary?.length))) {
+        cached.forEach(add);
+      }
+      return Array.from(map.values());
+    };
+
     const normalize = (items, defaultItems = []) => {
       const list = Array.isArray(items) && items.length ? items : defaultItems;
       return list.map(item => {
@@ -6170,23 +6215,19 @@ export async function initAdmin() {
       });
     };
 
-    const cachedTaxStr = localStorage.getItem('wp_admin_taxonomies');
-    if (cachedTaxStr) {
-      try {
-        const cached = JSON.parse(cachedTaxStr);
-        if (cached && typeof cached === 'object') {
-          tax = { ...cached, ...tax };
-        }
-      } catch {}
-    }
-
     taxonomies = {
-      types: normalize(tax.types, defaults.types.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 10 }))),
-      categories: normalize(tax.categories, defaults.categories.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 50 }))),
-      locations: normalize(tax.locations, defaults.locations.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 100 }))),
-      tags: normalize(tax.tags, defaults.tags.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 10 }))),
-      postCategories: normalize(tax.postCategories, defaults.postCategories)
+      types: normalize(mergeTerms(wpTax?.types, localTax?.types, cachedTax?.types), defaults.types.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 10 }))),
+      categories: normalize(mergeTerms(wpTax?.categories, localTax?.categories, cachedTax?.categories), defaults.categories.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 50 }))),
+      locations: normalize(mergeTerms(wpTax?.locations, localTax?.locations, cachedTax?.locations), defaults.locations.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 100 }))),
+      tags: normalize(mergeTerms(wpTax?.tags, localTax?.tags, cachedTax?.tags), defaults.tags.map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 10 }))),
+      employerCategories: normalize(mergeTerms(wpTax?.employerCategories, localTax?.employerCategories, cachedTax?.employerCategories), (defaults.employerCategories || []).map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 10 }))),
+      employerLocations: normalize(mergeTerms(wpTax?.employerLocations, localTax?.employerLocations, cachedTax?.employerLocations), (defaults.employerLocations || []).map(name => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), parent: '', description: '', count: 10 }))),
+      postCategories: normalize(cachedTax?.postCategories || localTax?.postCategories || wpTax?.postCategories, defaults.postCategories)
     };
+
+    try {
+      localStorage.setItem('wp_admin_taxonomies', JSON.stringify(taxonomies));
+    } catch {}
 
     try {
       const [pRes, pgRes, mRes] = await Promise.all([
@@ -8073,12 +8114,18 @@ export async function initAdmin() {
 
     // 2. Categories
     const isPostCat = currentTaxonomyCategoryMode === 'postCategories';
-    const catList = isPostCat
-      ? (taxonomies.postCategories && taxonomies.postCategories.length ? taxonomies.postCategories : defaults.postCategories).map(c => ({
-          ...c,
-          count: getPostCategoryCount(c.name)
-        }))
-      : taxonomies.categories;
+    const isEmpCat = currentTaxonomyCategoryMode === 'employerCategories';
+    let catList = [];
+    if (isPostCat) {
+      catList = (taxonomies.postCategories && taxonomies.postCategories.length ? taxonomies.postCategories : defaults.postCategories).map(c => ({
+        ...c,
+        count: getPostCategoryCount(c.name)
+      }));
+    } else if (isEmpCat) {
+      catList = taxonomies.employerCategories && taxonomies.employerCategories.length ? taxonomies.employerCategories : (defaults.employerCategories || []);
+    } else {
+      catList = taxonomies.categories;
+    }
 
     const catSearch = document.getElementById('search-tax-categories')?.value.toLowerCase().trim() || '';
     const hierCats = buildHierarchy(catList);
@@ -8086,10 +8133,10 @@ export async function initAdmin() {
     const tbodyCats = document.getElementById('tbody-tax-categories');
     if (tbodyCats) {
       tbodyCats.innerHTML = filteredCats.length ? filteredCats.map(c => {
-        const hasImg = c.image || (!isPostCat && c.slug === 'accounting-finance' ? '/assets/category-finance.jpg' : '');
-        const targetViewHref = isPostCat ? '#posts' : '#jobs';
-        const targetExternalUrl = isPostCat ? `/blog?category=${encodeURIComponent(c.name)}` : `/jobs?category=${encodeURIComponent(c.name)}`;
-        const delTaxType = isPostCat ? 'postCategories' : 'categories';
+        const hasImg = c.image || (!isPostCat && !isEmpCat && c.slug === 'accounting-finance' ? '/assets/category-finance.jpg' : '');
+        const targetViewHref = isPostCat ? '#posts' : (isEmpCat ? '#employers' : '#jobs');
+        const targetExternalUrl = isPostCat ? `/blog?category=${encodeURIComponent(c.name)}` : (isEmpCat ? `/employers?category=${encodeURIComponent(c.name)}` : `/jobs?category=${encodeURIComponent(c.name)}`);
+        const delTaxType = isPostCat ? 'postCategories' : (isEmpCat ? 'employerCategories' : 'categories');
 
         return `
           <tr id="tag-${esc(c.slug)}" class="modern-tax-tr">
@@ -8116,7 +8163,7 @@ export async function initAdmin() {
             <td class="count-col"><span class="modern-tax-count-chip">${Number(c.count || 0).toLocaleString()}</span></td>
           </tr>
         `;
-      }).join('') : `<tr><td colspan="5" style="text-align:center;padding:32px 16px;color:#64748b;font-size:13px;">No ${isPostCat ? 'post ' : ''}categories found.</td></tr>`;
+      }).join('') : `<tr><td colspan="5" style="text-align:center;padding:32px 16px;color:#64748b;font-size:13px;">No ${isPostCat ? 'post ' : (isEmpCat ? 'employer ' : 'job ')}categories found.</td></tr>`;
       const countCat1 = document.getElementById('count-tax-categories');
       if (countCat1) countCat1.textContent = `${filteredCats.length} items`;
     }
@@ -8252,7 +8299,14 @@ export async function initAdmin() {
       renderTaxonomyTables();
       renderGutenbergPostCategoriesChecklist();
       renderPostCategoryFilterDropdown();
+    } else if (currentTaxonomyCategoryMode === 'employerCategories') {
+      taxonomies.employerCategories = taxonomies.employerCategories || [];
+      taxonomies.employerCategories.push(newTerm);
+      await saveTaxonomies();
+      form.reset();
+      renderTaxonomyTables();
     } else {
+      taxonomies.categories = taxonomies.categories || [];
       taxonomies.categories.push(newTerm);
       await saveTaxonomies();
       form.reset();

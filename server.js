@@ -1,12 +1,15 @@
 import http from 'node:http';
 import { readFile, stat, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
-const dataDir = join(root, '../backend/data');
-const localDbPath = join(dataDir, 'local-db.json');
+const localDataDir = join(root, 'data');
+const backendDataDir = join(root, '../backend/data');
+const dataDir = existsSync(localDataDir) ? localDataDir : backendDataDir;
+const localDbPath = existsSync(join(localDataDir, 'local-db.json')) ? join(localDataDir, 'local-db.json') : join(backendDataDir, 'local-db.json');
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 
@@ -147,6 +150,18 @@ const server = http.createServer(async (req, res) => {
 
   // API: Taxonomies (Job Categories, Locations, Types)
   if (path === '/api/wp/taxonomies' || path === '/api/local/taxonomies') {
+    if (req.method === 'PUT') {
+      try {
+        const body = await readJsonBody(req);
+        const db = await getLocalDb();
+        db.taxonomies = { ...(db.taxonomies || {}), ...body };
+        await saveLocalDb(db);
+        memoryTaxonomies = db.taxonomies;
+        return sendJson(res, 200, db.taxonomies);
+      } catch {
+        return sendJson(res, 400, { error: 'Failed to update taxonomies' });
+      }
+    }
     if (!memoryTaxonomies) {
       memoryTaxonomies = await loadData('taxonomies.json');
     }
