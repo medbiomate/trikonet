@@ -84,7 +84,8 @@
 }
 
 .detail-exact .detail-meta span,
-.detail-exact .detail-meta .detail-meta-link {
+.detail-exact .detail-meta .detail-meta-link,
+.detail-exact .detail-meta .detail-meta-item {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -99,6 +100,17 @@
 }
 
 .detail-exact .detail-meta .detail-meta-link:hover {
+  color: #b91c1c;
+}
+
+.detail-exact .detail-meta .detail-meta-item .detail-meta-link {
+  display: inline;
+  color: #64748b;
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+.detail-exact .detail-meta .detail-meta-item .detail-meta-link:hover {
   color: #b91c1c;
 }
 

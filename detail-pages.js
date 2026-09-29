@@ -16,6 +16,72 @@ const decode = value => {
 };
 const values = value => value && typeof value === 'object' ? Object.values(value).map(decode).join(', ') : '';
 const orderedValues = (value,ids) => value && typeof value === 'object' ? (ids?.length ? ids.map(id=>value[id]).filter(Boolean) : Object.values(value)).map(decode).join(', ') : '';
+
+export function splitCommaCategories(str) {
+  const decoded = decode(str).trim();
+  if (!decoded) return [];
+  if (/^health,\s*safety,\s*environment$/i.test(decoded)) {
+    return ['Health, Safety, Environment'];
+  }
+  if (decoded.includes(',')) {
+    return decoded.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [decoded];
+}
+
+export function parseCategories(record) {
+  if (!record) return [];
+  if (record.local && Array.isArray(record.categories) && record.categories.length) {
+    return record.categories.map(decode).map(s => String(s).trim()).filter(Boolean);
+  }
+  const m = record.metas || {};
+  if (m._job_category) {
+    if (typeof m._job_category === 'object') {
+      const ids = record.job_listing_category;
+      const list = (ids?.length ? ids.map(id => m._job_category[id]).filter(Boolean) : Object.values(m._job_category));
+      if (list.length) {
+        return list.map(decode).map(s => String(s).trim()).filter(Boolean);
+      }
+    }
+    if (typeof m._job_category === 'string' && m._job_category.trim()) {
+      return splitCommaCategories(m._job_category);
+    }
+  }
+  if (Array.isArray(record.categories) && record.categories.length) {
+    return record.categories.map(decode).map(s => String(s).trim()).filter(Boolean);
+  }
+  if (typeof record.category === 'string' && record.category.trim()) {
+    return splitCommaCategories(record.category);
+  }
+  return [];
+}
+
+export function parseLocations(record) {
+  if (!record) return [];
+  if (record.local && Array.isArray(record.locations) && record.locations.length) {
+    return record.locations.map(decode).map(s => String(s).trim()).filter(Boolean);
+  }
+  const m = record.metas || {};
+  if (m._job_location) {
+    if (typeof m._job_location === 'object') {
+      const ids = record.job_listing_location;
+      const list = (ids?.length ? ids.map(id => m._job_location[id]).filter(Boolean) : Object.values(m._job_location));
+      if (list.length) {
+        return list.map(decode).map(s => String(s).trim()).filter(Boolean);
+      }
+    }
+    if (typeof m._job_location === 'string' && m._job_location.trim()) {
+      return m._job_location.split(',').map(s => decode(s).trim()).filter(Boolean);
+    }
+  }
+  if (Array.isArray(record.locations) && record.locations.length) {
+    return record.locations.map(decode).map(s => String(s).trim()).filter(Boolean);
+  }
+  if (typeof record.location === 'string' && record.location.trim()) {
+    return record.location.split(',').map(s => decode(s).trim()).filter(Boolean);
+  }
+  return [];
+}
 export const formatJobDate = value => {
   if (!value) return '';
   if (typeof value === 'string') {
@@ -76,9 +142,15 @@ function jobCard([title,slug,category,location,type],logo='') {
   const cleanTitle = decode(title);
   const cleanCat = decode(category);
   const cleanLoc = decode(location);
+  const catItems = cleanCat ? splitCommaCategories(cleanCat) : [];
+  const locItems = cleanLoc ? cleanLoc.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const catLinks = catItems.map(c => `<a href="/category/${esc(filterSlug(c))}">${esc(c)}</a>`).join(', ');
+  const locLinks = locItems.map(l => `<a href="/job-location/${esc(filterSlug(l))}">${esc(l)}</a>`).join(', ');
+
   const meta = [
-    cleanCat ? `<a href="/category/${esc(filterSlug(cleanCat))}"><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>${esc(cleanCat)}</a>` : '',
-    cleanLoc ? `<a href="/job-location/${esc(filterSlug(cleanLoc))}"><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(cleanLoc)}</a>` : ''
+    catLinks ? `<span><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>${catLinks}</span>` : '',
+    locLinks ? `<span><svg class="detail-row-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${locLinks}</span>` : ''
   ].filter(Boolean).join('');
   const fallback = esc((cleanTitle || 'J').charAt(0));
   const logoHtml = logo
@@ -161,7 +233,10 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
   const empLogo = logo || employer?.logo || m._employer_logo || m._employer_featured_image_img || '';
   
   // Category
-  const compCat = category || (employer?.local ? (employer.categories || []).join(', ') : values(m._employer_category)) || '';
+  const compCatList = (category ? splitCommaCategories(category) : [])
+    .concat(employer?.local ? (employer.categories || []) : (m._employer_category ? (typeof m._employer_category === 'object' ? Object.values(m._employer_category) : [m._employer_category]) : []))
+    .map(decode).map(s => String(s).trim()).filter(Boolean);
+  const uniqueCompCats = [...new Set(compCatList)];
   // Location
   const compLoc = location || (employer?.local ? (employer.locations || []).join(', ') : values(m._employer_location)) || 'United Arab Emirates';
   // Size
@@ -211,7 +286,7 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
           ${compTagline ? `<p class="detail-about-company-tagline">${esc(compTagline)}</p>` : ''}
 
           <div class="detail-about-company-pills">
-            ${compCat ? `<span class="detail-about-pill">🏢 ${esc(compCat)}</span>` : ''}
+            ${uniqueCompCats.map(c => `<span class="detail-about-pill">🏢 ${esc(c)}</span>`).join('')}
             ${compLoc ? `<span class="detail-about-pill">📍 ${esc(compLoc)}</span>` : ''}
             ${compSize ? `<span class="detail-about-pill">👥 ${esc(compSize)}</span>` : ''}
             ${compFounded ? `<span class="detail-about-pill">🗓 Founded ${esc(compFounded)}</span>` : ''}
@@ -310,20 +385,22 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   const m=record.metas||{};
   const title=decode(record.title?.rendered||record.title);
   const company=m._job_employer_name||record.company||'';
-  const category=record.local?(record.categories||[]).join(', '):orderedValues(m._job_category,record.job_listing_category)||record.category||'';
-  const location=record.local?(record.locations||[]).join(', '):values(m._job_location)||record.location||'';
-  const type=record.local?(record.types||[]).join(', '):values(m._job_type)||record.type||'';
-  const date=resolveJobDate(record);
-  const expiry=resolveJobDeadline(record);
+  const catList = parseCategories(record);
+  const locList = parseLocations(record);
+  const category = catList.join(', ');
+  const location = locList.join(', ');
+  const type = record.local ? (record.types || []).join(', ') : values(m._job_type) || record.type || '';
+  const date = resolveJobDate(record);
+  const expiry = resolveJobDeadline(record);
   const isBateel = record.slug === 'bateel-international' || employer?.slug === 'bateel-international';
   const logo = record.logo || m._job_logo || employer?.metas?._employer_logo || employer?.metas?._employer_featured_image_img || employer?.metas?._employer_featured_image || (isBateel ? '/assets/bateel.jpg' : '');
-  const employerPath=resolveEmployerProfile(employer, record.employerUrl||m._job_employer_url, company);
-  const desc=record.description||'';
-  const hasHtml=/<[a-z][\s\S]*>/i.test(desc);
-  const content=record.content?.rendered|| (record.local?(hasHtml?desc:(desc?desc.split(/\n\s*\n/).map(p=>`<p>${esc(p).replaceAll('\n','<br>')}</p>`).join(''):'<p>Job description is not available.</p>')):'<p>Job description is not available.</p>');
-  const experience=record.experience||m['custom-text-27987527']||'';
-  const qualification=record.qualification||m['custom-text-28953441']||'';
-  const shareUrl=encodeURIComponent(`https://www.trikonet.com${path}`);
+  const employerPath = resolveEmployerProfile(employer, record.employerUrl || m._job_employer_url, company);
+  const desc = record.description || '';
+  const hasHtml = /<[a-z][\s\S]*>/i.test(desc);
+  const content = record.content?.rendered || (record.local ? (hasHtml ? desc : (desc ? desc.split(/\n\s*\n/).map(p => `<p>${esc(p).replaceAll('\n', '<br>')}</p>`).join('') : '<p>Job description is not available.</p>')) : '<p>Job description is not available.</p>');
+  const experience = record.experience || m['custom-text-27987527'] || '';
+  const qualification = record.qualification || m['custom-text-28953441'] || '';
+  const shareUrl = encodeURIComponent(`https://www.trikonet.com${path}`);
   const currentCompany = (m._job_employer_name || record.company || employer?.title?.rendered || employer?.title || '').trim().toLowerCase();
   const currentEmployerId = m._job_employer_posted_by || employer?.id;
   const isSameCompany = (job) => {
@@ -333,11 +410,10 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
     return false;
   };
   const related = (relatedJobs || []).filter(item => item && item.slug !== record.slug && !isSameCompany(item)).slice(0, 4);
-  const metaSpans = [
-    category ? `<a class="detail-meta-link" href="/category/${esc(filterSlug(category))}"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${esc(category)}</a>` : '',
-    location ? `<a class="detail-meta-link" href="/job-location/${esc(filterSlug(location))}"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(location)}</a>` : '',
-    date ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(date)}</span>` : ''
-  ].filter(Boolean).join('');
+  const catMeta = catList.length ? `<span class="detail-meta-item"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${catList.map(c => `<a class="detail-meta-link" href="/category/${esc(filterSlug(c))}">${esc(c)}</a>`).join(', ')}</span>` : '';
+  const locMeta = locList.length ? `<span class="detail-meta-item"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locList.map(l => `<a class="detail-meta-link" href="/job-location/${esc(filterSlug(l))}">${esc(l)}</a>`).join(', ')}</span>` : '';
+  const dateMeta = date ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(date)}</span>` : '';
+  const metaSpans = [catMeta, locMeta, dateMeta].filter(Boolean).join('');
 
   const aboutCompanyHtml = renderAboutCompanySection(employer, company, logo, location, record.employerUrl||m._job_employer_url, employer?.website||m._job_employer_website, category);
   const orgJobsHtml = renderSameOrgJobsSidebar(orgJobs, company, employer, employerPath);
@@ -663,6 +739,7 @@ export function renderEmployerDetail(record, path, jobs = []) {
   if (!tagline && location) {
     tagline = location;
   }
+  const employerLocationFilter = String(location || '').split(',')[0].trim();
 
   return `
   <main class="emp-profile-page">
@@ -681,8 +758,8 @@ export function renderEmployerDetail(record, path, jobs = []) {
             </div>
 
             <div class="emp-profile-pills-row">
-              ${companyCategory ? `<span class="emp-meta-pill emp-cat-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>${esc(companyCategory)}</span>` : ''}
-              ${location ? `<span class="emp-meta-pill emp-location-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>${esc(location)}</span>` : ''}
+              ${companyCategory ? `<a href="/employers?category=${encodeURIComponent(companyCategory)}" class="emp-meta-pill emp-cat-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>${esc(companyCategory)}</a>` : ''}
+              ${location ? `<a href="/employers?location=${encodeURIComponent(employerLocationFilter)}" class="emp-meta-pill emp-location-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>${esc(location)}</a>` : ''}
             </div>
           </div>
         </div>

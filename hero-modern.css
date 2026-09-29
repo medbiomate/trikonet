@@ -4197,6 +4197,8 @@ main.detail-page {
 .detail-job-row-main > p > span,
 .detail-job-row-main > p > a { display: inline-flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; }
 .detail-job-row-main > p > a:hover { color: #b00008; }
+.detail-job-row-main > p > span a { color: inherit; text-decoration: none; display: inline; transition: color 0.15s ease; }
+.detail-job-row-main > p > span a:hover { color: #b00008; }
 .detail-row-meta-icon { width: 16px; height: 16px; flex: 0 0 16px; color: #718096; }
 .detail-bookmark svg { width: 20px; height: 20px; display: block; }
 
@@ -4384,6 +4386,16 @@ main.detail-page {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  text-decoration: none;
+  transition: border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.emp-meta-pill.emp-cat-pill:hover,
+.emp-meta-pill.emp-location-pill:hover {
+  color: #b00008;
+  border-color: #efb2b6;
+  box-shadow: 0 4px 12px rgba(176, 0, 8, .09);
+  transform: translateY(-1px);
 }
 
 .emp-meta-pill.emp-cat-pill svg,

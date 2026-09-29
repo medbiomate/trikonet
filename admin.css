@@ -3934,8 +3934,34 @@ tr.modern-tax-tr:hover .modern-tax-row-actions,
 }
 
 .user-col-actions {
-  width: 105px;
+  width: 170px;
   text-align: right;
+}
+
+.user-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-edit-button {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.user-edit-button:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
 }
 
 .user-delete-button {

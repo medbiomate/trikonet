@@ -58,6 +58,19 @@ function findCategoryBySlug(slug) {
     });
   }
   if (!found) {
+    for (const c of allCats) {
+      const cSlug = c.slug || slugifyCategory(c.name);
+      if (cSlug && cleanSlug.startsWith(cSlug + '-')) {
+        const remainder = cleanSlug.slice(cSlug.length + 1);
+        const secondCat = allCats.find(c2 => (c2.slug || slugifyCategory(c2.name)) === remainder);
+        if (secondCat) {
+          found = c;
+          break;
+        }
+      }
+    }
+  }
+  if (!found) {
     const humanName = cleanSlug
       .split('-')
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))

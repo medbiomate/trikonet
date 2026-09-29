@@ -182,7 +182,8 @@
   }
 
   .detail-exact .detail-hero:not(.employer-hero) .detail-meta span,
-  .detail-exact .detail-hero:not(.employer-hero) .detail-meta .detail-meta-link {
+  .detail-exact .detail-hero:not(.employer-hero) .detail-meta .detail-meta-link,
+  .detail-exact .detail-hero:not(.employer-hero) .detail-meta .detail-meta-item {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -190,6 +191,14 @@
     white-space: normal;
     text-align: center;
     color: #475569;
+  }
+
+  .detail-exact .detail-hero:not(.employer-hero) .detail-meta .detail-meta-item .detail-meta-link {
+    display: inline;
+    color: #475569;
+  }
+  .detail-exact .detail-hero:not(.employer-hero) .detail-meta .detail-meta-item .detail-meta-link:hover {
+    color: #b91c1c;
   }
 
   .detail-exact .detail-hero:not(.employer-hero) .detail-meta .meta-icon {

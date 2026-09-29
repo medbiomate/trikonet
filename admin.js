@@ -8560,9 +8560,12 @@ export async function initAdmin() {
             </span>
           </td>
           <td class="user-col-actions">
-            ${canDeleteUser(u)
-              ? `<button type="button" class="user-delete-button" data-user-delete="${u.id}" aria-label="Delete ${esc(u.username)}">Delete</button>`
-              : `<span class="user-protected-label" title="The signed-in or last administrator cannot be deleted">Protected</span>`}
+            <div class="user-action-buttons">
+              <button type="button" class="user-edit-button" data-user-edit="${u.id}" aria-label="Edit ${esc(u.username)}">Edit</button>
+              ${canDeleteUser(u)
+                ? `<button type="button" class="user-delete-button" data-user-delete="${u.id}" aria-label="Delete ${esc(u.username)}">Delete</button>`
+                : `<span class="user-protected-label" title="This administrator can be edited but cannot be deleted">Protected</span>`}
+            </div>
           </td>
         </tr>
       `;
@@ -8585,6 +8588,27 @@ export async function initAdmin() {
       </tr>
     `;
   }
+
+  async function syncServerAdminUsers() {
+    try {
+      const response = await fetch('/api/admin/users');
+      if (!response.ok) return;
+      const serverUsers = await response.json();
+      if (!Array.isArray(serverUsers)) return;
+      const serverKeys = new Set();
+      const merged = serverUsers.map(serverUser => {
+        serverKeys.add(String(serverUser.email || '').toLowerCase());
+        serverKeys.add(String(serverUser.username || '').toLowerCase());
+        const cached = users.find(user => String(user.email || '').toLowerCase() === String(serverUser.email || '').toLowerCase() || String(user.username || '').toLowerCase() === String(serverUser.username || '').toLowerCase());
+        return { ...cached, ...serverUser, serverBacked: true };
+      });
+      merged.push(...users.filter(user => !serverKeys.has(String(user.email || '').toLowerCase()) && !serverKeys.has(String(user.username || '').toLowerCase())));
+      users = merged;
+      saveUsers();
+      renderUserRows();
+    } catch {}
+  }
+  syncServerAdminUsers();
 
   function fillUser(u = {}) {
     const form = document.getElementById('admin-user-form');
@@ -8654,13 +8678,13 @@ export async function initAdmin() {
   document.getElementById('btn-change-user-role')?.addEventListener('click', () => {
     const newRole = document.getElementById('filter-user-role-selector')?.value;
     if (!newRole) return;
-    const selectedIds = Array.from(document.querySelectorAll('#admin-user-rows input[type="checkbox"]:checked')).map(b => Number(b.value));
+    const selectedIds = Array.from(document.querySelectorAll('#admin-user-rows input[type="checkbox"]:checked')).map(b => String(b.value));
     if (!selectedIds.length) {
       alert('Please select at least one user.');
       return;
     }
     users.forEach(u => {
-      if (selectedIds.includes(u.id)) {
+      if (selectedIds.includes(String(u.id))) {
         u.role = newRole;
       }
     });
@@ -8672,14 +8696,14 @@ export async function initAdmin() {
   document.getElementById('btn-apply-user-bulk')?.addEventListener('click', () => {
     const action = document.getElementById('bulk-action-users-selector')?.value;
     if (action === 'delete') {
-      const selectedIds = Array.from(document.querySelectorAll('#admin-user-rows input[type="checkbox"]:checked')).map(b => Number(b.value));
+      const selectedIds = Array.from(document.querySelectorAll('#admin-user-rows input[type="checkbox"]:checked')).map(b => String(b.value));
       if (!selectedIds.length) {
         alert('Please select users to delete.');
         return;
       }
       if (!confirm(`Delete ${selectedIds.length} selected user(s)?`)) return;
-      const blocked = users.filter(u => selectedIds.includes(u.id) && !canDeleteUser(u));
-      users = users.filter(u => !selectedIds.includes(u.id) || !canDeleteUser(u));
+      const blocked = users.filter(u => selectedIds.includes(String(u.id)) && !canDeleteUser(u));
+      users = users.filter(u => !selectedIds.includes(String(u.id)) || !canDeleteUser(u));
       saveUsers();
       renderUserRows();
       if (blocked.length) alert('The signed-in account and the last administrator were kept to prevent an account lockout.');
@@ -8690,7 +8714,7 @@ export async function initAdmin() {
   document.getElementById('admin-user-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
-    const id = Number(form.userId.value);
+    const id = String(form.userId.value || '');
     const username = form.username.value.trim();
     const email = form.email.value.trim();
     const firstName = form.firstName.value.trim();
@@ -8707,90 +8731,49 @@ export async function initAdmin() {
       alert('New users must have a password of at least 8 characters.');
       return;
     }
-    if (users.some(u => u.id !== id && u.username.toLowerCase() === username.toLowerCase())) {
+    if (users.some(u => String(u.id) !== id && u.username.toLowerCase() === username.toLowerCase())) {
       alert('Username is already taken. Please choose another.');
       return;
     }
-    if (users.some(u => u.id !== id && u.email.toLowerCase() === email.toLowerCase())) {
+    if (users.some(u => String(u.id) !== id && u.email.toLowerCase() === email.toLowerCase())) {
       alert('Email address is already assigned to another user.');
       return;
     }
 
-    if (id) {
-      const existing = users.find(u => u.id === id);
-      if (existing) {
-        const previousUsername = existing.username;
-        if (previousUsername === signedInAdminUsername() && status === 'inactive') {
-          alert('You cannot deactivate the account you are currently using.');
-          return;
-        }
-        if (existing.role === 'Administrator' && role !== 'Administrator' && users.filter(item => item.role === 'Administrator').length <= 1) {
-          alert('Create another administrator before changing the role of the last administrator.');
-          return;
-        }
-        if (!existing.passwordHash && password.length < 8) {
-          alert('Set a password of at least 8 characters before saving this user.');
-          return;
-        }
-        if (password && password.length < 8) {
-          alert('Passwords must contain at least 8 characters.');
-          return;
-        }
-        existing.username = username;
-        existing.email = email;
-        existing.firstName = firstName;
-        existing.lastName = lastName;
-        existing.name = name;
-        existing.website = website;
-        existing.role = role;
-        existing.status = status;
-        existing.bio = bio;
-        if (password) existing.passwordHash = await hashUserPassword(password);
-        if (previousUsername === signedInAdminUsername()) {
-          try {
-            const session = JSON.parse(localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session') || '{}');
-            Object.assign(session, { username, email, name, role, expiresAt: Date.now() + (8 * 60 * 60 * 1000) });
-            localStorage.removeItem('trikonet_admin_session');
-            sessionStorage.setItem('trikonet_admin_session', JSON.stringify(session));
-          } catch {}
-        }
-      }
-    } else {
-      const palette = ['#4f46e5', '#0284c7', '#059669', '#d97706', '#dc2626', '#7c3aed', '#ec4899'];
-      const color = palette[Math.floor(Math.random() * palette.length)];
-      const initials = (name.split(/\s+/).map(x => x[0]).join('').slice(0, 2) || username.slice(0, 2)).toUpperCase();
-      const newUser = {
-        id: Date.now(),
-        username,
-        name,
-        firstName,
-        lastName,
-        email,
-        role,
-        posts: 0,
-        website,
-        color,
-        initials,
-        registered: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        status,
-        bio
-      };
-      if (password) newUser.passwordHash = await hashUserPassword(password);
-      users.unshift(newUser);
+    const wasEditing = Boolean(id);
+    const existing = id ? users.find(user => String(user.id) === id) : null;
+    if (existing?.username === signedInAdminUsername() && status === 'inactive') return alert('You cannot deactivate the account you are currently using.');
+    if (existing?.role === 'Administrator' && role !== 'Administrator' && users.filter(item => item.role === 'Administrator').length <= 1) return alert('Create another administrator before changing the role of the last administrator.');
+    if ((!existing?.serverBacked && password.length < 8) || (password && password.length < 8)) return alert('Set a password of at least 8 characters so this user can sign in.');
+
+    let savedUser;
+    try {
+      const response = await fetch('/api/admin/users', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:existing?.serverBacked?id:'',username,email,name,role,status,password,website,bio,posts:existing?.posts||0})});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to save login account.');
+      savedUser = result;
+    } catch (error) {
+      showAdminNotice(error.message || 'Unable to save login account.', 'error');
+      return;
     }
+    const palette = ['#4f46e5','#0284c7','#059669','#d97706','#dc2626','#7c3aed','#ec4899'];
+    const userRecord = {...existing,...savedUser,firstName,lastName,name,website,bio,serverBacked:true,color:existing?.color||palette[Math.floor(Math.random()*palette.length)],initials:(name.split(/\s+/).map(x=>x[0]).join('').slice(0,2)||username.slice(0,2)).toUpperCase(),registered:existing?.registered||new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
+    users = users.filter(user => String(user.id)!==id && String(user.email||'').toLowerCase()!==email.toLowerCase());
+    users.unshift(userRecord);
 
     saveUsers();
+    showAdminNotice(`User “${username}” ${wasEditing ? 'updated' : 'created'} successfully.`);
     form.reset();
     location.hash = 'users';
   });
 
   // Click delegation for user edit / delete
-  document.addEventListener('click', e => {
+  document.addEventListener('click', async e => {
     const editBtn = e.target.closest('[data-user-edit]');
     if (editBtn) {
       e.preventDefault();
-      const id = Number(editBtn.dataset.userEdit);
-      const u = users.find(x => x.id === id);
+      const id = String(editBtn.dataset.userEdit);
+      const u = users.find(x => String(x.id) === id);
       if (u) {
         fillUser(u);
         location.hash = 'user-editor';
@@ -8801,15 +8784,20 @@ export async function initAdmin() {
     const delBtn = e.target.closest('[data-user-delete]');
     if (delBtn) {
       e.preventDefault();
-      const id = Number(delBtn.dataset.userDelete);
-      const u = users.find(x => x.id === id);
+      const id = String(delBtn.dataset.userDelete);
+      const u = users.find(x => String(x.id) === id);
       if (!u) return;
       if (!canDeleteUser(u)) {
         alert(u.username === signedInAdminUsername() ? 'You cannot delete the account you are currently using.' : 'You cannot delete the last administrator account.');
         return;
       }
       if (!confirm(`Are you sure you want to delete user “${u.username}”?`)) return;
-      users = users.filter(x => x.id !== id);
+      if (u.serverBacked) {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {method:'DELETE'});
+        const result = await response.json().catch(()=>({}));
+        if (!response.ok) return showAdminNotice(result.error || 'Unable to delete user.', 'error');
+      }
+      users = users.filter(x => String(x.id) !== id);
       saveUsers();
       renderUserRows();
       showAdminNotice(`User “${u.username}” deleted successfully.`);
