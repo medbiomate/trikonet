@@ -2372,9 +2372,11 @@ function categoryPage(destination = null, allJobs = false) {
                   ${(() => {
                     if (!job.category) return '';
                     const primaryCat = String(job.category).split(',')[0].trim();
-                    return `<span class="nurse-tag-category">${escapeAttr(primaryCat)}</span>`;
+                    const categoryPage=seoInternalLinks.find(page=>page.pageType==='main_category' && page.category===primaryCat);
+                    const categoryTerm=data.taxonomies.categories.find(term=>term.name===primaryCat);
+                    const href=categoryPage?.href || (categoryTerm?`/category/${slugifyCategory(categoryTerm)}`:'');
+                    return href?`<a class="nurse-tag-category" href="${escapeAttr(href)}">${escapeAttr(primaryCat)}</a>`:`<span class="nurse-tag-category">${escapeAttr(primaryCat)}</span>`;
                   })()}
-                  <span class="nurse-tag-category">UAE Vacancies</span>
                 </div>
                 <a href="/job/${escapeAttr(job.slug)}" class="nurse-view-job-btn">View Job <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
               </div>
