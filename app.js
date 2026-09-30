@@ -28,10 +28,12 @@ let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
   if (path.startsWith('/admin')) return;
   try {
-    const linksResponse=await fetch('/api/job-category-links');
-    if(linksResponse.ok)seoInternalLinks=await linksResponse.json();
+    const embedded=document.getElementById('category-directory-data');
+    const cachedLinks=embedded?JSON.parse(embedded.textContent):[];
+    if(cachedLinks.length)seoInternalLinks=cachedLinks;
+    else {const linksResponse=await fetch('/api/job-category-links',{signal:AbortSignal.timeout(3000)});if(linksResponse.ok)seoInternalLinks=await linksResponse.json();}
     const destinationSlug=path.startsWith('/category/') ? path.slice('/category/'.length) : path.slice(1);
-    if(path==='/' || destinationSlug.includes('/'))return;
+    if(['/', '/jobs','/job-list','/job-openings','/job-categories','/employers'].includes(path) || destinationSlug.includes('/'))return;
     const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(destinationSlug)}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`);
     const payload=await response.json();
     if(response.ok && payload.page){
@@ -591,7 +593,7 @@ async function loadConnectedContent(){
     const isArticlePath=pathParts.length===2&&(pathParts[0]==='blog'||Boolean(POST_SLUG_PREFIXES[candidateSlug]));
     const postQuery=isArticlePath
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
-      : `/api/wp/posts?per_page=${path==='/'?12:30}&summary=1`;
+      : `/api/wp/posts?per_page=${path==='/'?12:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
     const [taxonomyResponse,postsResponse]=await Promise.all([fetch('/api/wp/taxonomies'),fetch(postQuery)]);
     if(taxonomyResponse.ok){
       data.taxonomies=await taxonomyResponse.json();
@@ -5661,9 +5663,11 @@ function render() {
   if (memberAuthPaths.includes(path)) return body + footer();
   return header() + body + footer();
 }
+// Counts refresh their own badges; don't delay the main content for them.
+loadCounts().catch(()=>{});
 const initialLoads=[loadAccount(),loadSeoPages()];
-if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadCounts(),loadConnectedContent());
-else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadCounts(),loadConnectedContent());
+if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadConnectedContent());
+else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord(),loadLocalJobs(),loadCounts());
 else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord(),loadCounts());

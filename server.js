@@ -15,6 +15,19 @@ const dataDir = existsSync(localDataDir) ? localDataDir : backendDataDir;
 const localDbPath = existsSync(join(localDataDir, 'local-db.json')) ? join(localDataDir, 'local-db.json') : join(backendDataDir, 'local-db.json');
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
+let categorySnapshot=[];
+let categorySnapshotAt=0;
+let categorySnapshotRefresh;
+function refreshCategorySnapshot(){
+  if(!categorySnapshotRefresh)categorySnapshotRefresh=fetch(`${process.env.TRIKONET_API_BASE || 'https://api.trikonet.com'}/api/job-category-links`,{signal:AbortSignal.timeout(15000)}).then(async response=>{if(!response.ok)throw new Error('Category API unavailable');categorySnapshot=await response.json();categorySnapshotAt=Date.now();return categorySnapshot;}).finally(()=>{categorySnapshotRefresh=null;});
+  return categorySnapshotRefresh;
+}
+async function getCategorySnapshot(){
+  if(Date.now()-categorySnapshotAt>60000)refreshCategorySnapshot().catch(()=>{});
+  if(categorySnapshot.length)return categorySnapshot;
+  return Promise.race([refreshCategorySnapshot(),new Promise(resolve=>setTimeout(()=>resolve([]),2000))]);
+}
+refreshCategorySnapshot().catch(()=>{});
 
 const types = {
   '.html': 'text/html; charset=utf-8',
@@ -1140,15 +1153,13 @@ const server = http.createServer(async (req, res) => {
     let fileBody = await readFile(target);
     if(target===join(root,'index.html') && (path==='/jobs' || path==='/job-categories' || path.startsWith('/category/'))){
       try {
-        const response=await fetch(`${seoApiBase}/api/job-category-links`,{signal:AbortSignal.timeout(15000)});
-        if(!response.ok)throw new Error('Category directory unavailable');
-        const links=await response.json();
+        const links=await getCategorySnapshot();
         const current=links.find(p=>p.href===path || (path.startsWith('/category/') && p.categorySlug===path.slice('/category/'.length)));
         const category=requestUrl.searchParams.get('category') || current?.category || '';
         const markup=path==='/job-categories'?renderAllCategories(links):`<main>${renderCategoryLinks(links,{category,slug:path.slice(1),categoriesOnly:path==='/jobs'&&!category,limit:path==='/jobs'&&!category?28:Infinity})}</main>`;
         let html=fileBody.toString();
         const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
-        if(start>=0 && end>start)html=html.slice(0,start)+`<div id="app">${markup}</div>`+html.slice(end);
+        if(start>=0 && end>start)html=html.slice(0,start)+`<div id="app">${markup}</div><script id="category-directory-data" type="application/json">${JSON.stringify(links).replace(/</g,'\\u003c')}</script>`+html.slice(end);
         if(path==='/job-categories')html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>Job Categories in UAE | Trikonet</title>').replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/job-categories">');
         fileBody=html;
       }catch(error){console.warn('Category SSR unavailable:',error.message);}
