@@ -2212,7 +2212,7 @@ function categoryPage(destination = null) {
             <span class="sep">&gt;</span>
             <a href="/jobs">Categories</a>
             <span class="sep">&gt;</span>
-            <span class="current">${escapeAttr(categoryName)}</span>
+            ${destination ? `<a href="/category/${escapeAttr(categoryCleanSlug)}">${escapeAttr(categoryName)}</a><span class="sep">&gt;</span><span class="current" aria-current="page">${escapeAttr(destination.page.location || 'UAE')}</span>` : `<span class="current" aria-current="page">${escapeAttr(categoryName)}</span>`}
           </nav>
         </div>
         <div class="category-hero-head">
