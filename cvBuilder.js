@@ -395,6 +395,11 @@ class CVBuilderApp {
         this.libraryStatus = 'ready';
         if (this.view === 'library') this.render();
         if (localStorage.getItem(CV_PENDING_SAVE_KEY) === 'true' && localStorage.getItem(CV_STATE_KEY)) {
+          const draftId = localStorage.getItem(CV_ACTIVE_KEY);
+          if (this.library.length >= MAX_CV_LIBRARY && !this.library.some(item => item.id === draftId)) {
+            this.showReplacementPicker();
+            return;
+          }
           const saved = await this.saveCurrentResume(true);
           if (saved) {
             localStorage.removeItem(CV_PENDING_SAVE_KEY);
@@ -557,6 +562,11 @@ class CVBuilderApp {
           this.authSavePrompt = true;
           return false;
         }
+        if (response.status === 409) {
+          localStorage.setItem(CV_PENDING_SAVE_KEY, 'true');
+          this.showReplacementPicker();
+          return false;
+        }
         alert(result.error || 'Unable to save this résumé.');
         return false;
       }
@@ -663,6 +673,27 @@ class CVBuilderApp {
     this.render();
   }
 
+  showReplacementPicker() {
+    this.view = 'library';
+    this.setRoute('/resume-library');
+    this.renderLibrary();
+    const modal = document.createElement('div');
+    modal.className = 'cv-modal-backdrop';
+    modal.innerHTML = `<div class="cv-modal-box" role="dialog" aria-modal="true" aria-labelledby="cvFullTitle"><h2 id="cvFullTitle">Your Resume library is full</h2><p>Your new draft is safe on this device. Choose a saved Resume to delete, then we’ll save your new one.</p><div id="cvReplacementChoices"></div><button type="button" class="cv-modal-cancel" id="cvReplacementCancel">Not now</button></div>`;
+    const choices = modal.querySelector('#cvReplacementChoices');
+    this.library.forEach(resume => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'cv-modal-cancel';
+      button.style.cssText = 'display:block;width:100%;min-height:44px;margin:8px 0;text-align:left';
+      button.textContent = `Delete ${resume.name}`;
+      button.addEventListener('click', () => this.confirmDelete(resume));
+      choices.appendChild(button);
+    });
+    modal.querySelector('#cvReplacementCancel').addEventListener('click', () => modal.remove());
+    this.container.appendChild(modal);
+  }
+
   async executeDelete() {
     if (!this.pendingDelete) return;
     const id = this.pendingDelete.id;
@@ -676,7 +707,8 @@ class CVBuilderApp {
       return;
     }
     this.library = this.library.filter(r => r.id !== id);
-    if (localStorage.getItem(CV_ACTIVE_KEY) === id) {
+    const pendingSave = localStorage.getItem(CV_PENDING_SAVE_KEY) === 'true';
+    if (!pendingSave && localStorage.getItem(CV_ACTIVE_KEY) === id) {
       localStorage.removeItem(CV_ACTIVE_KEY);
       localStorage.removeItem(CV_STATE_KEY);
     }
@@ -685,6 +717,10 @@ class CVBuilderApp {
       this.defaultId = '';
     }
     this.pendingDelete = null;
+    if (pendingSave && localStorage.getItem(CV_STATE_KEY)) {
+      const saved = await this.saveCurrentResume(false);
+      if (saved) { this.isNew = false; this.userDidEdit = false; }
+    }
     this.render();
   }
 
