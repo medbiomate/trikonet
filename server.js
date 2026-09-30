@@ -4,9 +4,14 @@ import { existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import dns from 'node:dns';
 import { renderSeoLanding, seoHead } from './seo-public.js';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
+
+// The hosting API edge denies this server's IPv6 route; its IPv4 route is
+// healthy. Prefer IPv4 for server-side API calls without bypassing TLS/CDN.
+dns.setDefaultResultOrder('ipv4first');
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const localDataDir = join(root, 'data');
