@@ -1024,7 +1024,7 @@ class CVBuilderApp {
   renderEditor() {
     this.editorLoadStarted = performance.now();
     const route = this.editorDestination === 'templates' ? '#onboarding/templates' : '#cv-workspace';
-    const iframeSrc = `/cv-builder-plugin/preview.html?v=20260928-${this.editorNonce}${route}`;
+    const iframeSrc = `/cv-builder-plugin/preview.html?v=20260930-compact30-${this.editorNonce}${route}`;
 
     this.container.innerHTML = `
       <main class="cv-embed-screen is-fullscreen">
