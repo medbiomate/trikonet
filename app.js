@@ -5690,6 +5690,18 @@ if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
   }
 }
 fitEmployerLogos();
+// Do not wait for the browser's long DNS timeout before using the durable
+// backup. A ready CDN image always wins; only pending images are retried.
+document.querySelectorAll('.featured-company-logo-wrap img[data-backup]').forEach(image=>{
+  if(!image.dataset.backup || image.dataset.backup===image.src)return;
+  const timer=setTimeout(()=>{
+    if(image.complete&&image.naturalWidth>0)return;
+    if(image.dataset.retried)return;
+    image.dataset.retried='1';
+    image.src=image.dataset.backup;
+  },1200);
+  image.addEventListener('load',()=>clearTimeout(timer),{once:true});
+});
 initCandidateProfile();
 document.querySelectorAll('.emp-follow-btn').forEach(button => {
   if (!currentUser || !button.dataset.slug) return;
