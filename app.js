@@ -2969,6 +2969,7 @@ function ensureTocTitles(html=''){
 }
 function estimateReadingTime(text=''){const words=String(text).replace(/<[^>]+>/g,' ').trim().split(/\s+/).filter(Boolean).length;return Math.max(1,Math.round(words/200))||3}
 function post(p){
+  const postTitle=decodeHtml(p.title||'');
   const content=ensureTocTitles(p.content||`<p>${p.excerpt}</p>`);
   const featured=p.featuredImage?`<figure class="post-featured-image"><img src="${escapeAttr(p.featuredImage)}" alt="${escapeAttr(p.title)}"></figure>`:'';
   const prefix = p.urlPrefix || p.url_prefix || POST_SLUG_PREFIXES[p.slug] || 'blog';
@@ -2998,15 +2999,15 @@ function post(p){
   return `<main class="blog-post-page">
     <section class="subhero post-subhero">
       <div class="wrap">
-        <h1 class="post-headline">${escapeAttr(p.title)}</h1>
         <nav class="post-breadcrumbs" aria-label="Breadcrumbs">
           <a href="/">Trikonet</a>
           <span class="bc-sep">&gt;</span>
           <a href="/blog">Blogs</a>
           ${categoryName ? `<span class="bc-sep">&gt;</span><a href="${catHref}">${escapeAttr(categoryName)}</a>` : ''}
           <span class="bc-sep">&gt;</span>
-          <span class="bc-current">${escapeAttr(p.title)}</span>
+          <span class="bc-current" aria-current="page">${escapeAttr(postTitle)}</span>
         </nav>
+        <h1 class="post-headline">${escapeAttr(postTitle)}</h1>
       </div>
     </section>
     <article class="content post-article-content">
