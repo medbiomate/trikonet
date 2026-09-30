@@ -4194,7 +4194,7 @@ main.detail-page {
 }
 
 .emp-profile-logo-img.is-logo-fallback-enlarged {
-  transform: scale(1.35);
+  transform: none;
 }
 
 .detail-job-row-main > p { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; }
@@ -6559,4 +6559,45 @@ main.detail-page {
     font-weight: 700 !important;
     line-height: 1.45 !important;
   }
+}
+
+/* Brand marks keep their full aspect ratio in every company/job placement.
+   Do not apply this to portraits, article photos or the website wordmark. */
+.nurse-card-logo,
+.nurse-side-emp-logo,
+.featured-company-logo-wrap,
+.emp-naukri-logo,
+.employer-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.nurse-card-logo img,
+.nurse-side-emp-logo img,
+.featured-company-logo-wrap img,
+.emp-naukri-logo img,
+.employer-logo img,
+.emp-profile-logo-img,
+.detail-logo,
+.detail-about-company-logo,
+.company-card img,
+.related-job img,
+.emp-profile-page .detail-job-row img,
+.logo-dot.company-logo,
+.member-list-logo img {
+  object-fit: contain !important;
+  object-position: center !important;
+  padding: 6px;
+  background: #fff;
+  display: block;
+  flex-shrink: 0;
+  transform: none !important;
+}
+.nurse-card-logo img,
+.nurse-side-emp-logo img,
+.featured-company-logo-wrap img,
+.emp-naukri-logo img {
+  width: 100%;
+  height: 100%;
 }
