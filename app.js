@@ -2159,7 +2159,8 @@ function categoryPage(destination = null) {
   }
 
   const pageLimit = 10;
-  const list = destination ? destination.jobs.map(mapJob) : data.jobs.slice(0, pageLimit);
+  const decode=value=>{const node=document.createElement('textarea');node.innerHTML=String(value || '');return node.value;};
+  const list = destination ? destination.jobs.map(record=>{const job=mapJob(record);return {...job,title:decode(job.title),company:decode(job.company),excerpt:decode(job.excerpt)};}) : data.jobs.slice(0, pageLimit);
   const total = destination ? destination.total : (data.counts?.category || cat?.count || list.length);
   const start = total ? (currentPage - 1) * pageLimit + 1 : 0;
   const end = Math.min(start + list.length - 1, total);
