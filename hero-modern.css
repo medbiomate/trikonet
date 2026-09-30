@@ -3878,13 +3878,17 @@ main.detail-page {
 /* Breadcrumbs in Hero */
 .nurse-results-hero .nurse-breadcrumbs {
   color: rgba(255, 255, 255, 0.8) !important;
-  font-size: 13px !important;
+  font-size: 10px !important;
+  line-height: 1.5 !important;
+  gap: 5px !important;
+  flex-wrap: wrap;
   margin-bottom: 12px !important;
 }
 
 .nurse-results-hero .nurse-breadcrumbs a {
   color: rgba(255, 255, 255, 0.86) !important;
-  font-weight: 550 !important;
+  font-weight: 400 !important;
+  text-decoration: none;
   transition: all 0.18s ease !important;
 }
 
@@ -3898,8 +3902,8 @@ main.detail-page {
 }
 
 .nurse-results-hero .nurse-breadcrumbs .current {
-  color: #ffffff !important;
-  font-weight: 700 !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 400 !important;
 }
 
 /* Title & Description */
