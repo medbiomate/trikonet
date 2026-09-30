@@ -1108,7 +1108,8 @@ const server = http.createServer(async (req, res) => {
       return res.end(await response.text());
     } catch {res.writeHead(503);return res.end('Sitemap temporarily unavailable');}
   }
-  if (/^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|job-categories|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
+  const isResumeAppRoute = /^\/(resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder)\/?$/.test(path);
+  if (!isResumeAppRoute && /^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|job-categories|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
     try {
       const slug=path.replace(/^\/|\/$/g,'');
       const pageNumber=Math.max(1,Number(requestUrl.searchParams.get('page'))||1);
