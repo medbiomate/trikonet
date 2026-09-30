@@ -2148,10 +2148,10 @@ function nurseJobsPage(){
   </main>`;
 }
 
-function categoryPage(destination = null) {
+function categoryPage(destination = null, allJobs = false) {
   const catSlug = path.replace('/category/', '').split('/')[0].split('?')[0];
-  const cat = destination ? {name:destination.page.category,slug:slugifyCategory(destination.page.category)} : findCategoryBySlug(catSlug);
-  const categoryName = cat ? cat.name : (catSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+  const cat = destination ? {name:destination.page.category,slug:slugifyCategory(destination.page.category)} : allJobs ? data.taxonomies.categories.find(c=>c.name===queryParams.get('category')) : findCategoryBySlug(catSlug);
+  const categoryName = cat ? cat.name : allJobs ? 'All' : (catSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
   const categoryCleanSlug = slugifyCategory(cat || categoryName);
 
   if (typeof document !== 'undefined') {
@@ -2161,7 +2161,7 @@ function categoryPage(destination = null) {
   const pageLimit = 10;
   const decode=value=>{const node=document.createElement('textarea');node.innerHTML=String(value || '');return node.value;};
   const list = destination ? destination.jobs.map(record=>{const job=mapJob(record);return {...job,title:decode(job.title),company:decode(job.company),excerpt:decode(job.excerpt)};}) : data.jobs.slice(0, pageLimit);
-  const total = destination ? destination.total : (data.counts?.category || cat?.count || list.length);
+  const total = destination ? destination.total : allJobs ? (data.counts?.job_listing ?? list.length) : (data.counts?.category || cat?.count || list.length);
   const start = total ? (currentPage - 1) * pageLimit + 1 : 0;
   const end = Math.min(start + list.length - 1, total);
 
@@ -2223,7 +2223,7 @@ function categoryPage(destination = null) {
           <p class="nurse-hero-desc">Explore verified ${escapeAttr(categoryName)} job vacancies across Dubai, Abu Dhabi, Sharjah, and all UAE emirates with direct employer hiring.</p>
         </div>
         <div class="nurse-search-wrapper">
-          ${searchBar({ keyword: `${categoryName} job title, role...`, category: categoryName, location:selectedLoc || 'Country or City', button: 'Search Category', action: `/category/${categoryCleanSlug}` })}
+          ${searchBar({ keyword: allJobs?'Job Title, Keywords':`${categoryName} job title, role...`, category: allJobs?(cat?.name || 'All Categories'):categoryName, location:selectedLoc || 'Country or City', button: allJobs?'Find Jobs':'Search Category', action: allJobs?'/jobs':`/category/${categoryCleanSlug}` })}
         </div>
         <div class="category-popular-chips">
           <span class="chips-label">
@@ -5540,7 +5540,12 @@ function render() {
   else if (path === '/email-campaigns') body = campaignsPage();
   else if (path === '/nurse-jobs-in-uae') body = nurseJobsPage();
   else if (path.startsWith('/category/')) body = categoryPage();
-  else if (path === '/jobs' || path === '/job-list' || path === '/job-openings' || path.startsWith('/job-location/')) body = jobs();
+  else if (path === '/jobs' || path === '/job-list' || path === '/job-openings' || path.startsWith('/job-location/')) {
+    body=categoryPage(null,true);
+    const categorySlug=slugifyCategory(data.taxonomies.categories.find(c=>c.name===queryParams.get('category')) || 'All');
+    body=body.replaceAll(`/category/${categorySlug}`,'/jobs');
+    if(!queryParams.get('category'))body=body.replace('Popular in All:','Popular locations:').replace('UAE All roles','UAE roles').replace('Explore verified All job vacancies','Explore current job vacancies');
+  }
   else if (path === '/employers') body = employers();
   else if (path === '/services/medical-coder-class' || path === '/medical-coder-class') body = medicalCoderClassPage();
   else if (path.startsWith('/employer/')) {
