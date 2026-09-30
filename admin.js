@@ -8817,7 +8817,7 @@ export async function initAdmin() {
 
     let savedUser;
     try {
-      const response = await fetch('/api/admin/users', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:existing?.serverBacked?id:'',username,email,name,role,status,password,website,bio,posts:existing?.posts||0})});
+      const response = await fetch('/api/admin/user-save', {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({id:existing?.serverBacked?id:'',username,email,name,role,status,password,website,bio,posts:existing?.posts||0})});
       const responseText = await response.text();
       let result = {};
       try { result = responseText ? JSON.parse(responseText) : {}; } catch {}

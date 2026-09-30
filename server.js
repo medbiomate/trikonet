@@ -749,7 +749,7 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, users);
   }
 
-  if (path === '/api/admin/users' && req.method === 'POST') {
+  if ((path === '/api/admin/user-save' || path === '/api/admin/users') && req.method === 'POST') {
     const admin = adminSessions.get(parseCookies(req).trikonet_admin_session);
     if (!admin || admin.expiresAt <= Date.now() || admin.role !== 'Administrator') {
       return sendJson(res, 403, { error: 'Administrator access required' });
