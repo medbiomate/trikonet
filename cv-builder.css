@@ -911,6 +911,7 @@
   .cv-header-show-tabs {
     display: inline-flex !important;
   }
+  .cv-embed-screen.is-fullscreen .cv-header-save-btn { display: none !important; }
   .cv-embed-screen.is-fullscreen > .cv-host-actions {
     position: relative; inset: auto; transform: none; flex: 0 0 auto;
     width: 100%; margin: 0; border-radius: 0; gap: 4px;
