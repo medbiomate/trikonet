@@ -1286,10 +1286,10 @@ const companyTaglineMap = {
 
 const TOP_HIRING_COMPANIES_FALLBACK = [
   { title: 'GEMS Education', slug: 'gems-education', openJobs: 511, locations: ['Dubai'], categories: ['Educational Services'], logo: '/uploads/employers/11640.png' },
-  { title: 'Aldar Education', slug: 'aldar-education', openJobs: 400, locations: ['Abu Dhabi'], categories: ['Educational Services'], logo: '/uploads/employers/11645.png' },
-  { title: 'NMC Healthcare', slug: 'nmc-healthcare', openJobs: 206, locations: ['UAE'], categories: ['Healthcare'], logo: '/uploads/employers/11664.jpg' },
-  { title: 'American Hospital', slug: 'american-hospital-dubai', openJobs: 184, locations: ['Dubai'], categories: ['Healthcare'], logo: '/uploads/employers/11647.png' },
-  { title: 'Al-Futtaim', slug: 'alfuttaim', openJobs: 157, locations: ['Dubai'], categories: ['Retail', 'Conglomerate'], logo: '/uploads/employers/11641.png' },
+  { title: 'Aldar Education', slug: 'aldar-education', openJobs: 400, locations: ['Abu Dhabi'], categories: ['Educational Services'], logo: '/uploads/employers/10464.jpeg' },
+  { title: 'NMC Healthcare', slug: 'nmc-healthcare', openJobs: 206, locations: ['UAE'], categories: ['Healthcare'], logo: '/uploads/employers/11660.png' },
+  { title: 'American Hospital', slug: 'american-hospital-dubai', openJobs: 184, locations: ['Dubai'], categories: ['Healthcare'], logo: '/uploads/employers/11646.png' },
+  { title: 'Al-Futtaim', slug: 'alfuttaim', openJobs: 157, locations: ['Dubai'], categories: ['Retail', 'Conglomerate'], logo: '/uploads/employers/9380.jpg' },
   { title: 'Seha Abudhabi Health Services CO', slug: 'seha-abu-dhabi-health-services-co-2', openJobs: 144, locations: ['Abu Dhabi'], categories: ['Healthcare'], logo: '/uploads/employers/12777.jpg' },
   { title: 'Mediclinic', slug: 'mediclinic', openJobs: 115, locations: ['UAE'], categories: ['Healthcare'], logo: '/uploads/employers/12103.jpg' },
   { title: 'Nord Anglia Education', slug: 'nord-anglia-education', openJobs: 108, locations: ['Dubai'], categories: ['Educational Services'], logo: '/uploads/employers/31623.jpg' },

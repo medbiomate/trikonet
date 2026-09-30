@@ -1077,7 +1077,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static File Serving & SPA Fallback
-  if(/^\/uploads\/(employers|media)\/\d+\.[a-z]+$/i.test(path)){
+  if(/^\/uploads\/(employers|media)\/\d+\.[a-z]+$/i.test(path) && !existsSync(join(root,path.slice(1)))){
     res.writeHead(302,{Location:`https://api.trikonet.com${path}`});
     return res.end();
   }
