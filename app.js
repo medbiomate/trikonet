@@ -5260,7 +5260,7 @@ function getAdminAuth() {
     if (!raw) return null;
     const session = JSON.parse(raw);
     if (!session?.expiresAt || Number(session.expiresAt) <= Date.now()) return null;
-    if (session.role !== 'Administrator' && session.role !== 'Editor') return null;
+    if (!['Administrator', 'Editor', 'Content Editor'].includes(session.role)) return null;
     return session;
   } catch {}
   return null;
