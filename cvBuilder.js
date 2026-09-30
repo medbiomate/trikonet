@@ -354,6 +354,7 @@ class CVBuilderApp {
     this.editorNonce = 1;
     this.library = [];
     this.accountState = 'ready';
+    this.libraryStatus = 'loading';
     this.accountUser = null;
     this.activeId = routeParams.get('resume') || localStorage.getItem(CV_ACTIVE_KEY) || '';
     this.defaultId = localStorage.getItem(CV_DEFAULT_JOB_KEY) || '';
@@ -380,15 +381,19 @@ class CVBuilderApp {
   }
 
   async loadCloudLibrary() {
+    this.libraryStatus = 'loading';
     try {
-      const response = await fetch('/api/resumes', { credentials: 'same-origin' });
+      const response = await fetch('/api/resumes', { credentials: 'same-origin', signal: AbortSignal.timeout(12000) });
       if (response.status === 401) {
         this.accountState = 'signed-out';
         this.library = [];
+        this.libraryStatus = 'signed-out';
       } else if (response.ok) {
         const result = await response.json();
         this.accountState = 'ready';
         this.library = Array.isArray(result.resumes) ? result.resumes : [];
+        this.libraryStatus = 'ready';
+        if (this.view === 'library') this.render();
         if (localStorage.getItem(CV_PENDING_SAVE_KEY) === 'true' && localStorage.getItem(CV_STATE_KEY)) {
           const saved = await this.saveCurrentResume(true);
           if (saved) {
@@ -398,12 +403,10 @@ class CVBuilderApp {
           }
         }
       } else {
-        this.accountState = 'signed-out';
-        this.library = [];
+        this.libraryStatus = 'error';
       }
     } catch {
-      this.accountState = 'signed-out';
-      this.library = [];
+      this.libraryStatus = 'error';
     }
     // Only re-render if user is on the library view
     if (this.view === 'library') {
@@ -899,7 +902,9 @@ class CVBuilderApp {
               <div>
                 <small>CV BUILDER</small>
                 <h1>My résumés</h1>
-                <p>${this.library.length >= MAX_CV_LIBRARY ? 'Library full — delete one to add another.' : 'Create, edit or choose your job CV.'}</p>
+                <p aria-live="polite">${this.libraryStatus === 'loading' ? 'Loading your saved résumés…' : this.libraryStatus === 'error' ? 'Library could not load. Please retry.' : this.libraryStatus === 'signed-out' ? 'Sign in to see your saved résumés.' : this.library.length >= MAX_CV_LIBRARY ? 'Library full — delete one to add another.' : 'Create, edit or choose your job CV.'}</p>
+                ${this.libraryStatus === 'error' ? '<button type="button" id="cvLibraryRetry">Retry loading</button>' : ''}
+                ${this.libraryStatus === 'signed-out' ? '<a href="/login?redirect=/resume-library">Sign in</a>' : ''}
               </div>
               <button type="button" class="cv-create-header-btn${this.library.length >= MAX_CV_LIBRARY ? ' limit-reached' : ''}" id="btnCreateNew">
                 ${ICONS.plus} ${this.library.length}/${MAX_CV_LIBRARY}
@@ -951,7 +956,7 @@ class CVBuilderApp {
               }).join('')}
             </div>
 
-            ${this.library.length === 0 ? `
+            ${this.library.length === 0 && this.libraryStatus === 'ready' ? `
               <div class="cv-library-empty">
                 ${ICONS.fileText}
                 <span>Your saved résumés will appear here. Click "New résumé" to get started!</span>
@@ -977,6 +982,7 @@ class CVBuilderApp {
     `;
 
     // Bind event handlers
+    this.container.querySelector('#cvLibraryRetry')?.addEventListener('click', () => { this.loadCloudLibrary(); this.renderLibrary(); });
     this.container.querySelector('#btnCreateNew')?.addEventListener('click', () => this.openNewResume());
     this.container.querySelector('#cardNewResume')?.addEventListener('click', () => this.openNewResume());
 

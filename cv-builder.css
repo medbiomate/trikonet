@@ -924,4 +924,18 @@
     padding: 0 4px; font-size: 11px; gap: 4px; border-radius: 8px;
   }
   .cv-embed-screen.is-fullscreen > .cv-host-actions svg { width: 16px; height: 16px; }
+  .cv-library { padding: 24px 12px; }
+  .cv-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cv-library-heading h1 { font-size: 28px; }
+  .cv-library-heading p { font-size: 14px; }
+  .cv-new-resume-card { min-width: 0; min-height: 220px; padding: 12px; }
+  .cv-new-resume-card strong { font-size: 16px; }
+  .cv-new-resume-card small { font-size: 12px; text-align: center; }
+  .cv-saved-resume-card { min-width: 0; }
+  .cv-resume-card-info { padding: 12px 8px; }
+  .cv-resume-card-info strong { font-size: 14px; overflow-wrap: anywhere; }
+  .cv-resume-card-actions { flex-wrap: wrap; gap: 4px; }
+  .cv-resume-card-actions button { min-height: 44px; min-width: 44px; }
+  .cv-resume-card-actions .cv-resume-use { width: 100%; }
+  #cvLibraryRetry { min-height: 44px; padding: 8px 16px; }
 }

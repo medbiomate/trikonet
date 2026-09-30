@@ -4,7 +4,7 @@ import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
-import { initCVBuilder } from './cvBuilder.js?v=20260930-account-save-v35';
+import { initCVBuilder } from './cvBuilder.js?v=20260930-library-v36';
 const seed = {
   jobs:[
     {id:1,title:'Corporate Accounting Manager',company:'Bateel International',category:'Accountant, Accounting or Finance',location:'Dubai',type:'Full Time',date:'September 22, 2026',slug:'corporate-accounting-manager'},
@@ -5666,8 +5666,10 @@ function render() {
 }
 // Counts refresh their own badges; don't delay the main content for them.
 loadCounts().catch(()=>{});
-const initialLoads=[loadAccount(),loadSeoPages()];
-if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadConnectedContent());
+const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
+const initialLoads=isCvAppRoute ? [] : [loadAccount(),loadSeoPages()];
+if(isCvAppRoute) { /* The library loads its own account data; unrelated content must not block it. */ }
+else if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadConnectedContent());
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord(),loadLocalJobs(),loadCounts());
