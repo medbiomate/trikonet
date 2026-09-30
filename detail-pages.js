@@ -421,7 +421,6 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   return `<main class="detail-page detail-exact">
     <section class="detail-hero">
       <div class="wrap detail-hero-inner">
-        <button class="detail-report-job-btn detail-report-corner-btn" type="button" id="openJobReportBtn" aria-label="Report this job"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg><span>Report</span></button>
         <a href="${esc(employerPath)}" class="detail-logo-card">
           ${logo ? `<img class="detail-logo" src="${esc(logo)}" alt="${esc(company)}">` : `<div class="detail-logo-fallback">${esc((company || title || 'J').charAt(0))}</div>`}
         </a>
@@ -430,9 +429,12 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
           ${metaSpans ? `<div class="detail-meta">${metaSpans}</div>` : ''}
           ${type ? `<span class="detail-pill">${esc(type)}</span>` : ''}
         </div>
+        <div class="detail-action-group">
+        <button class="detail-report-job-btn detail-report-corner-btn" type="button" id="openJobReportBtn" aria-label="Report this job"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg><span>Report</span></button>
         <div class="detail-actions">
           <a class="primary apply" href="${esc(record.applyUrl||m._job_apply_url||'#')}" target="_blank" rel="noopener noreferrer nofollow">Apply Now</a>
           <button class="save" type="button" aria-label="Save job"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
         </div>
       </div>
     </section>
