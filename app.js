@@ -1,5 +1,6 @@
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=15.0';
 import { formatCompanyName } from './company-name.js';
+import { renderCategoryLinks } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
@@ -27,7 +28,7 @@ let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
   if (path.startsWith('/admin')) return;
   try {
-    const linksResponse=await fetch('/api/seo-job-pages');
+    const linksResponse=await fetch('/api/job-category-links');
     if(linksResponse.ok)seoInternalLinks=await linksResponse.json();
     const destinationSlug=path.startsWith('/category/') ? path.slice('/category/'.length) : path.slice(1);
     if(path==='/' || destinationSlug.includes('/'))return;
@@ -5521,7 +5522,7 @@ function render() {
     let body=categoryPage(seoPagePayload);
     body=body.replace('</section>','</section>'+content(seoPagePayload.page.introContent));
     const related=seoInternalLinks.filter(p=>p.category===seoPagePayload.page.category && p.slug!==seoPagePayload.page.slug);
-    body=body.replace('</main>',content(seoPagePayload.page.bottomContent)+(related.length?`<section class="wrap" style="padding:24px 0"><h2>Related job pages</h2>${related.map(p=>`<a style="margin-right:16px" href="/${escapeAttr(p.slug)}">${escapeAttr(p.title)}</a>`).join('')}</section>`:'')+'</main>');
+    body=body.replace('</main>',content(seoPagePayload.page.bottomContent)+renderCategoryLinks(related,{category:seoPagePayload.page.category,slug:seoPagePayload.page.slug})+'</main>');
     return header()+body+footer();
   }
   if (seoPageDraft) return header()+notFound404Page()+footer();
@@ -5674,10 +5675,10 @@ document.querySelector('#app').removeAttribute('data-seo-pending');
 document.getElementById('seo-loading')?.remove();
 if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
   const category=path.startsWith('/category/')?findCategoryBySlug(path.slice('/category/'.length))?.name:queryParams.get('category');
-  const links=seoInternalLinks.filter(p=>!category || p.category===category).slice(0,24);
+  const links=seoInternalLinks.filter(p=>!category || p.category===category);
   if(links.length){
     const module=document.createElement('section');module.className='container';module.style.padding='24px 0';
-    module.innerHTML='<h2>Explore jobs by category and location</h2><div style="display:flex;gap:16px;flex-wrap:wrap">'+links.map(p=>`<a href="/${escapeAttr(p.slug)}">${escapeAttr(p.title)}</a>`).join('')+'</div>';
+    module.innerHTML=renderCategoryLinks(links,{category:category || '',slug:path.slice(1),categoriesOnly:path==='/jobs' && !category});
     document.querySelector('#app main')?.append(module);
   }
 }

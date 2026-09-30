@@ -1,7 +1,11 @@
+import { renderCategoryLinks } from './category-links.js';
 export const escapeSeo = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plain = value => String(value || '').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
 const terms = value => Array.isArray(value) ? value.join(', ') : value && typeof value==='object' ? Object.values(value).join(', ') : String(value || '');
-export function renderSeoLanding(payload, pageNumber = 1, links = []) {
+export function renderSeoLanding(payload, pageNumber = 1, links = payload.links || []) {
+  return renderSeoLandingMarkup(payload,pageNumber,[]).replace('</main>',renderCategoryLinks(links,{category:payload.page.category,slug:payload.page.slug})+'</main>');
+}
+function renderSeoLandingMarkup(payload, pageNumber = 1, links = []) {
   const {page,jobs,total}=payload;
   const start=total?(pageNumber-1)*10+1:0;
   const content=text=>text?`<div class="seo-landing-content" style="white-space:pre-wrap;line-height:1.8;padding:24px 0">${escapeSeo(text)}</div>`:'';

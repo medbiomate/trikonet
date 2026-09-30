@@ -6603,3 +6603,10 @@ main.detail-page {
   width: 100%;
   height: 100%;
 }
+
+.job-category-links {padding-top:32px;padding-bottom:40px;}
+.job-category-links h2 {font-size:22px;line-height:1.4;margin:0 0 18px;}
+.job-category-links-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;}
+.job-category-links-grid a {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;font-size:14px;line-height:1.5;color:#334155;}
+.job-category-links-grid a span {color:var(--red);flex-shrink:0;}
+.job-category-links-grid a:hover,.job-category-links-grid a:focus-visible {color:var(--red);border-color:var(--red);outline-offset:3px;}
