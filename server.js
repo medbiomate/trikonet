@@ -1140,7 +1140,7 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, {
       'Content-Type': types[extname(target)] || 'application/octet-stream',
-      'Cache-Control': 'no-cache, no-store, must-revalidate'
+      'Cache-Control': ['.png','.jpg','.jpeg','.webp','.gif','.avif','.svg','.mp4','.woff','.woff2'].includes(extname(target)) ? 'public, max-age=86400' : 'no-cache, no-store, must-revalidate'
     });
     res.end(fileBody);
   } catch {
