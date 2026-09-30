@@ -19,8 +19,10 @@ window.TRIKONET_CONFIG = window.TRIKONET_CONFIG || {
     if (typeof url === 'string' && url.startsWith('/api/') && window.TRIKONET_CONFIG.apiBase) {
       const fullUrl = window.TRIKONET_CONFIG.apiBase.replace(/\/+$/, '') + url;
       return originalFetch(fullUrl, {
-        credentials: 'include',
-        ...init
+        ...init,
+        // A relative same-origin request becomes cross-origin after routing.
+        // Preserve explicit anonymous requests, but carry the account cookie otherwise.
+        credentials: init.credentials === 'omit' ? 'omit' : 'include'
       });
     }
     return originalFetch(resource, init);

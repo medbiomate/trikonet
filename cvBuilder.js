@@ -390,9 +390,9 @@ class CVBuilderApp {
         this.accountState = 'ready';
         this.library = Array.isArray(result.resumes) ? result.resumes : [];
         if (localStorage.getItem(CV_PENDING_SAVE_KEY) === 'true' && localStorage.getItem(CV_STATE_KEY)) {
-          localStorage.removeItem(CV_PENDING_SAVE_KEY);
           const saved = await this.saveCurrentResume(true);
           if (saved) {
+            localStorage.removeItem(CV_PENDING_SAVE_KEY);
             this.isNew = false;
             this.userDidEdit = false;
           }
@@ -552,6 +552,7 @@ class CVBuilderApp {
       }
       this.accountState = 'ready';
       this.authSavePrompt = false;
+      localStorage.removeItem(CV_PENDING_SAVE_KEY);
       this.library = [result.resume, ...entries.filter(r => r.id !== id)];
       return true;
     } catch (error) {
