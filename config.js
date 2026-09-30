@@ -16,7 +16,8 @@ window.TRIKONET_CONFIG = window.TRIKONET_CONFIG || {
   const originalFetch = window.fetch;
   window.fetch = function (resource, init = {}) {
     let url = typeof resource === 'string' ? resource : resource?.url;
-    if (typeof url === 'string' && url.startsWith('/api/') && window.TRIKONET_CONFIG.apiBase) {
+    const isSameOriginAdminApi = typeof url === 'string' && url.startsWith('/api/admin/');
+    if (typeof url === 'string' && url.startsWith('/api/') && !isSameOriginAdminApi && window.TRIKONET_CONFIG.apiBase) {
       const fullUrl = window.TRIKONET_CONFIG.apiBase.replace(/\/+$/, '') + url;
       return originalFetch(fullUrl, {
         credentials: 'include',
