@@ -597,14 +597,33 @@
   transform: translateY(-2px);
 }
 
-.detail-exact .detail-job-row > img {
+.detail-exact .detail-job-row > a:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 50px;
   height: 50px;
+  flex: 0 0 50px;
+  overflow: hidden;
+}
+
+.detail-exact .detail-job-row > a:first-child > img,
+.detail-exact .detail-job-row > img {
+  display: block;
+  box-sizing: border-box;
+  width: 50px;
+  height: 50px;
+  max-width: 100%;
   object-fit: contain;
   border-radius: 8px;
   border: 1px solid #f1f5f9;
   padding: 4px;
   background: #ffffff;
+}
+
+.detail-exact .detail-job-row-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .detail-exact .detail-job-row-main h3 {
