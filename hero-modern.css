@@ -6604,13 +6604,19 @@ main.detail-page {
   height: 100%;
 }
 
-.job-category-links {padding-top:32px;padding-bottom:40px;}
-.job-category-links h2 {font-size:22px;line-height:1.4;margin:0 0 18px;}
-.job-category-links-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.job-category-links {padding-top:40px;padding-bottom:48px;}
+.job-category-links h2 {display:flex;align-items:center;justify-content:center;gap:24px;font-size:24px;line-height:1.4;text-align:center;margin:0 0 32px;}
+.job-category-links h2::before,.job-category-links h2::after {content:"";height:1px;flex:1;max-width:160px;background:linear-gradient(90deg,transparent,var(--red));}
+.job-category-links h2::after {background:linear-gradient(90deg,var(--red),transparent);}
+.job-category-links-box {padding:24px;border:1px solid #f0e5e5;border-radius:22px;background:#fff;box-shadow:0 8px 32px rgba(30,41,59,.055);}
+.job-category-links-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
 .job-category-links-grid a {min-width:0;overflow-wrap:anywhere;}
 @media(max-width:1024px){.job-category-links-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media(max-width:768px){.job-category-links-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:480px){.job-category-links-grid{grid-template-columns:minmax(0,1fr);}}
-.job-category-links-grid a {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;font-size:14px;line-height:1.5;color:#334155;}
+.job-category-links-grid a {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:78px;padding:16px 18px;border:1px solid transparent;border-radius:12px;background:#f8f8f9;font-size:14px;line-height:1.5;color:#334155;transition:background-color .15s,border-color .15s,color .15s;}
 .job-category-links-grid a span {color:var(--red);flex-shrink:0;}
-.job-category-links-grid a:hover,.job-category-links-grid a:focus-visible {color:var(--red);border-color:var(--red);outline-offset:3px;}
+.job-category-links-grid a:hover,.job-category-links-grid a:focus-visible {color:var(--red);border-color:var(--red);background:#fff5f5;outline-offset:3px;}
+.job-category-links-action {display:flex;justify-content:center;margin:24px 0 0;}
+@media(max-width:768px){.job-category-links{padding-top:28px;padding-bottom:32px;}.job-category-links h2{font-size:21px;gap:12px;margin-bottom:22px;}.job-category-links-box{padding:16px;border-radius:18px;}.job-category-links-grid{gap:12px;}}
+@media(max-width:480px){.job-category-links-box{padding:12px;}.job-category-links-grid a{min-height:64px;}.job-category-links-action a{width:100%;text-align:center;}}
