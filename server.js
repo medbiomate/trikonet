@@ -723,6 +723,126 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { admin });
   }
 
+  // API: Admin - Users
+  if (path === '/api/admin/users' && req.method === 'GET') {
+    const admin = adminSessions.get(parseCookies(req).trikonet_admin_session);
+    if (!admin || admin.expiresAt <= Date.now() || admin.role !== 'Administrator') {
+      return sendJson(res, 403, { error: 'Administrator access required' });
+    }
+    const db = await getLocalDb();
+    const allowedRoles = new Set(['administrator', 'editor', 'content editor']);
+    const users = (db.users || [])
+      .filter(user => allowedRoles.has(String(user.role || '').toLowerCase()))
+      .map(user => ({
+        id: user.id,
+        username: user.username || user.email,
+        name: user.name || user.username || '',
+        email: user.email || '',
+        role: String(user.role || 'Editor').replace(/\b\w/g, char => char.toUpperCase()),
+        status: user.status || 'active',
+        website: user.website || '',
+        bio: user.bio || '',
+        posts: Number(user.posts) || 0,
+        createdAt: user.createdAt || '',
+        hasPassword: Boolean(user.passwordHash || user.hash)
+      }));
+    return sendJson(res, 200, users);
+  }
+
+  if (path === '/api/admin/users' && req.method === 'POST') {
+    const admin = adminSessions.get(parseCookies(req).trikonet_admin_session);
+    if (!admin || admin.expiresAt <= Date.now() || admin.role !== 'Administrator') {
+      return sendJson(res, 403, { error: 'Administrator access required' });
+    }
+    try {
+      const body = await readJsonBody(req);
+      const db = await getLocalDb();
+      const username = String(body.username || '').trim();
+      const email = String(body.email || '').trim().toLowerCase();
+      const name = String(body.name || username).trim();
+      const roleInput = String(body.role || 'Editor').trim().toLowerCase();
+      const role = roleInput === 'administrator' ? 'Administrator' : roleInput === 'content editor' ? 'Content Editor' : 'Editor';
+      const password = String(body.password || '');
+      if (!username || !/^\S+@\S+\.\S+$/.test(email)) {
+        return sendJson(res, 400, { error: 'Username and a valid email are required.' });
+      }
+      db.users = db.users || [];
+      let user = db.users.find(item =>
+        String(item.id) === String(body.id || '') ||
+        String(item.email || '').toLowerCase() === email ||
+        String(item.username || '').toLowerCase() === username.toLowerCase()
+      );
+      if (!user && password.length < 8) {
+        return sendJson(res, 400, { error: 'Set a password of at least 8 characters for this login.' });
+      }
+      if (db.users.some(item => item !== user && String(item.email || '').toLowerCase() === email)) {
+        return sendJson(res, 409, { error: 'Email address is already assigned to another user.' });
+      }
+      if (db.users.some(item => item !== user && String(item.username || '').toLowerCase() === username.toLowerCase())) {
+        return sendJson(res, 409, { error: 'Username is already taken.' });
+      }
+      if (!user) {
+        user = { id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+        db.users.push(user);
+      }
+      Object.assign(user, {
+        username,
+        email,
+        name,
+        role,
+        status: body.status === 'inactive' ? 'inactive' : 'active',
+        website: String(body.website || ''),
+        bio: String(body.bio || ''),
+        posts: Number(body.posts) || Number(user.posts) || 0,
+        updatedAt: new Date().toISOString()
+      });
+      if (password) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        user.passwordSalt = salt;
+        user.passwordHash = crypto.scryptSync(password, salt, 64).toString('hex');
+        delete user.salt;
+        delete user.hash;
+      }
+      await saveLocalDb(db);
+      return sendJson(res, 200, {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        website: user.website,
+        bio: user.bio,
+        posts: user.posts,
+        createdAt: user.createdAt,
+        hasPassword: Boolean(user.passwordHash)
+      });
+    } catch (error) {
+      return sendJson(res, 400, { error: error.message || 'Unable to save user.' });
+    }
+  }
+
+  if (path.startsWith('/api/admin/users/') && req.method === 'DELETE') {
+    const admin = adminSessions.get(parseCookies(req).trikonet_admin_session);
+    if (!admin || admin.expiresAt <= Date.now() || admin.role !== 'Administrator') {
+      return sendJson(res, 403, { error: 'Administrator access required' });
+    }
+    const id = path.slice('/api/admin/users/'.length);
+    const db = await getLocalDb();
+    const target = (db.users || []).find(user => String(user.id) === id);
+    if (!target) return sendJson(res, 404, { error: 'User not found' });
+    if (String(target.id) === String(admin.userId)) {
+      return sendJson(res, 400, { error: 'You cannot delete the account you are currently using.' });
+    }
+    const administrators = (db.users || []).filter(user => String(user.role || '').toLowerCase() === 'administrator');
+    if (String(target.role || '').toLowerCase() === 'administrator' && administrators.length <= 1) {
+      return sendJson(res, 400, { error: 'You cannot delete the last administrator account.' });
+    }
+    db.users = db.users.filter(user => String(user.id) !== id);
+    await saveLocalDb(db);
+    return sendJson(res, 200, { ok: true });
+  }
+
   // API: Admin - Logout
   if (path === '/api/admin/logout' && req.method === 'POST') {
     const cookies = parseCookies(req);
