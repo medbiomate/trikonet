@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #fff;
+  background: #fff !important;
   color: #64748b;
   font: 500 14px/1.5 system-ui, sans-serif;
 }
@@ -25,6 +25,8 @@
   height: auto;
   aspect-ratio: 640 / 326;
   object-fit: contain;
+  /* H.264 decodes the source white as 253; lift it to the page's pure white. */
+  filter: brightness(1.01);
   background: #fff;
 }
 .trikonet-initial-loader::before,
