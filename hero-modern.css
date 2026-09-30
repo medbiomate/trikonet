@@ -6619,5 +6619,9 @@ main.detail-page {
 .job-category-links-grid a:hover,.job-category-links-grid a:focus-visible {color:var(--red);border-color:var(--red);background:#fff5f5;outline-offset:3px;}
 .job-category-links-action {display:flex;justify-content:center;margin:24px 0 0;}
 .nurse-footer-tags a.nurse-tag-category:hover,.nurse-footer-tags a.nurse-tag-category:focus-visible {color:var(--red);background:#fff0f0;outline-offset:3px;}
+.job-category-links:has(.job-category-links-action) .job-category-links-grid {grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:78px;max-height:548px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-right:8px;scrollbar-width:thin;scrollbar-color:#c8c8cc transparent;}
+.job-category-links:has(.job-category-links-action) .job-category-links-grid a {height:78px;min-height:0;}
+@media(max-width:768px){.job-category-links:has(.job-category-links-action) .job-category-links-grid{max-height:528px;}}
+@media(max-width:480px){.job-category-links:has(.job-category-links-action) .job-category-links-grid{grid-template-columns:minmax(0,1fr);grid-auto-rows:64px;max-height:444px;}.job-category-links:has(.job-category-links-action) .job-category-links-grid a{height:64px;}}
 @media(max-width:768px){.job-category-links{padding-top:28px;padding-bottom:32px;}.job-category-links h2{font-size:21px;gap:12px;margin-bottom:22px;}.job-category-links-box{padding:16px;border-radius:18px;}.job-category-links-grid{gap:12px;}}
 @media(max-width:480px){.job-category-links-box{padding:12px;}.job-category-links-grid a{min-height:64px;}.job-category-links-action a{width:100%;text-align:center;}}
