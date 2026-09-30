@@ -1159,7 +1159,13 @@ const server = http.createServer(async (req, res) => {
         const markup=path==='/job-categories'?renderAllCategories(links):`<main>${renderCategoryLinks(links,{category,slug:path.slice(1),categoriesOnly:path==='/jobs'&&!category,limit:path==='/jobs'&&!category?28:Infinity})}</main>`;
         let html=fileBody.toString();
         const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
-        if(start>=0 && end>start)html=html.slice(0,start)+`<div id="app">${markup}</div><script id="category-directory-data" type="application/json">${JSON.stringify(links).replace(/</g,'\\u003c')}</script>`+html.slice(end);
+        if(start>=0 && end>start){
+          // Preserve crawlable category links without flashing this partial
+          // server-rendered page before the complete jobs UI is ready.
+          const pending=path!=='/job-categories';
+          const loading=pending?`<style>#app[data-seo-pending]{visibility:hidden}#seo-loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none!important}</style></noscript><div id="seo-loading" role="status" aria-label="Loading jobs"><video class="loading-scene-video" autoplay muted loop playsinline preload="auto" onplaying="this.style.opacity=1" aria-hidden="true"><source src="/assets/loading-scene-mobile.mp4" media="(max-width: 768px)" type="video/mp4"><source src="/assets/loading-scene-smooth.mp4" type="video/mp4"></video></div>`:'';
+          html=html.slice(0,start)+`${loading}<div id="app"${pending?' data-seo-pending':''}>${markup}</div><script id="category-directory-data" type="application/json">${JSON.stringify(links).replace(/</g,'\\u003c')}</script>`+html.slice(end);
+        }
         if(path==='/job-categories')html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>Job Categories in UAE | Trikonet</title>').replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/job-categories">');
         fileBody=html;
       }catch(error){console.warn('Category SSR unavailable:',error.message);}
