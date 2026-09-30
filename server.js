@@ -133,6 +133,11 @@ function dataUrlBytes(value) {
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const path = decodeURIComponent(requestUrl.pathname);
+  const legacyJob = path.match(/^\/jobs\/([^/]+)\/?$/);
+  if (legacyJob && ['GET','HEAD'].includes(req.method)) {
+    res.writeHead(301,{Location:`/job/${encodeURIComponent(legacyJob[1])}${requestUrl.search}`});
+    return res.end();
+  }
 
   // Health check
   if (path === '/healthz' || path === '/api/health') {
