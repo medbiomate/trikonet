@@ -3727,6 +3727,21 @@ export async function initAdmin() {
     location.href = '/admin-login';
   });
 
+  // The browser copy is only for rendering the header. The HttpOnly cookie is
+  // authoritative and is cleared whenever the Node process is redeployed.
+  try {
+    const sessionResponse = await fetch('/api/admin/me', { cache: 'no-store' });
+    if (!sessionResponse.ok) {
+      localStorage.removeItem('trikonet_admin_session');
+      sessionStorage.removeItem('trikonet_admin_session');
+      location.replace('/admin-login?reason=session-expired');
+      return;
+    }
+  } catch {
+    showAdminNotice('Unable to verify your administrator session. Please refresh and try again.', 'error');
+    return;
+  }
+
   // Populate logged-in admin user info in header
   try {
     const adminSess = JSON.parse(localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session') || '{}');
@@ -8803,7 +8818,18 @@ export async function initAdmin() {
     let savedUser;
     try {
       const response = await fetch('/api/admin/users', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:existing?.serverBacked?id:'',username,email,name,role,status,password,website,bio,posts:existing?.posts||0})});
-      const result = await response.json();
+      const responseText = await response.text();
+      let result = {};
+      try { result = responseText ? JSON.parse(responseText) : {}; } catch {}
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('trikonet_admin_session');
+        sessionStorage.removeItem('trikonet_admin_session');
+        location.replace('/admin-login?reason=session-expired');
+        return;
+      }
+      if (responseText && !Object.keys(result).length) {
+        throw new Error('The server returned an invalid response. Refresh the page and sign in again.');
+      }
       if (!response.ok) throw new Error(result.error || 'Unable to save login account.');
       savedUser = result;
     } catch (error) {
