@@ -1094,7 +1094,7 @@ const server = http.createServer(async (req, res) => {
         html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page)+'</head>');
         const content=renderSeoLanding(payload,pageNumber,payload.links || []);
         const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
-        if(start>=0&&end>start)html=html.slice(0,start)+`<div id="app">${content}</div>`+html.slice(end);
+        if(start>=0&&end>start)html=html.slice(0,start)+`<style>#app[data-seo-pending]{visibility:hidden}#seo-loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff;color:#64748b;font:14px system-ui;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none}</style></noscript><div id="seo-loading" role="status">Loading jobs…</div><div id="app" data-seo-pending>${content}</div>`+html.slice(end);
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':payload.page.indexingStatus==='Noindex'?'noindex,follow':'index,follow'});
         return res.end(html);
       }

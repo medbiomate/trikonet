@@ -5656,6 +5656,8 @@ await Promise.all(initialLoads);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+document.querySelector('#app').removeAttribute('data-seo-pending');
+document.getElementById('seo-loading')?.remove();
 if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
   const category=path.startsWith('/category/')?findCategoryBySlug(path.slice('/category/'.length))?.name:queryParams.get('category');
   const links=seoInternalLinks.filter(p=>!category || p.category===category).slice(0,24);
