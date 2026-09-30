@@ -1,3 +1,4 @@
+import { formatCompanyName } from './company-name.js';
 const bateelJobs = [
   ['Corporate Accounting Manager','corporate-accounting-manager','Accountant, Accounting or Finance','Dubai'],
   ['Human Resources Business Partner','human-resources-business-partner-9','Human Resource','Dubai'],
@@ -604,7 +605,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
 export function renderEmployerDetail(record, path, jobs = []) {
   if (!record) return '<main class="detail-page"><div class="wrap detail-empty"><h1>Employer not found</h1><a href="/employers">Browse Employers</a></div></main>';
   const m = record.metas || {};
-  const title = decode(record.title?.rendered || record.title || '');
+  const title = formatCompanyName(decode(record.title?.rendered || record.title || ''));
   const category = record.local ? (record.categories || []).join(', ') : values(m._employer_category);
   const location = record.local ? (record.locations || []).join(', ') : values(m._employer_location);
   const isBateel = record.slug === 'bateel-international';

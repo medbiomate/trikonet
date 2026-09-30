@@ -1,4 +1,5 @@
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=14.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=15.0';
+import { formatCompanyName } from './company-name.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
@@ -368,7 +369,7 @@ function mapJob(record){
   return {
     id:record.id,
     title:record.title?.rendered||record.title||'',
-    company:m._job_employer_name||record.company||'',
+    company:formatCompanyName(decodeHtml(m._job_employer_name||record.company||'')),
     category:fieldValues(m._job_category)||(record.categories||[]).join(', ')||record.category||'',
     location:fieldValues(m._job_location)||(record.locations||[]).join(', ')||record.location||'',
     type:fieldValues(m._job_type)||(record.types||[]).join(', ')||record.type||'',
@@ -1320,7 +1321,7 @@ function homeTopCompanies(s = {}) {
   }
 
   const cardsHtml = employers.slice(0, 16).map(e => {
-    const displayTitle = decodeHtml(e.title || '');
+    const displayTitle = formatCompanyName(decodeHtml(e.title || ''));
     const initials = escapeAttr(displayTitle.slice(0, 2).toUpperCase() || 'TC');
     const rawLoc = (e.locations && e.locations[0]) || '';
     const cleanLoc = (!rawLoc || /^\d+$/.test(rawLoc) || rawLoc === 'United Arab Emirates') ? 'UAE' : decodeHtml(rawLoc);
@@ -2714,7 +2715,7 @@ function employers() {
           <!-- 2-Column Naukri Cards Grid -->
           <div class="emp-naukri-grid">
             ${list.length > 0 ? list.map(e => {
-              const displayTitle = decodeHtml(e.title || '');
+              const displayTitle = formatCompanyName(decodeHtml(e.title || ''));
               const initials = displayTitle.split(/\s+/).map(x => x[0]).join('').slice(0, 3).toUpperCase() || 'CO';
               const reviewData = getEmpRating(e);
               const primaryCat = decodeHtml((e.categories && e.categories[0]) || 'Corporate');
