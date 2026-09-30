@@ -155,7 +155,16 @@
     var templatesTab=workspace.querySelector('.cv-topbar-templates-tab');
     var desktopPreviewFrame=0;
     function syncDesktopPreviewScale(){
-      if(window.innerWidth<=768||!previewColumn)return;
+      if(window.innerWidth<=768){
+        // Mobile edits do not use desktop preview scaling, but the host must
+        // still be told that the initialized workspace is ready to display.
+        window.requestAnimationFrame(function(){
+          if(!workspace.classList.contains('cv-hidden')&&window.parent!==window)
+            window.parent.postMessage({type:'medbiomate-cv-preview-ready'},'*');
+        });
+        return;
+      }
+      if(!previewColumn)return;
       window.cancelAnimationFrame(desktopPreviewFrame);
       desktopPreviewFrame=window.requestAnimationFrame(function(){
         var columnStyle=window.getComputedStyle(previewColumn);

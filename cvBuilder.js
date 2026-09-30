@@ -442,7 +442,7 @@ class CVBuilderApp {
               if (!frame.isConnected) return;
               frame.classList.add('is-preview-ready');
               frame.closest('.cv-embed-screen')?.classList.add('is-builder-ready');
-            }, Math.max(0, 650 - elapsed));
+            }, 0);
           }
         } else if (type === 'medbiomate-cv-dirty') {
           this.userDidEdit = true;
