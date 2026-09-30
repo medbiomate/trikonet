@@ -2155,7 +2155,7 @@ function categoryPage(destination = null, allJobs = false) {
   const categoryCleanSlug = slugifyCategory(cat || categoryName);
 
   if (typeof document !== 'undefined') {
-    document.title = `${categoryName} Jobs in UAE — Trikonet`;
+    document.title = `${categoryName.replace(/\s+jobs$/i,'')} Jobs${allJobs?' in UAE':''} — Trikonet`;
   }
 
   const pageLimit = 10;
@@ -2177,7 +2177,7 @@ function categoryPage(destination = null, allJobs = false) {
   removeTypeParams.delete('job_type');
   removeTypeParams.delete('page');
 
-  let pageTitle = `${escapeAttr(categoryName)} Jobs in UAE`;
+  let pageTitle = `${escapeAttr(categoryName.replace(/\s+jobs$/i,''))} Jobs${allJobs?' in UAE':''}`;
   if (qQuery) pageTitle = `"${escapeAttr(qQuery)}" in ${escapeAttr(categoryName)}`;
   else if (selectedLoc) pageTitle = `${escapeAttr(categoryName)} Jobs in ${escapeAttr(selectedLoc)}`;
   pageTitle=destination?escapeAttr(destination.page.h1 || destination.page.title):pageTitle.replace(/Jobs Jobs/g,'Jobs');
