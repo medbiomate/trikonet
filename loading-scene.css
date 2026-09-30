@@ -1,0 +1,31 @@
+/* Motion-interpolated video with the bottom watermark strip cropped out. */
+.trikonet-initial-loader,
+#seo-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #fff;
+  color: #64748b;
+  font: 500 14px/1.5 system-ui, sans-serif;
+}
+.trikonet-initial-loader > header,
+.trikonet-initial-loader > main { display: none; }
+.loading-scene-video {
+  display: block;
+  flex: none;
+  width: min(560px, 90vw);
+  height: auto;
+  aspect-ratio: 640 / 326;
+  object-fit: contain;
+  background: #fff;
+}
+.trikonet-initial-loader > p { margin: 8px 0 0; }
+.trikonet-initial-loader > p::before { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .loading-scene-video { display: none; }
+}
