@@ -925,17 +925,29 @@
   }
   .cv-embed-screen.is-fullscreen > .cv-host-actions svg { width: 16px; height: 16px; }
   .cv-library { padding: 24px 12px; }
-  .cv-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cv-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
   .cv-library-heading h1 { font-size: 28px; }
   .cv-library-heading p { font-size: 14px; }
-  .cv-new-resume-card { min-width: 0; min-height: 220px; padding: 12px; }
+  .cv-new-resume-card { min-width: 0; min-height: 344px; aspect-ratio: auto; padding: 16px 12px; border: 1px dashed #d4a6aa; background: #fff9f9; border-radius: 16px; box-shadow: none; }
+  .cv-new-resume-card > span { width: 44px; height: 44px; border-radius: 12px; background: #fcebed; }
   .cv-new-resume-card strong { font-size: 16px; }
   .cv-new-resume-card small { font-size: 12px; text-align: center; }
-  .cv-saved-resume-card { min-width: 0; }
-  .cv-resume-card-info { padding: 12px 8px; }
-  .cv-resume-card-info strong { font-size: 14px; overflow-wrap: anywhere; }
-  .cv-resume-card-actions { flex-wrap: wrap; gap: 4px; }
+  .cv-saved-resume-card { min-width: 0; padding: 8px; gap: 0; border: 1px solid #e2e7ef; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px rgba(30,57,98,.04); }
+  .cv-saved-resume-card:hover { transform: none; }
+  .cv-resume-paper { height: 180px; aspect-ratio: auto; border-radius: 8px; box-shadow: none; background: #f5f7fa; padding: 8px; box-sizing: border-box; }
+  .cv-resume-paper img { object-fit: contain; }
+  .cv-saved-resume-card:hover .cv-resume-paper { border-color: #dce4ef; box-shadow: none; }
+  .cv-resume-card-info { padding: 12px 0 0; flex: 1; gap: 8px; }
+  .cv-resume-card-info strong { font-size: 13px; line-height: 18px; min-height: 36px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+  .cv-resume-card-info small { font-size: 11px; margin: 0; }
+  .cv-resume-card-actions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px; margin-top: auto; }
   .cv-resume-card-actions button { min-height: 44px; min-width: 44px; }
-  .cv-resume-card-actions .cv-resume-use { width: 100%; }
+  .cv-resume-card-actions .cv-resume-use { width: 100%; grid-column: 1 / -1; background: #f4faf8; }
+  .cv-resume-card-actions .cv-resume-edit,
+  .cv-resume-card-actions .cv-resume-delete { width: 100%; }
+  .cv-library-screen .cv-header-label { display: none; }
+  .cv-library-screen .cv-embed-header { padding: 12px; }
+  .cv-library-screen .cv-header-logo { height: 28px; }
+  .cv-library-screen .cv-header-return-home { padding: 8px 12px; font-size: 12px; min-height: 44px; box-sizing: border-box; }
   #cvLibraryRetry { min-height: 44px; padding: 8px 16px; }
 }
