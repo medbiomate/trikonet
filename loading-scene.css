@@ -16,6 +16,9 @@
 .trikonet-initial-loader > header,
 .trikonet-initial-loader > main { display: none; }
 .loading-scene-video {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
   display: block;
   flex: none;
   width: min(560px, 90vw);
@@ -24,8 +27,20 @@
   object-fit: contain;
   background: #fff;
 }
+.trikonet-initial-loader::before,
+#seo-loading::before {
+  content: '';
+  position: absolute;
+  width: min(560px, 90vw);
+  aspect-ratio: 1280 / 650;
+  background: #fff url('/assets/loading-scene.gif') center top / 100% auto no-repeat;
+}
 .trikonet-initial-loader > p { margin: 8px 0 0; }
 .trikonet-initial-loader > p::before { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .loading-scene-video { display: none; }
+  .trikonet-initial-loader::before,
+  #seo-loading::before {
+    background: #fff url('/assets/logo-black.png') center / min(200px, 60%) auto no-repeat;
+  }
 }
