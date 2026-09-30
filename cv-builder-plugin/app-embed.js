@@ -138,6 +138,11 @@
       });
     });
     var workspace=document.getElementById('cv-builder-workspace');
+    function reportTabsVisibility(){
+      if(window.parent!==window)window.parent.postMessage({type:'medbiomate-cv-tabs-collapsed',collapsed:document.body.classList.contains('cv-mobile-topbar-collapsed')},'*');
+    }
+    new MutationObserver(reportTabsVisibility).observe(document.body,{attributes:true,attributeFilter:['class']});
+    reportTabsVisibility();
     if(!workspace||workspace.querySelector('.cv-mobile-preview-action'))return;
     if(window.location.hash==='#preview'){
       document.body.classList.add('cv-mobile-preview-mode');

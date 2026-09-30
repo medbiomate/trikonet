@@ -436,6 +436,11 @@ class CVBuilderApp {
           this.updateActionBar();
         } else if (type === 'medbiomate-cv-tabs-collapsed') {
           frame.closest('.cv-embed-screen')?.classList.toggle('is-tabs-collapsed', event.data.collapsed === true);
+          const tabsButton = this.container.querySelector('#btnToggleTabs');
+          if (tabsButton) {
+            tabsButton.hidden = event.data.collapsed !== true;
+            tabsButton.style.setProperty('display', event.data.collapsed === true ? 'inline-flex' : 'none', 'important');
+          }
         } else if (type === 'medbiomate-cv-preview-ready') {
           if (frame.dataset.readyScheduled !== 'true') {
             frame.dataset.readyScheduled = 'true';
@@ -1052,7 +1057,7 @@ class CVBuilderApp {
           </nav>
           <div class="cv-editor-header-actions">
             <button type="button" class="cv-header-more-btn" aria-label="More résumé options">&#8942;</button>
-            <button type="button" class="cv-header-show-tabs" id="btnToggleTabs">Tabs</button>
+            <button type="button" class="cv-header-show-tabs" id="btnToggleTabs" hidden style="display:none!important">Tabs</button>
             <button type="button" class="cv-header-save-btn" id="btnEditorDone">
               ${ICONS.check} <span>Save résumé</span>
             </button>

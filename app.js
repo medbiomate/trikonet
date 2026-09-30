@@ -4,7 +4,7 @@ import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
-import { initCVBuilder } from './cvBuilder.js?v=20260930-tabs-state-v40';
+import { initCVBuilder } from './cvBuilder.js?v=20260930-tabs-sync-v42';
 const seed = {
   jobs:[
     {id:1,title:'Corporate Accounting Manager',company:'Bateel International',category:'Accountant, Accounting or Finance',location:'Dubai',type:'Full Time',date:'September 22, 2026',slug:'corporate-accounting-manager'},
