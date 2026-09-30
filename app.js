@@ -1,6 +1,6 @@
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=15.0';
 import { formatCompanyName } from './company-name.js';
-import { renderCategoryLinks } from './category-links.js';
+import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
@@ -5548,6 +5548,7 @@ function render() {
   else if (path === '/applied-jobs') body = memberWorkspacePage('applied_jobs');
   else if (path === '/followed-companies') body = memberWorkspacePage('followed_companies');
   else if (path === '/email-campaigns') body = campaignsPage();
+  else if (path === '/job-categories') body = renderAllCategories(seoInternalLinks);
   else if (path === '/nurse-jobs-in-uae') body = nurseJobsPage();
   else if (path.startsWith('/category/')) body = categoryPage();
   else if (path === '/jobs' || path === '/job-list' || path === '/job-openings' || path.startsWith('/job-location/')) {
@@ -5678,7 +5679,7 @@ if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
   const links=seoInternalLinks.filter(p=>!category || p.category===category);
   if(links.length){
     const module=document.createElement('section');module.className='container';module.style.padding='24px 0';
-    module.innerHTML=renderCategoryLinks(links,{category:category || '',slug:path.slice(1),categoriesOnly:path==='/jobs' && !category});
+    module.innerHTML=renderCategoryLinks(links,{category:category || '',slug:path.slice(1),categoriesOnly:path==='/jobs' && !category,limit:path==='/jobs' && !category?28:Infinity});
     document.querySelector('#app main')?.append(module);
   }
 }

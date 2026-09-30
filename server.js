@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import { renderSeoLanding, seoHead } from './seo-public.js';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
+import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const localDataDir = join(root, 'data');
@@ -1094,7 +1095,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(await response.text());
     } catch {res.writeHead(503);return res.end('Sitemap temporarily unavailable');}
   }
-  if (/^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
+  if (/^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|job-categories|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
     try {
       const slug=path.replace(/^\/|\/$/g,'');
       const pageNumber=Math.max(1,Number(requestUrl.searchParams.get('page'))||1);
@@ -1137,6 +1138,21 @@ const server = http.createServer(async (req, res) => {
 
   try {
     let fileBody = await readFile(target);
+    if(target===join(root,'index.html') && (path==='/jobs' || path==='/job-categories' || path.startsWith('/category/'))){
+      try {
+        const response=await fetch(`${seoApiBase}/api/job-category-links`,{signal:AbortSignal.timeout(15000)});
+        if(!response.ok)throw new Error('Category directory unavailable');
+        const links=await response.json();
+        const current=links.find(p=>p.href===path || (path.startsWith('/category/') && p.categorySlug===path.slice('/category/'.length)));
+        const category=requestUrl.searchParams.get('category') || current?.category || '';
+        const markup=path==='/job-categories'?renderAllCategories(links):`<main>${renderCategoryLinks(links,{category,slug:path.slice(1),categoriesOnly:path==='/jobs'&&!category,limit:path==='/jobs'&&!category?28:Infinity})}</main>`;
+        let html=fileBody.toString();
+        const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
+        if(start>=0 && end>start)html=html.slice(0,start)+`<div id="app">${markup}</div>`+html.slice(end);
+        if(path==='/job-categories')html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>Job Categories in UAE | Trikonet</title>').replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/job-categories">');
+        fileBody=html;
+      }catch(error){console.warn('Category SSR unavailable:',error.message);}
+    }
     if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
       fileBody=fileBody.toString()
         .replace(/<title>[\s\S]*?<\/title>/,`<title>${JOBS_SEO_TITLE}</title>`)
