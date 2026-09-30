@@ -807,7 +807,7 @@ class CVBuilderApp {
       bar = document.createElement('nav');
       bar.className = 'cv-host-actions';
       bar.setAttribute('aria-label', 'CV actions');
-      this.container.appendChild(bar);
+      this.container.querySelector('.cv-embed-screen.is-fullscreen')?.appendChild(bar);
     }
     bar.innerHTML = `
       <button type="button" class="cv-host-preview" id="cvActionPreview">${ICONS.eye}<span>Preview</span></button>

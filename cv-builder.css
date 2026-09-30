@@ -911,4 +911,15 @@
   .cv-header-show-tabs {
     display: inline-flex !important;
   }
+  .cv-embed-screen.is-fullscreen > .cv-host-actions {
+    position: relative; inset: auto; transform: none; flex: 0 0 auto;
+    width: 100%; margin: 0; border-radius: 0; gap: 4px;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    box-shadow: none;
+  }
+  .cv-embed-screen.is-fullscreen > .cv-host-actions button {
+    flex: 1 1 0; min-width: 0; height: 44px; min-height: 44px;
+    padding: 0 4px; font-size: 11px; gap: 4px; border-radius: 8px;
+  }
+  .cv-embed-screen.is-fullscreen > .cv-host-actions svg { width: 16px; height: 16px; }
 }
