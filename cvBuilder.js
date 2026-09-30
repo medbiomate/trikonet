@@ -1025,6 +1025,14 @@ class CVBuilderApp {
     `;
 
     // Bind event handlers
+    this.container.querySelectorAll('.cv-saved-resume-card').forEach(card => {
+      const toolbar = card.querySelector('.cv-resume-card-actions');
+      const preview = card.querySelector('.cv-resume-open');
+      if (window.innerWidth <= 768 && toolbar && preview) {
+        preview.appendChild(toolbar);
+        toolbar.addEventListener('click', event => event.stopPropagation());
+      }
+    });
     this.container.querySelector('#cvLibraryRetry')?.addEventListener('click', () => { this.loadCloudLibrary(); this.renderLibrary(); });
     this.container.querySelector('#btnCreateNew')?.addEventListener('click', () => this.openNewResume());
     this.container.querySelector('#cardNewResume')?.addEventListener('click', () => this.openNewResume());

@@ -955,7 +955,8 @@
   .cv-saved-resume-card { position: relative; }
   .cv-resume-paper { height: auto; aspect-ratio: 210 / 297; padding: 0; background: #fff; }
   .cv-resume-paper img { width: 100%; height: 100%; object-fit: contain; object-position: top center; }
-  .cv-resume-card-actions { position: absolute; top: 12px; right: 12px; left: 12px; display: flex; justify-content: flex-end; gap: 4px; z-index: 2; margin: 0; }
+  .cv-resume-card-actions { position: absolute; top: auto; bottom: 12px; right: 12px; left: 12px; display: flex; justify-content: center; gap: 4px; z-index: 2; margin: 0; }
+  .cv-resume-open { position: relative; }
   .cv-resume-card-actions button,
   .cv-resume-card-actions .cv-resume-use,
   .cv-resume-card-actions .cv-resume-edit,
