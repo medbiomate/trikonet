@@ -463,7 +463,7 @@ async function loadLocalEmployers(){
     data.employerResultTotal=q||location||category||minJobs?data.employers.length:Math.max(Number(data.counts?.employer||0)+localMatched.length,data.employers.length);
   }catch{data.employers=[]}
 }
-async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20');if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
+async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20');if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
 function updateLiveJobCountUI(){
   const liveCount = (data.counts && data.counts.job_listing) ? data.counts.job_listing : 13621;
   const formattedCount = Number(liveCount).toLocaleString() + '+';
@@ -1337,7 +1337,7 @@ function homeTopCompanies(s = {}) {
     return `
       <a class="featured-company-card" href="/employer/${escapeAttr(e.slug)}" aria-label="View jobs at ${escapeAttr(displayTitle)}" style="text-decoration:none;color:inherit">
         <div class="featured-company-logo-wrap">
-          ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(displayTitle)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
+          ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(displayTitle)}" data-backup="${escapeAttr(e.logoBackup||'')}" onerror="if(this.dataset.backup&&!this.dataset.retried){this.dataset.retried='1';this.src=this.dataset.backup;}else{this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';}">` : ''}
           <div class="featured-company-logo-fallback" style="${e.logo ? 'display:none;' : 'display:flex;'}">
             ${initials}
           </div>
