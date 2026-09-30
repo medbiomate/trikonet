@@ -1,6 +1,7 @@
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=14.0';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
+import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260929-library-route-v27';
 const seed = {
   jobs:[
@@ -2188,6 +2189,7 @@ function categoryPage(destination = null, allJobs = false) {
   if (qQuery) pageTitle = `"${escapeAttr(qQuery)}" in ${escapeAttr(categoryName)}`;
   else if (selectedLoc) pageTitle = `${escapeAttr(categoryName)} Jobs in ${escapeAttr(selectedLoc)}`;
   pageTitle=destination?escapeAttr(destination.page.h1 || destination.page.title):pageTitle.replace(/Jobs Jobs/g,'Jobs');
+  if(allJobs && !cat && !qQuery && !selectedLoc)pageTitle='Jobs in UAE';
 
   const iconCheckTick = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const iconBookmark = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`;
@@ -2217,9 +2219,8 @@ function categoryPage(destination = null, allJobs = false) {
           <nav class="nurse-breadcrumbs" aria-label="Breadcrumb">
             <a href="/">Home</a>
             <span class="sep">&gt;</span>
-            <a href="/jobs">Categories</a>
-            <span class="sep">&gt;</span>
-            ${destination ? `<a href="/category/${escapeAttr(categoryCleanSlug)}">${escapeAttr(categoryName)}</a><span class="sep">&gt;</span><span class="current" aria-current="page">${escapeAttr(destination.page.location || 'UAE')}</span>` : `<span class="current" aria-current="page">${escapeAttr(categoryName)}</span>`}
+            <a href="/jobs">${allJobs && !cat ? 'Jobs in UAE' : 'Categories'}</a>
+            ${allJobs && !cat ? '' : `<span class="sep">&gt;</span>${destination ? `<a href="/category/${escapeAttr(categoryCleanSlug)}">${escapeAttr(categoryName)}</a><span class="sep">&gt;</span><span class="current" aria-current="page">${escapeAttr(destination.page.location || 'UAE')}</span>` : `<span class="current" aria-current="page">${escapeAttr(categoryName)}</span>`}`}
           </nav>
         </div>
         <div class="category-hero-head">
@@ -5913,6 +5914,16 @@ function initCategoryAutocomplete() {
 }
 function applySavedSeoMeta(){
   if(path.startsWith('/admin'))return;
+  if(path==='/jobs' || path==='/job-list' || path==='/job-openings'){
+    document.title=JOBS_SEO_TITLE;
+    let description=document.querySelector('meta[name="description"]');
+    if(!description){description=document.createElement('meta');description.name='description';document.head.append(description);}
+    description.content=JOBS_SEO_DESCRIPTION;
+    let canonical=document.querySelector('link[rel="canonical"]');
+    if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical);}
+    canonical.href=`${SITE_ORIGIN}/jobs`;
+    return;
+  }
   if(seoPagePayload){
     const page=seoPagePayload.page;
     document.title=page.seoTitle || `${page.title} | Trikonet`;

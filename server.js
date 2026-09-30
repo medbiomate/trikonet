@@ -5,6 +5,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import { renderSeoLanding, seoHead } from './seo-public.js';
+import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const localDataDir = join(root, 'data');
@@ -1126,7 +1127,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    const fileBody = await readFile(target);
+    let fileBody = await readFile(target);
+    if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
+      fileBody=fileBody.toString()
+        .replace(/<title>[\s\S]*?<\/title>/,`<title>${JOBS_SEO_TITLE}</title>`)
+        .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${JOBS_SEO_DESCRIPTION}">`)
+        .replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/jobs">');
+    }
     res.writeHead(200, {
       'Content-Type': types[extname(target)] || 'application/octet-stream',
       'Cache-Control': 'no-cache, no-store, must-revalidate'
