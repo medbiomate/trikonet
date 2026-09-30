@@ -1077,6 +1077,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static File Serving & SPA Fallback
+  if(/^\/uploads\/(employers|media)\/\d+\.[a-z]+$/i.test(path)){
+    res.writeHead(302,{Location:`https://api.trikonet.com${path}`});
+    return res.end();
+  }
   const seoApiBase = process.env.TRIKONET_API_BASE || 'https://api.trikonet.com';
   if (path === '/sitemap-seo-job-pages.xml') {
     try {
