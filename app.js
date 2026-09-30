@@ -5525,7 +5525,7 @@ function render() {
     const content=value=>value?`<section class="wrap" style="padding:24px 0;white-space:pre-wrap">${escapeAttr(value)}</section>`:'';
     let body=categoryPage(seoPagePayload);
     body=body.replace('</section>','</section>'+content(seoPagePayload.page.introContent));
-    const related=(seoPagePayload.links || seoInternalLinks).filter(p=>p.category===seoPagePayload.page.category && p.slug!==seoPagePayload.page.slug);
+    const related=(seoPagePayload.links || seoInternalLinks).filter(p=>p.category===seoPagePayload.page.category && p.slug!==seoPagePayload.page.slug && (!seoPagePayload.page.location || p.location!==seoPagePayload.page.location));
     body=body.replace('</main>',content(seoPagePayload.page.bottomContent)+renderCategoryLinks(related,{category:seoPagePayload.page.category,slug:seoPagePayload.page.slug})+'</main>');
     return header()+body+footer();
   }
