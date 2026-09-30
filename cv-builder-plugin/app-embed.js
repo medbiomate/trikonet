@@ -1,4 +1,5 @@
 (function(){
+  if(window.parent!==window)document.documentElement.classList.add('cv-hosted-editor');
   var onboardingRoutes=['onboarding/choice','onboarding/templates'];
 
   function setupOnboardingNavigation(){

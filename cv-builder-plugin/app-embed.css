@@ -6837,4 +6837,6 @@ body.cv-thumbnail-capture-mode #cv-builder-workspace .cv-preview-sheet-container
   body #cv-builder-workspace .cv-dashboard-form-container { padding: 12px !important; margin: 0 !important; border-radius: 12px !important; }
   body:not(.cv-thumbnail-capture-mode) #cv-builder-workspace .cv-mobile-action-dock { transform: none !important; border-radius: 0 !important; padding: 4px 4px calc(4px + env(safe-area-inset-bottom)) !important; gap: 4px !important; }
   body:not(.cv-keyboard-open):not(.cv-mobile-preview-mode):not(.cv-download-page-mode) #cv-builder-workspace.cv-content-actions-visible .cv-mobile-action-dock { display: flex !important; }
+  html.cv-hosted-editor body:not(.cv-keyboard-open):not(.cv-mobile-preview-mode):not(.cv-download-page-mode) #cv-builder-workspace.cv-content-actions-visible .cv-mobile-action-dock,
+  html.cv-hosted-editor body #cv-builder-workspace .cv-mobile-action-dock { display: none !important; }
 }
