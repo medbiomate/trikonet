@@ -355,7 +355,7 @@ function mapJob(record){
   const m=record.metas||{};
   const date=resolveJobDate(record);
   const deadline=resolveJobDeadline(record);
-  const rawExcerpt=record.excerpt?.rendered||record.content?.rendered||record.excerpt||'';
+  const rawExcerpt=record.excerpt?.rendered||record.content?.rendered||record.excerpt||record.description||'';
   const cleanExcerpt=rawExcerpt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);
   return {
     id:record.id,
@@ -2148,9 +2148,9 @@ function nurseJobsPage(){
   </main>`;
 }
 
-function categoryPage() {
+function categoryPage(destination = null) {
   const catSlug = path.replace('/category/', '').split('/')[0].split('?')[0];
-  const cat = findCategoryBySlug(catSlug);
+  const cat = destination ? {name:destination.page.category,slug:slugifyCategory(destination.page.category)} : findCategoryBySlug(catSlug);
   const categoryName = cat ? cat.name : (catSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
   const categoryCleanSlug = slugifyCategory(cat || categoryName);
 
@@ -2159,13 +2159,13 @@ function categoryPage() {
   }
 
   const pageLimit = 10;
-  const list = data.jobs.slice(0, pageLimit);
-  const total = data.counts?.category || cat?.count || list.length;
+  const list = destination ? destination.jobs.map(mapJob) : data.jobs.slice(0, pageLimit);
+  const total = destination ? destination.total : (data.counts?.category || cat?.count || list.length);
   const start = total ? (currentPage - 1) * pageLimit + 1 : 0;
   const end = Math.min(start + list.length - 1, total);
 
   const qQuery = queryParams.get('q') || '';
-  const selectedLoc = queryParams.get('location') || '';
+  const selectedLoc = destination?.page.location || queryParams.get('location') || '';
   const selectedType = queryParams.get('job_type') || '';
   const hasActiveFilters = !!(selectedLoc || selectedType || qQuery);
 
@@ -2179,6 +2179,7 @@ function categoryPage() {
   let pageTitle = `${escapeAttr(categoryName)} Jobs in UAE`;
   if (qQuery) pageTitle = `"${escapeAttr(qQuery)}" in ${escapeAttr(categoryName)}`;
   else if (selectedLoc) pageTitle = `${escapeAttr(categoryName)} Jobs in ${escapeAttr(selectedLoc)}`;
+  pageTitle=destination?escapeAttr(destination.page.h1 || destination.page.title):pageTitle.replace(/Jobs Jobs/g,'Jobs');
 
   const iconCheckTick = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const iconBookmark = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`;
@@ -2221,7 +2222,7 @@ function categoryPage() {
           <p class="nurse-hero-desc">Explore verified ${escapeAttr(categoryName)} job vacancies across Dubai, Abu Dhabi, Sharjah, and all UAE emirates with direct employer hiring.</p>
         </div>
         <div class="nurse-search-wrapper">
-          ${searchBar({ keyword: `${categoryName} job title, role...`, category: categoryName, button: 'Search Category', action: `/category/${categoryCleanSlug}` })}
+          ${searchBar({ keyword: `${categoryName} job title, role...`, category: categoryName, location:selectedLoc || 'Country or City', button: 'Search Category', action: `/category/${categoryCleanSlug}` })}
         </div>
         <div class="category-popular-chips">
           <span class="chips-label">
@@ -2375,7 +2376,7 @@ function categoryPage() {
             </div>
           `}
         </div>
-        ${pager(`/category/${categoryCleanSlug}`, total, pageLimit)}
+        ${pager(destination ? path : `/category/${categoryCleanSlug}`, total, pageLimit)}
       </section>
 
       <aside class="nurse-side-column">
@@ -5505,7 +5506,14 @@ function fitEmployerLogos() {
 }
 
 function render() {
-  if (seoPagePayload) return header()+renderSeoLanding(seoPagePayload,currentPage,seoInternalLinks)+footer();
+  if (seoPagePayload) {
+    const content=value=>value?`<section class="wrap" style="padding:24px 0;white-space:pre-wrap">${escapeAttr(value)}</section>`:'';
+    let body=categoryPage(seoPagePayload);
+    body=body.replace('</section>','</section>'+content(seoPagePayload.page.introContent));
+    const related=seoInternalLinks.filter(p=>p.category===seoPagePayload.page.category && p.slug!==seoPagePayload.page.slug);
+    body=body.replace('</main>',content(seoPagePayload.page.bottomContent)+(related.length?`<section class="wrap" style="padding:24px 0"><h2>Related job pages</h2>${related.map(p=>`<a style="margin-right:16px" href="/${escapeAttr(p.slug)}">${escapeAttr(p.title)}</a>`).join('')}</section>`:'')+'</main>');
+    return header()+body+footer();
+  }
   if (seoPageDraft) return header()+notFound404Page()+footer();
   if (path === '/admin-login' || path === '/admin-portal' || path === '/trikonet-admin-access') {
     return adminLoginPage();
