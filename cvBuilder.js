@@ -940,13 +940,13 @@ class CVBuilderApp {
                       <strong>${resume.name}</strong>
                       <small>${ICONS.clock} ${relativeUpdatedAt(resume.updatedAt)}</small>
                       <div class="cv-resume-card-actions">
-                        <button type="button" class="cv-resume-use${isDefault ? ' is-default' : ''}" data-default-id="${resume.id}" title="${isDefault ? 'Active default CV' : 'Use for applications'}">
+                        <button type="button" class="cv-resume-use${isDefault ? ' is-default' : ''}" data-default-id="${resume.id}" aria-label="${isDefault ? 'Active default CV' : 'Use for applications'}" aria-pressed="${isDefault}" title="${isDefault ? 'Active default CV' : 'Use for applications'}">
                           ${ICONS.check}<span>${isDefault ? 'Default' : 'Use for jobs'}</span>
                         </button>
-                        <button type="button" class="cv-resume-edit" data-edit-id="${resume.id}" title="Edit résumé">
+                        <button type="button" class="cv-resume-edit" data-edit-id="${resume.id}" aria-label="Edit résumé" title="Edit résumé">
                           ${ICONS.pencil}
                         </button>
-                        <button type="button" class="cv-resume-delete" data-delete-id="${resume.id}" title="Delete résumé">
+                        <button type="button" class="cv-resume-delete" data-delete-id="${resume.id}" aria-label="Delete résumé" title="Delete résumé">
                           ${ICONS.trash}
                         </button>
                       </div>

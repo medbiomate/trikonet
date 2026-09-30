@@ -950,4 +950,18 @@
   .cv-library-screen .cv-header-logo { height: 28px; }
   .cv-library-screen .cv-header-return-home { padding: 8px 12px; font-size: 12px; min-height: 44px; box-sizing: border-box; }
   #cvLibraryRetry { min-height: 44px; padding: 8px 16px; }
+  /* A compact icon toolbar floats above the paper without covering CV text. */
+  .cv-saved-resume-card { position: relative; }
+  .cv-resume-paper { height: 228px; padding-top: 56px; }
+  .cv-resume-card-actions { position: absolute; top: 12px; right: 12px; left: 12px; display: flex; justify-content: flex-end; gap: 4px; z-index: 2; margin: 0; }
+  .cv-resume-card-actions button,
+  .cv-resume-card-actions .cv-resume-use,
+  .cv-resume-card-actions .cv-resume-edit,
+  .cv-resume-card-actions .cv-resume-delete { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border-radius: 12px; background: #fff; box-shadow: 0 2px 8px rgba(30,57,98,.08); }
+  .cv-resume-card-actions .cv-resume-use.is-default { background: #eaf8f3; border-color: #9ed7c6; }
+  .cv-resume-card-actions .cv-resume-use span { display: none; }
+  .cv-resume-card-actions svg { width: 18px; height: 18px; }
+  .cv-new-resume-card { min-height: 312px; }
+  .cv-new-resume-card.limit-reached { display: none; }
+  .cv-header-show-tabs { border-radius: 10px; background: #fff; border-color: #e2e7ef; color: #475569; box-shadow: none; }
 }
