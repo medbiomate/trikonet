@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { renderSeoLanding, seoHead } from './seo-public.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const localDataDir = join(root, 'data');
@@ -1074,6 +1075,33 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static File Serving & SPA Fallback
+  const seoApiBase = process.env.TRIKONET_API_BASE || 'https://api.trikonet.com';
+  if (path === '/sitemap-seo-job-pages.xml') {
+    try {
+      const response = await fetch(`${seoApiBase}/sitemap-seo-job-pages.xml`, {signal:AbortSignal.timeout(15000)});
+      res.writeHead(response.status,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'no-store'});
+      return res.end(await response.text());
+    } catch {res.writeHead(503);return res.end('Sitemap temporarily unavailable');}
+  }
+  if (/^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
+    try {
+      const slug=path.replace(/^\/|\/$/g,'');
+      const pageNumber=Math.max(1,Number(requestUrl.searchParams.get('page'))||1);
+      const response=await fetch(`${seoApiBase}/api/seo-job-pages/${encodeURIComponent(slug)}?page=${pageNumber}`,{signal:AbortSignal.timeout(15000)});
+      const payload=await response.json();
+      if(response.ok){
+        let html=await readFile(join(root,'index.html'),'utf8');
+        html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page)+'</head>');
+        const content=renderSeoLanding(payload,pageNumber,payload.links || []);
+        const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
+        if(start>=0&&end>start)html=html.slice(0,start)+`<div id="app">${content}</div>`+html.slice(end);
+        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':payload.page.indexingStatus==='Noindex'?'noindex,follow':'index,follow'});
+        return res.end(html);
+      }
+      if(payload.seoPage){res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex'});return res.end('<h1>Page Not Found</h1>');}
+      if(response.status>=500){res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
+    }catch{res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
+  }
   if (path === '/sitmap.xml') {
     res.writeHead(301, { Location: '/sitemap.xml', 'Cache-Control': 'no-store' });
     return res.end();

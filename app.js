@@ -1,5 +1,6 @@
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=14.0';
-import { renderAdmin, initAdmin } from './admin.js?v=10.0';
+import { renderAdmin, initAdmin } from './admin.js?v=11.0';
+import { renderSeoLanding } from './seo-public.js?v=1';
 import { initCVBuilder } from './cvBuilder.js?v=20260929-library-route-v27';
 const seed = {
   jobs:[
@@ -20,6 +21,19 @@ const store = {get(){try{return JSON.parse(localStorage.getItem('trikonetCMS'))|
 const data=store.get();
 let path=location.pathname.replace(/\/$/,'')||'/';
 const SITE_ORIGIN='https://www.trikonet.com';
+let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
+async function loadSeoPages() {
+  if (path.startsWith('/admin')) return;
+  try {
+    const linksResponse=await fetch('/api/seo-job-pages');
+    if(linksResponse.ok)seoInternalLinks=await linksResponse.json();
+    if(path==='/' || path.split('/').filter(Boolean).length!==1)return;
+    const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(path.slice(1))}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`);
+    const payload=await response.json();
+    if(response.ok)seoPagePayload=payload;
+    else if(payload.seoPage)seoPageDraft=true;
+  }catch{}
+}
 const defaultTopCategories = [
   { name: 'Education and Training', slug: 'education-and-training', count: 3148 },
   { name: 'Accounting or Finance', slug: 'accounting-finance', count: 1767 },
@@ -5491,6 +5505,8 @@ function fitEmployerLogos() {
 }
 
 function render() {
+  if (seoPagePayload) return header()+renderSeoLanding(seoPagePayload,currentPage,seoInternalLinks)+footer();
+  if (seoPageDraft) return header()+notFound404Page()+footer();
   if (path === '/admin-login' || path === '/admin-portal' || path === '/trikonet-admin-access') {
     return adminLoginPage();
   }
@@ -5618,7 +5634,7 @@ function render() {
   if (memberAuthPaths.includes(path)) return body + footer();
   return header() + body + footer();
 }
-const initialLoads=[loadAccount()];
+const initialLoads=[loadAccount(),loadSeoPages()];
 if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadCounts(),loadConnectedContent());
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadCounts(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
@@ -5631,6 +5647,15 @@ await Promise.all(initialLoads);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
+  const category=path.startsWith('/category/')?findCategoryBySlug(path.slice('/category/'.length))?.name:queryParams.get('category');
+  const links=seoInternalLinks.filter(p=>!category || p.category===category).slice(0,24);
+  if(links.length){
+    const module=document.createElement('section');module.className='container';module.style.padding='24px 0';
+    module.innerHTML='<h2>Explore jobs by category and location</h2><div style="display:flex;gap:16px;flex-wrap:wrap">'+links.map(p=>`<a href="/${escapeAttr(p.slug)}">${escapeAttr(p.title)}</a>`).join('')+'</div>';
+    document.querySelector('#app main')?.append(module);
+  }
+}
 fitEmployerLogos();
 initCandidateProfile();
 document.querySelectorAll('.emp-follow-btn').forEach(button => {
@@ -5865,6 +5890,15 @@ function initCategoryAutocomplete() {
 }
 function applySavedSeoMeta(){
   if(path.startsWith('/admin'))return;
+  if(seoPagePayload){
+    const page=seoPagePayload.page;
+    document.title=page.seoTitle || `${page.title} | Trikonet`;
+    for(const [name,value] of [['description',page.metaDescription || ''],['robots',page.indexingStatus==='Noindex'?'noindex,follow':'index,follow']]){
+      let meta=document.querySelector(`meta[name="${name}"]`);if(!meta){meta=document.createElement('meta');meta.name=name;document.head.append(meta);}meta.content=value;
+    }
+    let canonical=document.querySelector('link[rel="canonical"]');if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical);}canonical.href=`${SITE_ORIGIN}/${page.slug}`;
+    return;
+  }
   try{
     const pageSlug=path==='/'?'home':path.split('/').filter(Boolean).pop();
     const pages=JSON.parse(localStorage.getItem('trikonet_pages_cms')||'[]');

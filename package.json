@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "check": "node --check app.js && node --check detail-pages.js && node --check server.js"
+    "check": "node --check app.js && node --check admin.js && node --check seo-admin.js && node --check seo-public.js && node --check detail-pages.js && node --check server.js",
+    "test:seo": "node --test seo-public.test.mjs"
   }
 }

@@ -20,6 +20,19 @@ Opens at `http://localhost:3000`. When running locally, all API calls automatica
 
 In production (e.g. `https://trikonet.com`), API calls route to `https://api.trikonet.com`.
 
+## SEO Job Pages
+
+Pages → SEO Job Pages uses the backend's durable SEO registry. Register a main
+category page here, or choose its category in the existing Pages editor. Location
+pages qualify at 10 active jobs. The editor supports status, Index/Noindex,
+management mode, metadata and content overrides without changing the admin design.
+
+Run the Node web server for server-rendered SEO tags and real draft HTTP 404s.
+`TRIKONET_API_BASE` configures its backend (default `https://api.trikonet.com`).
+The sitemap index references `/sitemap-seo-job-pages.xml`, which proxies the
+current backend sitemap. A static-only host cannot enforce these server routes.
+Run `npm run test:seo` to verify rendering, metadata, Noindex and draft responses.
+
 ## Deployment
 
 This directory contains the production-ready static website bundle:

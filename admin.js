@@ -1,4 +1,5 @@
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
   types: ['Freelance', 'Full Time', 'Internship', 'Part Time', 'Temporary'],
   categories: ["Academic Social Worker Jobs","Academic Supervisor Jobs","Accountant","Accounting or Finance","Accounting Teaching Jobs","Admin Officer Jobs","Administration","Admissions Counsellor Jobs","Anaesthia Specialist Jobs","Anesthesia Technician Jobs","Arabic Teacher Jobs","Art and Design Teaching Jobs","Assistant Teacher Jobs","Automotive","Beauty Therapist Jobs","Biomedical Jobs","Cashier Jobs","Chartered Accountant Jobs","Chemistry Teacher Jobs","Civil Engineer Jobs","Civil Technician Jobs","Computer Science Jobs","Computer Science Teacher Jobs","Construction","Consultant doctor Jobs","Content Marketing Jobs","Cook Jobs","CSSD Technician Jobs","Customer Service Associate Jobs","Data Analyst","Data Entry","Dental Assistant Jobs","Dental Jobs","Dentist Jobs","Dermatology","Design or Art","Dialysis Technician Jobs","Digital Marketing Internship Jobs","Digital Marketing Jobs","Digital Marketing Specialist Jobs","Document Controller Jobs","Draftsman Jobs","Driver","E-commerce Marketing Jobs","Education and Training","Electrical Engineer Jobs","Electrical Engineer Jobs","Electrical Supervisor Jobs","Electronics Engineer Jobs","EMT Paramedic Jobs","Engineering","English Teacher Jobs","ENT Department Jobs","Environment","Facility Management Jobs","Finance &amp; Accounts Manager Jobs","Financial Auditor Jobs","Food and Beverage Jobs","French Teacher Jobs","General Practitioner Jobs","Geography Teacher Jobs","Graphic Designer Jobs","Gynecologist Jobs","Health","Health, Safety, Environment","HealthCare","Healthcare Assistant Jobs","Hindi Teacher Jobs","Histo Technician Jobs","Homecare Nurse Jobs","Hospitality and Tourism","House Keeping Service","Human Resource","Human Resources Officer Jobs","ICT Teacher Jobs","Influencer Marketing Jobs","Information Technology Jobs","Instructor Jobs","Instrumentation Engineer Jobs","Insurance","Insurance Coordinator Jobs","Islamic Teacher Jobs","IT Department","KG Teacher Jobs","Language Teacher Jobs","Law and Enforcement","Logistics and Warehousing ","Maintenance Engineer Jobs","Marketing and Sales","Marketing Manager Jobs","Mathematics Teacher Jobs","Mechanical Engineer Jobs","Mechanical Supervisor Jobs","Medical Billing Jobs","Medical Coder Jobs","Medical Insurance Jobs","Medical Laboratory Jobs","Medical Laser Technician Jobs","Medical RCM Jobs","Medical Records Jobs","Medical Sales Jobs","MEP Jobs","Microbiologist Jobs","Midwife Jobs","Music Teacher Jobs","Neonatology Specialist Jobs","Nurse Jobs","Office Assistant Jobs","Oil and Gas Jobs","Operation","Optometrist Jobs","OT Technician Jobs","Payroll Jobs","PE Teacher Jobs","Pediatrician Jobs","Performance Marketing Jobs","Pharmacist Jobs","Pharmacy Jobs","Photographer Jobs","Physician Jobs","Physics Teacher","Physiotherapist Jobs","Plastic Surgeon Jobs","Procurement and Supply Chain","Psychology Jobs","Psychology Teacher","QA/QC Engineer Jobs","Quality Assurance &amp; Control","Radiographer Jobs","Receptionist","Receptionist Jobs","Registered Nurse Jobs","Research and Development","Retail","Safety","School Administration Jobs","School Nurse Jobs","School Teacher Jobs","Science Teacher Jobs","Search Engine Optimization SEO Job","Security","Skilled Jobs","Social Media Marketing Jobs","Social Studies Teacher Jobs","Software Engineer Jobs","Sonographer Jobs","Specialist Internal Medicine Jobs","Support Services","Surgery Doctor Jobs","System Support","Talent Acquisition Specialist Jobs","Teacher Jobs","Technician","Technology","Telecommunication","Testing Laboratory Jobs","Transportation","Ultrasound Job","Unskilled Jobs","Urologist Jobs","Video Editor Jobs","Videographer Jobs"],
@@ -230,6 +231,7 @@ export function renderAdmin() {
           <a href="#pages-jobs" class="admin-sub-item" data-view="pages-jobs">Job Destination</a>
           <a href="#pages-companies" class="admin-sub-item" data-view="pages-companies">Company Destination</a>
           <a href="#pages-other" class="admin-sub-item" data-view="pages-other">Other Pages</a>
+          <a href="#seo-job-pages" class="admin-sub-item" data-view="seo-job-pages">SEO Job Pages</a>
         </div>
       </div>
 
@@ -3356,6 +3358,23 @@ export function renderAdmin() {
       </div>
     </div>
 
+    <!-- VIEW: SEO Job Pages -->
+    <div class="admin-view" id="view-seo-job-pages">
+      <div class="modern-page-header"><div class="modern-heading-title-area"><div><div class="modern-title-badge-row"><h1 class="modern-page-title">SEO Job Pages</h1><span class="modern-heading-badge" id="seo-job-page-count">0 items</span></div><p class="modern-page-subtitle">Manage automatically generated Category + Location landing pages.</p></div></div></div>
+      <div class="modern-card" style="padding:20px;margin-bottom:20px"><h2 class="modern-card-title">Main Category Pages</h2><p class="modern-page-subtitle">Create a main category page manually. Location pages qualify automatically at 10 active jobs.</p><form id="seo-main-form" class="modern-card-toolbar" style="padding:16px 0"><select id="seo-main-category" class="modern-select-pill" required aria-label="Main category"><option value="">Choose a main category</option></select><label class="modern-label">Main URL <input id="seo-main-slug" class="modern-input" placeholder="nurse-jobs" required></label><button class="modern-btn-primary" type="submit">Save Main Category Page</button><button class="modern-btn-secondary" type="button" id="seo-job-refresh">Refresh</button></form><div id="seo-main-list" class="post-row-actions-bar" style="flex-wrap:wrap"></div></div>
+      <div class="modern-card modern-table-card">
+        <div class="modern-card-tab-bar"><ul class="modern-status-nav" id="seo-job-status-tabs"><li><a href="#" class="current" data-seo-status="all">All</a></li><li><a href="#" data-seo-status="Published">Published</a></li><li><a href="#" data-seo-status="Draft">Draft</a></li><li><a href="#" data-seo-status="Index">Index</a></li><li><a href="#" data-seo-status="Noindex">Noindex</a></li><li><a href="#" data-seo-status="AUTO">Auto</a></li><li><a href="#" data-seo-status="MANUAL">Manual</a></li></ul></div>
+        <div class="modern-card-toolbar"><div class="modern-toolbar-left"><div class="modern-search-box-unified"><input type="search" id="seo-job-search" placeholder="Search title, URL or category…" aria-label="Search SEO job pages"><button type="button" class="modern-search-submit-btn" id="seo-job-search-btn">Search</button></div><div class="modern-filter-dropdowns"><select id="seo-job-category-filter" class="modern-select-pill"><option value="">All categories</option></select><select id="seo-job-location-filter" class="modern-select-pill"><option value="">All locations</option></select></div></div><div class="modern-toolbar-right"><div class="modern-bulk-action-group"><select id="seo-job-bulk-action" class="modern-select-pill"><option value="">Bulk actions</option><option value="publish">Publish</option><option value="draft">Move to Draft</option><option value="index">Set Index</option><option value="noindex">Set Noindex</option><option value="auto">Return to Auto Management</option></select><button type="button" class="modern-btn-secondary" id="seo-job-bulk-apply">Apply</button></div></div></div>
+        <div class="modern-table-responsive"><table class="modern-posts-table"><thead><tr><th class="post-col-cb"><input id="seo-job-select-all" type="checkbox" aria-label="Select all SEO pages"></th><th>Page Title</th><th>URL</th><th>Category</th><th>Location</th><th>Active Jobs</th><th>Page Type</th><th>Status</th><th>Indexing</th><th>Mode</th><th>Eligibility</th><th>Created</th><th>Updated</th><th>Actions</th></tr></thead><tbody id="seo-job-page-rows"><tr><td colspan="14" style="padding:36px;text-align:center;color:#94a3b8">Loading SEO job pages…</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- VIEW: Edit SEO Job Page -->
+    <div class="admin-view" id="view-seo-job-editor">
+      <div class="modern-page-header"><div class="modern-heading-title-area"><div><div class="modern-title-badge-row"><a href="#seo-job-pages" class="modern-header-back-btn">← <span>SEO Job Pages</span></a><h1 class="modern-page-title">Edit SEO Job Page</h1><span class="modern-heading-badge">Category + Location</span></div><p class="modern-page-subtitle">Manual SEO settings override future automatic metadata updates.</p></div></div></div>
+      <div class="modern-editor-container" style="max-width:980px;margin:0 auto"><form id="seo-job-page-form" class="modern-card" style="padding:24px"><input type="hidden" id="seo-job-id"><div class="modern-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><label class="modern-field-wrap"><span class="modern-label">Category</span><input id="seo-job-category" class="modern-input" readonly></label><label class="modern-field-wrap"><span class="modern-label">Location</span><input id="seo-job-location" class="modern-input" readonly></label><label class="modern-field-wrap"><span class="modern-label">Current active job count</span><input id="seo-job-count" class="modern-input" readonly></label><label class="modern-field-wrap"><span class="modern-label">Last automatically checked</span><input id="seo-job-checked" class="modern-input" readonly></label></div><label class="modern-field-wrap"><span class="modern-label">Created date</span><input id="seo-job-created" class="modern-input" readonly></label><hr style="border:0;border-top:1px solid #eef2f6;margin:22px 0"><label class="modern-field-wrap"><span class="modern-label">Page Title / H1</span><input id="seo-job-title" class="modern-title-input" required></label><label class="modern-field-wrap"><span class="modern-label">SEO Title</span><input id="seo-job-seo-title" class="modern-input" required></label><label class="modern-field-wrap"><span class="modern-label">Meta Description</span><textarea id="seo-job-meta-description" class="modern-input" rows="3"></textarea></label><label class="modern-field-wrap"><span class="modern-label">Slug</span><input id="seo-job-slug" class="modern-input" required></label><label class="modern-field-wrap"><span class="modern-label">Intro Content</span><textarea id="seo-job-intro" class="modern-input" rows="5"></textarea></label><label class="modern-field-wrap"><span class="modern-label">Bottom SEO Content</span><textarea id="seo-job-bottom" class="modern-input" rows="6"></textarea></label><div class="modern-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px"><label class="modern-field-wrap"><span class="modern-label">Status</span><select id="seo-job-status" class="modern-select"><option>Published</option><option>Draft</option></select></label><label class="modern-field-wrap"><span class="modern-label">Indexing</span><select id="seo-job-indexing" class="modern-select"><option>Index</option><option>Noindex</option></select></label><label class="modern-field-wrap"><span class="modern-label">Management Mode</span><select id="seo-job-mode" class="modern-select"><option value="AUTO">Auto</option><option value="MANUAL_PUBLISHED">Manual Published</option><option value="MANUAL_DRAFT">Manual Draft</option></select></label></div><div style="display:flex;gap:12px;margin-top:22px"><button class="modern-btn-primary" type="submit">Save SEO Page</button><button class="modern-btn-secondary" type="button" id="seo-job-regenerate">Regenerate Metadata</button><a class="modern-btn-secondary" id="seo-job-view" target="_blank" rel="noopener">View Page ↗</a></div></form></div>
+    </div>
+
     <!-- VIEW 15: Add / Edit Page -->
     <div class="admin-view" id="view-page-editor">
       <div class="modern-page-header">
@@ -3869,6 +3888,8 @@ export async function initAdmin() {
       'pages-jobs': 'view-pages',
       'pages-companies': 'view-pages',
       'pages-other': 'view-pages',
+      'seo-job-pages': 'view-seo-job-pages',
+      'seo-job-editor': 'view-seo-job-editor',
       'page-new': 'view-post-editor',
       'page-edit': 'view-post-editor',
       'candidates': 'view-candidates',
@@ -3909,7 +3930,7 @@ export async function initAdmin() {
     const isUser = viewName.startsWith('user');
     const isPost = viewName.startsWith('post');
     const isMedia = viewName.startsWith('media');
-    const isPage = viewName.startsWith('page');
+    const isPage = viewName.startsWith('page') || viewName.startsWith('seo-job');
     const isSiteChrome = viewName.startsWith('site-');
     const isJob = !isEmployer && !isCandidate && !isUser && !isPost && !isMedia && !isPage && !isSiteChrome;
 
@@ -4080,6 +4101,8 @@ export async function initAdmin() {
         'pages-jobs': 'Pages / Job Destination',
         'pages-companies': 'Pages / Company Destination',
         'pages-other': 'Pages / Other Pages',
+        'seo-job-pages': 'Pages / SEO Job Pages',
+        'seo-job-editor': 'Pages / SEO Job Pages / Edit',
         'post-new': 'Posts / Add New Post',
         'post-edit': 'Posts / Edit Post',
         'post-categories': 'Posts / Categories',
@@ -4232,6 +4255,12 @@ export async function initAdmin() {
       switchView(hash);
     } else if (['pages', 'pages-core', 'pages-jobs', 'pages-companies', 'pages-other'].includes(hash)) {
       switchView(hash === 'pages' ? 'pages-core' : hash);
+    } else if (hash === 'seo-job-pages') {
+      switchView('seo-job-pages');
+      await seoAdmin.load();
+    } else if (hash.startsWith('seo-job-editor/')) {
+      switchView('seo-job-editor');
+      await seoAdmin.open(decodeURIComponent(hash.slice('seo-job-editor/'.length)));
     } else if (hash === 'page-new') {
       fillPageInBlogEditor({});
       switchView('page-new');
@@ -9653,6 +9682,12 @@ export async function initAdmin() {
       updateEditorBylinePreview();
     }
     if (!isPage) document.getElementById('wp-home-widget-inspector')?.remove();
+    document.getElementById('wp-main-category-panel')?.remove();
+    if (isPage) {
+      const panel=document.createElement('div');panel.id='wp-main-category-panel';panel.className='wp-sidebar-panel';
+      panel.innerHTML=`<label for="wp-main-category" class="modern-label">Main job category page</label><select id="wp-main-category" class="wp-sidebar-input"><option value="">Standard page</option>${taxonomies.categories.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')}</select><p class="modern-field-hint">Choose a category to enable automatic location pages at 10 active jobs.</p>`;
+      document.getElementById('wp-sidebar-panel-post')?.prepend(panel);
+    }
   }
 
   function fillPageInBlogEditor(page = {}) {
@@ -9667,6 +9702,7 @@ export async function initAdmin() {
     if (indicator) indicator.textContent = `${page.title || 'No Title'} - Page`;
     document.getElementById('view-post-editor')?.classList.toggle('is-home-document', page.slug === 'home');
     configureDocumentEditor('page');
+    if(document.getElementById('wp-main-category'))document.getElementById('wp-main-category').value=page.seoMainCategory || '';
   }
 
   function genBlockId() {
@@ -12882,7 +12918,7 @@ export async function initAdmin() {
     });
   }
 
-  function saveGutenbergPage(status = 'published') {
+  async function saveGutenbergPage(status = 'published') {
     syncImageMetadataFromEditor();
     const title = document.getElementById('wp-post-title-input')?.value.trim() || 'Untitled Page';
     const slug = document.getElementById('wp-post-slug')?.value.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -12894,6 +12930,14 @@ export async function initAdmin() {
     } else {
       page = { id: Date.now(), title, slug, content, status: pageStatus, metaTitle: document.getElementById('wp-seo-title')?.value.trim() || title, metaDescription: document.getElementById('wp-seo-description')?.value.trim() || '', author: 'Trikonet', views: 0, comments: '—', date: `Published ${new Date().toLocaleDateString('en-US')}`, rawDate: new Date().toISOString().slice(0, 10), seoScore: updateRankMathScore(), keyword: document.getElementById('wp-focus-keyword')?.value.trim() || 'Not Set', schema: 'WebPage', links: '0 | 0 | 0' };
       pages.unshift(page);
+    }
+    const mainCategory=document.getElementById('wp-main-category')?.value || page.seoMainCategory || '';
+    if(mainCategory){
+      try {
+        const response=await fetch('/api/admin/seo-job-pages/main-categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:mainCategory,slug,title,status:pageStatus==='draft'?'Draft':'Published',seoTitle:page.metaTitle,metaDescription:page.metaDescription,introContent:content.replace(/<[^>]*>/g,' ').trim(),cmsPageId:page.id})});
+        const result=await response.json();if(!response.ok)throw new Error(result.error || 'Unable to save main category page.');
+        page.seoMainCategory=mainCategory;
+      }catch(error){showAdminNotice(error.message,'error');return;}
     }
     editingPageId = Number(page.id);
     isPostDirty = false;
@@ -13949,9 +13993,24 @@ export async function initAdmin() {
   });
 
 
+  const seoAdmin = initSeoAdmin(showAdminNotice);
   // Initial routing and data loading
   handleRoute();
   await loadData();
+  if(activeAdminSession.role==='Administrator'){
+    try{
+      const response=await fetch('/api/admin/seo-job-pages/main-categories');
+      if(response.ok){
+        const mainPages=await response.json();
+        for(const main of mainPages){
+          const existing=pages.find(p=>p.slug===main.slug);
+          const page={...(existing || {}),id:main.cmsPageId || existing?.id || 2000000000000+[...main.id].reduce((sum,c)=>(sum*31+c.charCodeAt(0))%1000000000,0),title:main.title,slug:main.slug,status:main.status==='Draft'?'draft':'published',seoMainCategory:main.category,content:existing?.content || main.introContent || '',author:'Trikonet',rawDate:main.createdAt?.slice(0,10),date:main.updatedAt,metaTitle:main.seoTitle,metaDescription:main.metaDescription};
+          if(existing)Object.assign(existing,page);else pages.push(page);
+        }
+        savePages();
+      }
+    }catch{}
+  }
   renderPostCategoryFilterDropdown();
   renderGutenbergPostCategoriesChecklist();
   handleRoute();
