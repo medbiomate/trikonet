@@ -910,8 +910,9 @@
 
 @media (max-width: 768px) {
   .cv-header-show-tabs {
-    display: inline-flex !important;
+    display: none !important;
   }
+  .cv-embed-screen.is-tabs-collapsed .cv-header-show-tabs { display: inline-flex !important; }
   .cv-embed-screen.is-fullscreen .cv-header-save-btn { display: none !important; }
   .cv-embed-screen.is-fullscreen > .cv-host-actions {
     position: relative; inset: auto; transform: none; flex: 0 0 auto;

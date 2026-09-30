@@ -434,6 +434,8 @@ class CVBuilderApp {
           const tab = event.data?.tab;
           this.visibleActionTab = (tab === 'content' || tab === 'customize') ? tab : 'hidden';
           this.updateActionBar();
+        } else if (type === 'medbiomate-cv-tabs-collapsed') {
+          frame.closest('.cv-embed-screen')?.classList.toggle('is-tabs-collapsed', event.data.collapsed === true);
         } else if (type === 'medbiomate-cv-preview-ready') {
           if (frame.dataset.readyScheduled !== 'true') {
             frame.dataset.readyScheduled = 'true';
