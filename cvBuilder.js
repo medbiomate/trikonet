@@ -1042,9 +1042,6 @@ class CVBuilderApp {
             <button type="button" data-cv-header-action="download"><span>Download</span></button>
           </nav>
           <div class="cv-editor-header-actions">
-            <select class="cv-header-resume-select" aria-label="Current résumé">
-              <option>Resume 1</option>
-            </select>
             <button type="button" class="cv-header-more-btn" aria-label="More résumé options">&#8942;</button>
             <button type="button" class="cv-header-show-tabs" id="btnToggleTabs">Tabs</button>
             <button type="button" class="cv-header-save-btn" id="btnEditorDone">
