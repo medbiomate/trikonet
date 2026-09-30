@@ -1331,7 +1331,7 @@ function homeTopCompanies(s = {}) {
     const openJobsCount = Number(e.openJobs) || 20;
 
     return `
-      <div class="featured-company-card">
+      <a class="featured-company-card" href="/employer/${escapeAttr(e.slug)}" aria-label="View jobs at ${escapeAttr(displayTitle)}" style="text-decoration:none;color:inherit">
         <div class="featured-company-logo-wrap">
           ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(displayTitle)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` : ''}
           <div class="featured-company-logo-fallback" style="${e.logo ? 'display:none;' : 'display:flex;'}">
@@ -1356,8 +1356,8 @@ function homeTopCompanies(s = {}) {
           <span class="company-cat-pill">${escapeAttr(catText)}</span>
         </div>
 
-        <a href="/employer/${escapeAttr(e.slug)}" class="featured-company-view-btn">View jobs</a>
-      </div>
+        <span class="featured-company-view-btn">View jobs</span>
+      </a>
     `;
   }).join('');
 
