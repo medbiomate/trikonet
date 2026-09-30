@@ -27,10 +27,17 @@ async function loadSeoPages() {
   try {
     const linksResponse=await fetch('/api/seo-job-pages');
     if(linksResponse.ok)seoInternalLinks=await linksResponse.json();
-    if(path==='/' || path.split('/').filter(Boolean).length!==1)return;
-    const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(path.slice(1))}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`);
+    const destinationSlug=path.startsWith('/category/') ? path.slice('/category/'.length) : path.slice(1);
+    if(path==='/' || destinationSlug.includes('/'))return;
+    const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(destinationSlug)}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`);
     const payload=await response.json();
-    if(response.ok)seoPagePayload=payload;
+    if(response.ok && payload.page){
+      seoPagePayload=payload;
+      if(path.startsWith('/category/')){
+        path=`/${payload.page.slug}`;
+        history.replaceState(null,'',path+location.search+location.hash);
+      }
+    }
     else if(payload.seoPage)seoPageDraft=true;
   }catch{}
 }
