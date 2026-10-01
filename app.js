@@ -1,6 +1,7 @@
 import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=3';
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=20.0';
 import { formatCompanyName } from './company-name.js';
+import { employerProfileHref } from './employer-link.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=20261001-published-only';
 import { renderSeoLanding } from './seo-public.js?v=1';
@@ -394,6 +395,7 @@ function mapJob(record){
     slug:record.slug,
     logo:m._job_logo||record.logo||'',
     employerUrl:m._job_employer_url||record.employerUrl||'',
+    employerSlug:record.employerSlug||'',
     excerpt:cleanExcerpt,
     source:record.local?'local':'database',
     local:!!record.local
@@ -1823,7 +1825,7 @@ function jobs(){
                     <button type="button" class="nurse-card-save-btn" data-slug="${escapeAttr(j.slug)}" title="Save job" aria-label="Save job">${iconBookmark}</button>
                   </div>
                   <div class="nurse-company-row">
-                    ${cleanCompany ? `<span class="comp-name">${escapeAttr(cleanCompany)}</span>` : ''}
+                    ${cleanCompany ? `<a class="comp-name company-profile-link" href="${escapeAttr(employerProfileHref(j))}">${escapeAttr(cleanCompany)}</a>` : ''}
                     ${cleanCompany && cleanCat ? `<span class="comp-sep">•</span>` : ''}
                     ${cleanCat ? `<span class="comp-cat">${escapeAttr(cleanCat)}</span>` : ''}
                   </div>
@@ -2068,7 +2070,7 @@ function nurseJobsPage(){
                     <button type="button" class="nurse-card-save-btn" title="Save job" aria-label="Save job">${iconBookmark}</button>
                   </div>
                   <div class="nurse-company-row">
-                    <span class="comp-name">${escapeAttr(job.company||'Trikonet Healthcare')}</span>
+                    <a class="comp-name company-profile-link" href="${escapeAttr(employerProfileHref(job))}">${escapeAttr(job.company||'Trikonet Healthcare')}</a>
                   </div>
                   <div class="nurse-job-meta-row">
                     <span class="nurse-meta-badge">${iconBriefcase} ${escapeAttr(job.type||'Full Time')}</span>
@@ -2369,7 +2371,7 @@ function categoryPage(destination = null, allJobs = false) {
                     <button type="button" class="nurse-card-save-btn" title="Save job" aria-label="Save job">${iconBookmark}</button>
                   </div>
                   <div class="nurse-company-row">
-                    <span class="comp-name">${escapeAttr(job.company || 'Employer')}</span>
+                    <a class="comp-name company-profile-link" href="${escapeAttr(employerProfileHref(job))}">${escapeAttr(job.company || 'Employer')}</a>
                   </div>
                   <div class="nurse-job-meta-row">
                     <span class="nurse-meta-badge">${iconBriefcase} ${escapeAttr(job.type || 'Full Time')}</span>

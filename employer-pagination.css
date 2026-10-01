@@ -7,3 +7,6 @@
 .employer-jobs-pagination a:focus-visible { outline:2px solid #b8170c; outline-offset:3px; }
 .employer-jobs-pagination .disabled { color:#94a3b8; background:#f8fafc; }
 @media(max-width:600px) { .employer-jobs-pagination .pagination-pages { gap:6px; } .employer-jobs-pagination .pagination-btn { min-width:36px; padding:8px 10px; } }
+.nurse-company-row .company-profile-link { text-decoration:none; }
+.nurse-company-row .company-profile-link:hover { color:#b8170c; text-decoration:underline; }
+.nurse-company-row .company-profile-link:focus-visible { outline:2px solid #b8170c; outline-offset:3px; border-radius:3px; }
