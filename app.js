@@ -1781,7 +1781,7 @@ function jobs(){
       <section class="jobs-main-content nurse-results-main">
         <div class="listing-top-bar nurse-results-tools">
           <div class="nurse-tools-top">
-            <span class="listing-top-sub nurse-tools-count">${total ? `Showing <b>${start} – ${end}</b> of <b>${total.toLocaleString()}</b> ${qTerm ? `jobs for “${escapeAttr(qTerm)}”` : 'database jobs'}` : 'No jobs found for these filters'}</span>
+            <span class="listing-top-sub nurse-tools-count">${total ? `Showing <b>${start} – ${end}</b> ${qTerm ? `jobs for “${escapeAttr(qTerm)}”` : 'database jobs'}` : 'No jobs found for these filters'}</span>
             <div class="listing-top-actions nurse-tools-actions">
               <select class="jobs-sort-select nurse-sort-select" aria-label="Sort jobs">
                 <option value="default">Most Relevant</option>
@@ -2041,7 +2041,7 @@ function nurseJobsPage(){
       <section class="nurse-results-main">
         <div class="nurse-results-tools">
           <div class="nurse-tools-top">
-            <span class="nurse-tools-count">Showing <b>${start} – ${end}</b> of <b>${total.toLocaleString()}</b> Nurse Jobs</span>
+            <span class="nurse-tools-count">Showing <b>${start} – ${end}</b> Nurse Jobs</span>
             <div class="nurse-tools-actions">
               <select class="nurse-sort-select" aria-label="Sort listings">
                 <option>Most Relevant</option>
@@ -2341,7 +2341,7 @@ function categoryPage(destination = null, allJobs = false) {
       <section class="nurse-results-main">
         <div class="nurse-results-tools">
           <div class="nurse-tools-top">
-            <span class="nurse-tools-count">Showing <b>${start} – ${end}</b> of <b>${Number(total).toLocaleString()}</b> ${escapeAttr(categoryName)} Jobs</span>
+            <span class="nurse-tools-count">Showing <b>${start} – ${end}</b> ${escapeAttr(categoryName)} Jobs</span>
             <div class="nurse-tools-actions">
               <select class="nurse-sort-select" aria-label="Sort listings">
                 <option>Most Relevant</option>
