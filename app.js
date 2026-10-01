@@ -383,6 +383,8 @@ function mapJob(record){
   const rawExcerpt=record.excerpt?.rendered||record.content?.rendered||record.excerpt||record.description||'';
   const cleanExcerpt=rawExcerpt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);
   return {
+    ...record,
+    description:record.description||record.content?.rendered||'',
     id:record.id,
     title:record.title?.rendered||record.title||'',
     company:formatCompanyName(decodeHtml(m._job_employer_name||record.company||'')),
