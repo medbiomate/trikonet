@@ -1,7 +1,8 @@
+import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=1';
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=19.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
-import { renderAdmin, initAdmin } from './admin.js?v=11.0';
+import { renderAdmin, initAdmin } from './admin.js?v=12.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260930-bottom-icons-v44';
@@ -5285,15 +5286,7 @@ function medicalCoderClassPage() {
 }
 
 function getAdminAuth() {
-  try {
-    const raw = localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session');
-    if (!raw) return null;
-    const session = JSON.parse(raw);
-    if (!session?.expiresAt || Number(session.expiresAt) <= Date.now()) return null;
-    if (!['Administrator', 'Editor', 'Content Editor'].includes(session.role)) return null;
-    return session;
-  } catch {}
-  return null;
+  return getVerifiedAdmin();
 }
 
 function notFound404Page() {
@@ -5457,6 +5450,7 @@ function initAdminLogin() {
 
     localStorage.removeItem('trikonet_admin_session');
     sessionStorage.setItem('trikonet_admin_session', JSON.stringify(session));
+    signalAdminSessionChange();
 
     window.location.href = '/admin';
   });
@@ -5713,11 +5707,12 @@ else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord(),loadLoc
 else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord(),loadCounts());
 else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent(),loadCounts());
 else initialLoads.push(loadConnectedContent(),loadCounts());
-await Promise.all(initialLoads);
+await Promise.all([...initialLoads, refreshAdminSession()]);
 // Published article data comes from the backend. The admin screen also keeps
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+initPublicAdminBar();
 import('./page-stamp.js?v=2').then(({addPageStamp}) => addPageStamp({
   record: wpRecord,
   post: document.querySelector('.blog-post-page') ? data.posts?.find(p => path.endsWith('/' + p.slug)) : null,

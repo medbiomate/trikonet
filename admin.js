@@ -1,3 +1,4 @@
+import { signalAdminSessionChange } from './admin-session.js?v=1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -352,7 +353,7 @@ export function renderAdmin() {
             <div>
               <div class="modern-title-badge-row">
                 <h1 class="modern-page-title">Jobs</h1>
-                <span class="modern-heading-badge" id="admin-items-count-chip">18,525 listings</span>
+                <span class="modern-heading-badge" id="admin-items-count-chip">Loading listings…</span>
               </div>
               <p class="modern-page-subtitle">Track, filter, and manage all published job listings across the portal.</p>
             </div>
@@ -463,7 +464,7 @@ export function renderAdmin() {
                   <span class="modern-paging-counter">
                     <span>Page</span>
                     <input class="current-page" id="current-page-selector" type="text" name="paged" value="1" size="2">
-                    <span class="tablenav-paging-text">of <span class="total-pages" id="admin-total-pages">394</span></span>
+                    <span class="tablenav-paging-text">of <span class="total-pages" id="admin-total-pages">1</span></span>
                   </span>
                 </span>
                 <button type="button" class="tablenav-page-btn next-page" aria-label="Next page" title="Next page">›</button>
@@ -3743,6 +3744,7 @@ export async function initAdmin() {
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('trikonet_admin_session');
     sessionStorage.removeItem('trikonet_admin_session');
+    signalAdminSessionChange();
     location.href = '/admin-login';
   });
 
@@ -4966,18 +4968,26 @@ export async function initAdmin() {
 
     // Update pagination controls
     const itemsCountEl = document.querySelector('#admin-items-count');
-    if (itemsCountEl) itemsCountEl.textContent = `${(totalItems + 18495).toLocaleString()} items`;
+    if (itemsCountEl) itemsCountEl.textContent = `${totalItems.toLocaleString()} items`;
     const curPageEl = document.querySelector('#current-page-selector');
     if (curPageEl) curPageEl.value = currentPage;
     const totalPagesEl = document.querySelector('#admin-total-pages');
-    if (totalPagesEl) totalPagesEl.textContent = totalPages + 390;
+    if (totalPagesEl) totalPagesEl.textContent = totalPages;
+
+    const chip = document.querySelector('#admin-items-count-chip');
+    if (chip) chip.textContent = `${totalItems.toLocaleString()} listings`;
+    if (curPageEl) { curPageEl.min = 1; curPageEl.max = totalPages; }
+    document.querySelector('.tablenav-page-btn.first-page')?.toggleAttribute('disabled', currentPage === 1);
+    document.querySelector('.tablenav-page-btn.prev-page')?.toggleAttribute('disabled', currentPage === 1);
+    document.querySelector('.tablenav-page-btn.next-page')?.toggleAttribute('disabled', currentPage === totalPages);
+    document.querySelector('.tablenav-page-btn.last-page')?.toggleAttribute('disabled', currentPage === totalPages);
 
     // Update status counts
     const mineCount = allJobs().filter(j => j.local).length;
     const countMineEl = document.querySelector('#count-mine');
-    if (countMineEl) countMineEl.textContent = `(${mineCount || 15})`;
+    if (countMineEl) countMineEl.textContent = `(${mineCount})`;
     const countAllEl = document.querySelector('#count-all');
-    if (countAllEl) countAllEl.textContent = `(${(totalItems + 18495).toLocaleString()})`;
+    if (countAllEl) countAllEl.textContent = `(${allJobs().length.toLocaleString()})`;
 
     if (jobRows) {
       jobRows.innerHTML = pagedJobs.length ? pagedJobs.map(j => `
@@ -6155,13 +6165,26 @@ export async function initAdmin() {
     renderReportedJobs();
   });
 
+  // Load every batch so client-side pagination and filters cover the full dataset.
+  async function loadRemoteJobs() {
+    const jobs = [];
+    for (let page = 1; ; page++) {
+      const response = await fetch(`/api/wp/job_listing?per_page=1000&page=${page}&_fields=id,slug,title,status,date,metas,content,excerpt`);
+      if (!response.ok) throw new Error('Unable to load jobs');
+      const batch = await response.json();
+      if (!Array.isArray(batch)) throw new Error('Invalid jobs response');
+      jobs.push(...batch);
+      if (batch.length < 1000) return jobs;
+    }
+  }
+
   // Load all data
   async function loadData() {
     const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
       fetch('/api/local/jobs').then(r => r.json()).catch(() => []),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch('/api/wp/job_listing?per_page=30&_fields=id,slug,title,status,date,metas,content,excerpt').then(r => r.ok ? r.json() : []).catch(() => []),
+      loadRemoteJobs().catch(error => { console.error(error); return []; }),
       fetch('/api/local/employers').then(r => r.json()).catch(() => []),
       fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => []),
       fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))
@@ -6775,7 +6798,18 @@ export async function initAdmin() {
   document.querySelector('.tablenav-page-btn.first-page')?.addEventListener('click', () => { currentPage = 1; renderJobRows(); });
   document.querySelector('.tablenav-page-btn.prev-page')?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderJobRows(); } });
   document.querySelector('.tablenav-page-btn.next-page')?.addEventListener('click', () => { currentPage++; renderJobRows(); });
-  document.querySelector('.tablenav-page-btn.last-page')?.addEventListener('click', () => { currentPage = Math.ceil(allJobs().length / pageSize) || 1; renderJobRows(); });
+  document.querySelector('.tablenav-page-btn.last-page')?.addEventListener('click', () => { currentPage = Number(document.querySelector('#admin-total-pages')?.textContent) || 1; renderJobRows(); });
+
+  const pageSelector = document.querySelector('#current-page-selector');
+  function selectJobPage() {
+    const requested = Number(pageSelector?.value);
+    if (Number.isInteger(requested) && requested > 0) currentPage = requested;
+    renderJobRows();
+  }
+  pageSelector?.addEventListener('change', selectJobPage);
+  pageSelector?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); selectJobPage(); }
+  });
 
   // Job Form Inputs & Submission
   jobForm.title.addEventListener('input', () => {
