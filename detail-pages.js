@@ -625,6 +625,7 @@ export function renderEmployerDetail(record, path, jobs = []) {
     const normalizedEmployer = title.trim().toLowerCase();
     const employerSlug = String(record.slug || '').trim().toLowerCase();
     const matchingJobs = jobs.filter(job => {
+      if (record.jobPagination) return true; // The backend has already matched and paginated these jobs.
       if (Array.isArray(job)) return false;
       const jobCompany = String(job.company || job.employerName || '').trim().toLowerCase();
       const jobEmployerSlug = String(job.employerSlug || '').trim().toLowerCase();
@@ -645,15 +646,15 @@ export function renderEmployerDetail(record, path, jobs = []) {
       ];
     });
   }
-  if (!positions.length && isBateel) positions = bateelJobs;
+  if (!positions.length && isBateel && !record.jobPagination && !record.jobsLoadError) positions = bateelJobs;
 
   // Count only the vacancies actually matched to this employer. API page-size
   // limits and stale employer metadata must never be shown as a job count.
-  const totalOpenJobs = positions.length;
+  const totalOpenJobs = record.jobPagination ? record.jobPagination.total : positions.length;
   const jobsPages = Math.max(1, Math.ceil(totalOpenJobs / 10));
   const requestedPage = Number(new URLSearchParams(window.location.search).get('jobsPage'));
-  const jobsPage = Math.min(jobsPages, Math.max(1, Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1));
-  const pagePositions = positions.slice((jobsPage - 1) * 10, jobsPage * 10);
+  const jobsPage = record.jobPagination?.page || Math.min(jobsPages, Math.max(1, Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1));
+  const pagePositions = record.jobPagination ? positions : positions.slice((jobsPage - 1) * 10, jobsPage * 10);
   const pageHref = page => {
     const url = new URL(window.location.href);
     url.searchParams.set('jobsPage', String(page));
@@ -662,12 +663,12 @@ export function renderEmployerDetail(record, path, jobs = []) {
     return esc(url.pathname + url.search + url.hash);
   };
   const pageNumbers = [...new Set([1, jobsPage - 1, jobsPage, jobsPage + 1, jobsPages])].filter(p => p >= 1 && p <= jobsPages).sort((a,b) => a-b);
-  const jobsPagination = jobsPages > 1 ? `<nav class="pagination" aria-label="Employer jobs pagination">
+  const jobsPagination = totalOpenJobs ? `<nav class="employer-jobs-pagination" aria-label="Employer jobs pagination">
     <p>Showing ${(jobsPage - 1) * 10 + 1}–${Math.min(jobsPage * 10, totalOpenJobs)} of ${totalOpenJobs} jobs</p>
     <div class="pagination-pages">
-      ${jobsPage > 1 ? `<a class="pagination-btn" href="${pageHref(jobsPage - 1)}">Previous</a>` : ''}
+      ${jobsPage > 1 ? `<a class="pagination-btn" href="${pageHref(jobsPage - 1)}">Previous</a>` : '<span class="pagination-btn disabled" aria-disabled="true">Previous</span>'}
       ${pageNumbers.map((p, i) => `${i && p - pageNumbers[i-1] > 1 ? '<span>…</span>' : ''}<a class="pagination-btn${p === jobsPage ? ' active' : ''}" ${p === jobsPage ? 'aria-current="page"' : ''} href="${pageHref(p)}">${p}</a>`).join('')}
-      ${jobsPage < jobsPages ? `<a class="pagination-btn" href="${pageHref(jobsPage + 1)}">Next</a>` : ''}
+      ${jobsPage < jobsPages ? `<a class="pagination-btn" href="${pageHref(jobsPage + 1)}">Next</a>` : '<span class="pagination-btn disabled" aria-disabled="true">Next</span>'}
     </div></nav>` : '';
   const empDesc = record.description || '';
   const hasEmpHtml = /<[a-z][\s\S]*>/i.test(empDesc);

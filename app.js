@@ -1,5 +1,5 @@
 import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=3';
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=19.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=20.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=20261001-published-only';
@@ -316,6 +316,17 @@ if (cats.length) {
   } catch {}
 }}else if(type==='employer'&&wpRecord){if(wpRecord.local){try{const localJobsRes=await fetch('/api/local/jobs');if(localJobsRes.ok){const lJobs=await localJobsRes.json();profileJobs=lJobs.filter(j=>j.employerSlug===wpRecord.slug||j.company===(wpRecord.title?.rendered||wpRecord.title)).map(mapJob)}}catch{}}else if(wpRecord.id){const jobsResponse=await fetch(`/api/wp/job_listing?employer_id=${wpRecord.id}&per_page=100`);if(jobsResponse.ok)profileJobs=(await jobsResponse.json()).map(mapJob);if(!profileJobs.length&&wpRecord.slug){const slugResponse=await fetch(`/api/wp/job_listing?employer_slug=${encodeURIComponent(wpRecord.slug)}&per_page=100`);if(slugResponse.ok)profileJobs=(await slugResponse.json()).map(mapJob)}}}}catch{wpRecord=null}}
 const fieldValues=value=>value&&typeof value==='object'?Object.values(value).join(', '):'';
+async function loadEmployerJobPage() {
+  if (!wpRecord?.slug) return;
+  const page = new URLSearchParams(location.search).get('jobsPage') || '1';
+  try {
+    const response = await fetch(`/api/employer-jobs/${encodeURIComponent(wpRecord.slug)}?page=${encodeURIComponent(page)}`);
+    if (!response.ok) throw new Error('Employer jobs unavailable');
+    const result = await response.json();
+    profileJobs = result.jobs.map(mapJob);
+    wpRecord.jobPagination = {total:result.total,page:result.page};
+  } catch { profileJobs = []; wpRecord.jobsLoadError = true; }
+}
 export function formatJobDate(value) {
   if (!value) return '';
   if (typeof value === 'string') {
@@ -5706,7 +5717,7 @@ else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
   if (wpRecord && (wpRecord.autosaved || String(wpRecord.slug || '').startsWith('autosave-') || !['publish','published','active',''].includes(String(wpRecord.status || '').toLowerCase()))) wpRecord = null;
 }),loadLocalJobs(),loadCounts());
-else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord(),loadCounts());
+else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord().then(loadEmployerJobPage),loadCounts());
 else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent(),loadCounts());
 else initialLoads.push(loadConnectedContent(),loadCounts());
 await Promise.all([...initialLoads, refreshAdminSession()]);
