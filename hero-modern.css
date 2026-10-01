@@ -6649,10 +6649,6 @@ main.detail-page {
   }
 }
 
-.content-ad { box-sizing:border-box; width:100%; max-width:970px; min-width:0; min-height:280px; margin:28px auto; padding:12px 0; grid-column:1/-1; clear:both; text-align:center; overflow:hidden; }
-.content-ad-label { display:block; margin-bottom:8px; font-size:10px; line-height:16px; color:#64748b; }
-.content-ad .adsbygoogle { min-height:250px; }
-@media(max-width:768px){.content-ad{margin:20px auto;min-height:280px;}}
 .job-category-links {padding-top:40px;padding-bottom:48px;}
 .job-category-links h2 {display:flex;align-items:center;justify-content:center;gap:24px;font-size:24px;line-height:1.4;text-align:center;margin:0 0 32px;}
 .job-category-links h2::before,.job-category-links h2::after {content:"";height:1px;flex:1;max-width:160px;background:linear-gradient(90deg,transparent,var(--red));}
