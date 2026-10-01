@@ -2516,3 +2516,64 @@ footer.footer.site-footer-standard .footer-copy-text {
     backdrop-filter: blur(12px) !important;
   }
 }
+
+/* Keep page navigation usable in narrow columns alongside responsive ads. */
+@media (max-width: 640px) {
+  .data-pagination {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 16px !important;
+    gap: 12px !important;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    isolation: isolate;
+    clear: both;
+    margin-block: 24px;
+  }
+  .data-pagination .pagination-info {
+    justify-content: center !important;
+    text-align: center !important;
+    font-size: 13px !important;
+  }
+  .data-pagination .pagination-controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .data-pagination .pagination-pages {
+    justify-content: center !important;
+    min-width: 0;
+  }
+  .data-pagination .pagination-pages > * {
+    display: none !important;
+  }
+  .data-pagination .pagination-pages > .pagination-num.active {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px !important;
+    height: 44px !important;
+    padding: 0 4px !important;
+    font-size: 13px !important;
+  }
+  .data-pagination .pagination-btn,
+  .data-pagination .pagination-prev.disabled {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 44px !important;
+    padding: 0 8px !important;
+    font-size: 13px !important;
+    gap: 6px;
+  }
+  .data-pagination .pagination-btn span {
+    display: inline !important;
+  }
+  .data-pagination a:focus-visible {
+    outline: 2px solid #b8170c;
+    outline-offset: 3px;
+  }
+}
