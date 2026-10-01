@@ -152,6 +152,12 @@ function dataUrlBytes(value) {
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const path = decodeURIComponent(requestUrl.pathname);
+  // One production address; preserve the complete path and query string.
+  // Do not redirect API, development or local requests.
+  if (requestUrl.hostname === 'trikonet.com') {
+    res.writeHead(308, { Location: `https://www.trikonet.com${requestUrl.pathname}${requestUrl.search}` });
+    return res.end();
+  }
   // Only our public raster media can be read for logo whitespace fitting.
   // Keep this same-origin; the CDN intentionally has no canvas CORS headers.
   if (path === '/logo-source' && req.method === 'GET') {
@@ -189,7 +195,7 @@ const server = http.createServer(async (req, res) => {
 
   // Health check
   if (path === '/healthz' || path === '/api/health') {
-    return sendJson(res, 200, { status: 'ok', domain: 'dev.trikonet.com' });
+    return sendJson(res, 200, { status: 'ok', domain: requestUrl.hostname });
   }
 
   if (path === '/api/job-reports' && req.method === 'POST') {
