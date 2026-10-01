@@ -1,4 +1,5 @@
-import { signalAdminSessionChange } from './admin-session.js?v=1';
+import { loadAdminJobs } from './admin-jobs-loader.js?v=1';
+import { signalAdminSessionChange } from './admin-session.js?v=2';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -366,6 +367,7 @@ export function renderAdmin() {
           </div>
         </div>
 
+        <p id="admin-job-load-notice" role="status" hidden></p>
         <div class="modern-card modern-table-card">
           <!-- 1. Integrated Status Tabs Navigation -->
           <div class="modern-card-tab-bar">
@@ -3795,6 +3797,8 @@ export async function initAdmin() {
   const employerStatusState = document.querySelector('#employer-save-state');
 
   let localJobs = [], remoteJobs = [], localEmployers = [], remoteEmployers = [];
+  let jobsLoading = true;
+  let jobsLoadError = false;
   let currentStatus = 'all';
   let currentPage = 1;
   const pageSize = 20;
@@ -4975,7 +4979,12 @@ export async function initAdmin() {
     if (totalPagesEl) totalPagesEl.textContent = totalPages;
 
     const chip = document.querySelector('#admin-items-count-chip');
-    if (chip) chip.textContent = `${totalItems.toLocaleString()} listings`;
+    if (chip) chip.textContent = jobsLoading ? `Loading… ${totalItems.toLocaleString()} listings` : `${totalItems.toLocaleString()} listings`;
+    const jobNotice = document.querySelector('#admin-job-load-notice');
+    if (jobNotice) {
+      jobNotice.hidden = !jobsLoadError;
+      jobNotice.textContent = 'Some jobs could not be loaded. Loaded jobs are shown below. Refresh to retry.';
+    }
     if (curPageEl) { curPageEl.min = 1; curPageEl.max = totalPages; }
     document.querySelector('.tablenav-page-btn.first-page')?.toggleAttribute('disabled', currentPage === 1);
     document.querySelector('.tablenav-page-btn.prev-page')?.toggleAttribute('disabled', currentPage === 1);
@@ -5033,7 +5042,7 @@ export async function initAdmin() {
           </span>
         </td>
       </tr>
-    `).join('') : '<tr><td colspan="9" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">No matching jobs found.</td></tr>';
+    `).join('') : `<tr><td colspan="9" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">${jobsLoading ? 'Loading jobs…' : jobsLoadError ? 'Jobs could not be loaded. Refresh to retry.' : 'No matching jobs found.'}</td></tr>`;
     }
   }
 
@@ -6167,15 +6176,27 @@ export async function initAdmin() {
 
   // Load every batch so client-side pagination and filters cover the full dataset.
   async function loadRemoteJobs() {
-    const jobs = [];
-    for (let page = 1; ; page++) {
-      const response = await fetch(`/api/wp/job_listing?per_page=1000&page=${page}&_fields=id,slug,title,status,date,metas,content,excerpt`);
-      if (!response.ok) throw new Error('Unable to load jobs');
-      const batch = await response.json();
-      if (!Array.isArray(batch)) throw new Error('Invalid jobs response');
-      jobs.push(...batch);
-      if (batch.length < 1000) return jobs;
-    }
+    jobsLoading = true;
+    jobsLoadError = false;
+    renderJobRows();
+    const jobs = await loadAdminJobs({
+      fetchPage: async page => {
+        const response = await fetch(`/api/wp/job_listing?per_page=1000&page=${page}&_fields=id,slug,title,status,date,metas,content,excerpt`);
+        if (!response.ok) throw new Error(`Unable to load jobs (HTTP ${response.status})`);
+        return response.json();
+      },
+      fetchCount: async () => {
+        const response = await fetch('/api/wp/count?type=job_listing');
+        if (!response.ok) throw new Error('Job count unavailable');
+        return Number((await response.json()).total);
+      },
+      onProgress: jobs => { remoteJobs = jobs.map(wordpressJob); renderJobRows(); },
+      onError: error => { console.error(error); jobsLoadError = true; }
+    });
+    jobsLoading = false;
+    remoteJobs = jobs.map(wordpressJob);
+    renderJobRows();
+    return jobs;
   }
 
   // Load all data
@@ -6184,7 +6205,7 @@ export async function initAdmin() {
       fetch('/api/local/jobs').then(r => r.json()).catch(() => []),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
-      loadRemoteJobs().catch(error => { console.error(error); return []; }),
+      loadRemoteJobs(),
       fetch('/api/local/employers').then(r => r.json()).catch(() => []),
       fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => []),
       fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))

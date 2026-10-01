@@ -39,8 +39,10 @@ export function initPublicAdminBar() {
   if (location.pathname.startsWith('/admin') || ['/trikonet-admin-access'].includes(location.pathname)) return;
   const style = document.createElement('style');
   style.textContent = `
-    body.has-public-admin-bar{padding-top:36px}
-    body.has-public-admin-bar .topbar{top:36px}
+    body.has-public-admin-bar{padding-top:0}
+    body.has-public-admin-bar .topbar{top:36px;height:68px}
+    body.has-public-admin-bar #app{padding-top:36px;overflow-x:clip;overflow-y:visible}
+    body.has-public-admin-bar .topbar .nav{min-height:68px}
     body.has-public-admin-bar .topbar.site-header-boxed{top:54px}
     .public-admin-bar{position:fixed;inset:0 0 auto;height:36px;z-index:100000;display:flex;align-items:center;gap:4px;padding:0 16px;background:#1d2327;color:#f0f0f1;font:13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 1px 3px #0003}
     .public-admin-bar a,.public-admin-bar button{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;color:inherit;background:none;border:0;border-radius:0;text-decoration:none;font:inherit;white-space:nowrap;cursor:pointer}
