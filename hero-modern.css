@@ -6651,7 +6651,7 @@ main.detail-page {
 
 .mobile-top-apply {display:none!important;}
 @media(max-width:768px){
-  .detail-exact .detail-hero .mobile-top-apply {display:flex!important;align-items:center;justify-content:center;width:100%;max-width:320px;height:48px;margin:16px auto 0;box-sizing:border-box;border-radius:10px;}
+  .detail-exact .detail-hero .mobile-top-apply {display:flex!important;align-items:center;justify-content:center;flex:0 0 auto!important;width:100%!important;max-width:320px!important;height:48px!important;min-height:48px!important;max-height:48px!important;padding:0 20px!important;font-size:15px!important;line-height:20px!important;margin:16px auto 0;box-sizing:border-box;border-radius:10px;}
   .detail-exact .detail-hero:not(.employer-hero) .detail-actions {visibility:hidden!important;pointer-events:none!important;}
   .detail-exact .detail-hero:not(.employer-hero) .detail-actions.mobile-apply-visible {visibility:visible!important;pointer-events:auto!important;}
 }
