@@ -62,6 +62,7 @@ function wordpressJob(job) {
   return {
     id: job.id,
     createdBy: job.createdBy || null,
+    updatedBy: job.updatedBy || null,
     title: job.title?.rendered || '',
     slug: job.slug,
     company: m._job_employer_name || '',
@@ -5022,7 +5023,7 @@ export async function initAdmin() {
           <div class="modern-title-line">
             <a class="row-title" href="#job-editor" data-job-edit="${esc(j.slug)}">${esc(j.title)}</a>
             <span class="modern-company-text">${esc(j.company || 'Trikonet')}</span>
-            <span style="display:block;font-size:12px;color:#64748b;margin-top:3px">Created by: ${esc(j.createdBy?.name || 'Not recorded')}</span>
+            <span style="display:block;font-size:12px;color:#64748b;margin-top:3px">${j.createdBy?.name ? `Created by: ${esc(j.createdBy.name)}` : j.updatedBy?.name ? `Updated by: ${esc(j.updatedBy.name)}` : 'Creator not recorded'}</span>
             ${j.editingNames?.length ? `<span style="display:block;color:#2563eb;font-size:12px" role="status">${esc(j.editingNames.join(', '))} ${j.editingNames.length > 1 ? 'are' : 'is'} editing this job</span>` : ''}
           </div>
           <div class="row-actions">
