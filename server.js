@@ -152,6 +152,35 @@ function dataUrlBytes(value) {
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const path = decodeURIComponent(requestUrl.pathname);
+  // Only our public raster media can be read for logo whitespace fitting.
+  // Keep this same-origin; the CDN intentionally has no canvas CORS headers.
+  if (path === '/logo-source' && req.method === 'GET') {
+    try {
+      const source = new URL(requestUrl.searchParams.get('src'));
+      if (source.protocol !== 'https:' || source.hostname !== 'media.trikonet.com' ||
+          source.port || source.username || source.password ||
+          !/^\/images\/[a-zA-Z0-9._-]+\.(png|jpe?g|webp)$/i.test(source.pathname)) {
+        return sendJson(res, 400, { error: 'Invalid logo source' });
+      }
+      source.search = '';
+      const upstream = await fetch(source, { redirect: 'error', signal: AbortSignal.timeout(5000) });
+      if (!upstream.ok || !/^image\/(png|jpeg|webp)/i.test(upstream.headers.get('content-type') || '')) {
+        return sendJson(res, 502, { error: 'Logo unavailable' });
+      }
+      const chunks = [];
+      let size = 0;
+      for await (const chunk of upstream.body) {
+        size += chunk.length;
+        if (size > 3 * 1024 * 1024) throw new Error('Logo too large');
+        chunks.push(chunk);
+      }
+      res.writeHead(200, { 'Content-Type': upstream.headers.get('content-type'),
+        'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+      return res.end(Buffer.concat(chunks));
+    } catch {
+      return sendJson(res, 502, { error: 'Logo unavailable' });
+    }
+  }
   const legacyJob = path.match(/^\/jobs\/([^/]+)\/?$/);
   if (legacyJob && ['GET','HEAD'].includes(req.method)) {
     res.writeHead(301,{Location:`/job/${encodeURIComponent(legacyJob[1])}${requestUrl.search}`});

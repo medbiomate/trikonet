@@ -5533,7 +5533,10 @@ function fitEmployerLogos() {
       }
     };
     probe.onerror = () => sourceImage.classList.add('is-logo-fallback-enlarged');
-    probe.src = sourceImage.currentSrc || sourceImage.src;
+    const originalSource = sourceImage.currentSrc || sourceImage.src;
+    const logoUrl = new URL(originalSource, location.href);
+    probe.src = logoUrl.hostname === 'media.trikonet.com'
+      ? `/logo-source?src=${encodeURIComponent(logoUrl.href)}` : originalSource;
   });
 }
 
