@@ -657,6 +657,7 @@ export function renderEmployerDetail(record, path, jobs = []) {
   const pageHref = page => {
     const url = new URL(window.location.href);
     url.searchParams.set('jobsPage', String(page));
+    url.searchParams.set('tab', 'jobs');
     url.hash = 'panel-jobs';
     return esc(url.pathname + url.search + url.hash);
   };

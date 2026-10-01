@@ -1,4 +1,4 @@
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=18.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=19.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
@@ -5718,14 +5718,23 @@ await Promise.all(initialLoads);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
-if (path.startsWith('/employer/') && queryParams.has('jobsPage')) {
-  document.querySelectorAll('.emp-profile-tab-item').forEach(tab => tab.classList.toggle('active', tab.dataset.tab === 'jobs'));
+function restoreEmployerTab() {
+  if (!location.pathname.startsWith('/employer/')) return;
+  const params = new URLSearchParams(location.search);
+  const requested = params.get('tab') || (params.has('jobsPage') ? 'jobs' : 'overview');
+  const target = ['overview', 'jobs', 'reviews'].includes(requested) ? requested : 'overview';
+  document.querySelectorAll('.emp-profile-tab-item').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === target);
+    tab.setAttribute('aria-selected', String(tab.dataset.tab === target));
+  });
   document.querySelectorAll('.emp-tab-panel').forEach(panel => {
-    const active = panel.dataset.panel === 'jobs';
+    const active = panel.dataset.panel === target;
     panel.classList.toggle('active', active);
     panel.style.display = active ? 'block' : 'none';
   });
 }
+restoreEmployerTab();
+window.addEventListener('popstate', restoreEmployerTab);
 document.querySelector('#app').removeAttribute('data-seo-pending');
 document.getElementById('seo-loading')?.remove();
 if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
@@ -7083,7 +7092,14 @@ document.addEventListener('click', e => {
     tab.blur();
     const target = tab.dataset.tab;
     if (!target) return;
+    const tabUrl = new URL(location.href);
+    if (target === 'overview') tabUrl.searchParams.delete('tab');
+    else tabUrl.searchParams.set('tab', target);
+    // Retain the jobs page so returning to Jobs restores its position.
+    tabUrl.hash = '';
+    if (tabUrl.href !== location.href) history.pushState(null, '', tabUrl.pathname + tabUrl.search);
     document.querySelectorAll('.emp-profile-tab-item').forEach(t => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.emp-profile-tab-item').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
     document.querySelectorAll('.emp-tab-panel').forEach(p => {
       const isMatch = (p.dataset.panel === target) || (p.id === `panel-${target}`);
       p.classList.toggle('active', isMatch);
