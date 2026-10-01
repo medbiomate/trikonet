@@ -6232,7 +6232,7 @@ export async function initAdmin() {
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
       loadRemoteJobs(),
-      fetch('/api/local/employers').then(r => r.json()).catch(() => []),
+      fetch('/api/local/employers?admin=1').then(r => r.json()).catch(() => []),
       fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => []),
       fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))
     ]);

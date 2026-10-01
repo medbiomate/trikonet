@@ -3,5 +3,5 @@ export function isPrivatePage(path, params = new URLSearchParams()) {
     || params.has('preview') || params.has('draft');
 }
 export function isPublishedRecord(record) {
-  return !!record && !record.autosaved && !String(record.slug || '').startsWith('autosave-') && ['publish','published','active'].includes(String(record.status || '').toLowerCase());
+  return !!record && !record.autosaved && !String(record.slug || '').startsWith('autosave-') && ['publish','published','active',''].includes(String(record.status || '').toLowerCase());
 }

@@ -1144,17 +1144,24 @@ const server = http.createServer(async (req, res) => {
   const seoApiBase = process.env.TRIKONET_API_BASE || 'https://api.trikonet.com';
   const privatePage = isPrivatePage(path, requestUrl.searchParams);
   if (privatePage || path.startsWith('/api/')) res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
-  if (path.startsWith('/job/') && !privatePage) {
+  const contentParts = path.split('/').filter(Boolean);
+  const contentType = contentParts.length === 2 ? ({job:'job_listing',employer:'employer',blog:'posts',insurance:'posts','career-tips':'posts',health:'posts','part-time-job':'posts',visa:'posts',guides:'posts',interview:'posts','types-of-jobs':'posts',exam:'posts',general:'posts'}[contentParts[0]]) : null;
+  if (contentType && !privatePage) {
     try {
-      const slug = decodeURIComponent(path.slice('/job/'.length));
-      const localResponse = await fetch(`${seoApiBase}/api/local/jobs/${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
+      const slug = decodeURIComponent(contentParts[1]);
       let published = false;
-      if (localResponse.ok) published = isPublishedRecord(await localResponse.json());
-      else if (localResponse.status === 404) {
-        const response = await fetch(`${seoApiBase}/api/wp/job_listing?slug=${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
-        if (!response.ok) throw new Error('Jobs unavailable');
+      let checkWordPress = true;
+      if (contentType !== 'posts') {
+        const collection = contentType === 'employer' ? 'employers' : 'jobs';
+        const localResponse = await fetch(`${seoApiBase}/api/local/${collection}/${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
+        if (localResponse.ok) { published = isPublishedRecord(await localResponse.json()); checkWordPress = false; }
+        else if (localResponse.status !== 404) throw new Error('Content unavailable');
+      }
+      if (checkWordPress) {
+        const response = await fetch(`${seoApiBase}/api/wp/${contentType}?slug=${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
+        if (!response.ok) throw new Error('Content unavailable');
         published = (await response.json()).some(isPublishedRecord);
-      } else throw new Error('Jobs unavailable');
+      }
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
     } catch { res.writeHead(503, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
   }
