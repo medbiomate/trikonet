@@ -3740,6 +3740,13 @@ export function showAdminNotice(message, type = 'success') {
 window.showAdminNotice = showAdminNotice;
 
 export async function initAdmin() {
+  // Use explicit navigation as well as the normal link. Keep the document's
+  // capture-phase unsaved-changes guard authoritative when editing a post.
+  document.querySelector('.admin-brand')?.addEventListener('click', event => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    window.location.assign('https://www.trikonet.com/');
+  });
   let activeAdminSession = {};
   // Logout handler
   document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {

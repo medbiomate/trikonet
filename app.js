@@ -2,7 +2,7 @@ import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminS
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=19.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
-import { renderAdmin, initAdmin } from './admin.js?v=13.0';
+import { renderAdmin, initAdmin } from './admin.js?v=14.0';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260930-bottom-icons-v44';
