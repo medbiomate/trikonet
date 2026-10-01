@@ -1,4 +1,5 @@
 import { signalAdminSessionChange } from './admin-session.js?v=2';
+import { createFormRecovery } from './admin-recovery.js?v=1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -3800,6 +3801,9 @@ export async function initAdmin() {
 
   const employerForm = document.querySelector('#admin-employer-form');
   const employerRows = document.querySelector('#admin-employer-rows');
+  const recoveryAccount = String(activeAdminSession.userId || activeAdminSession.email || activeAdminSession.username);
+  const jobRecovery = createFormRecovery(jobForm, 'job', recoveryAccount);
+  const employerRecovery = createFormRecovery(employerForm, 'employer', recoveryAccount);
   const employerStatusState = document.querySelector('#employer-save-state');
 
   let localJobs = [], remoteJobs = [], localEmployers = [], remoteEmployers = [];
@@ -4871,6 +4875,7 @@ export async function initAdmin() {
   }
 
   function fillJob(job = {}) {
+    queueMicrotask(() => jobRecovery.open(job.slug || ''));
     jobForm.reset();
     renderGutenbergChecklists();
 
@@ -5455,6 +5460,7 @@ export async function initAdmin() {
   }
 
   function fillEmployer(item = {}) {
+    queueMicrotask(() => employerRecovery.open(item.slug || ''));
     employerForm.reset();
     employerForm.originalSlug.value = item.slug || '';
 
@@ -6965,6 +6971,7 @@ export async function initAdmin() {
       jobStatusState.textContent = `Job ${statusLabel} successfully.`;
       showAdminNotice(`Job “${saved.title || job.title}” ${statusLabel} successfully.`);
       jobSaveSucceeded = true;
+      jobRecovery.clear();
       updateJobPreview();
       renderJobRows();
     } catch (error) {
@@ -8069,6 +8076,7 @@ export async function initAdmin() {
       localEmployers = localEmployers.filter(x => x.slug !== employer.originalSlug && x.slug !== saved.slug);
       localEmployers.unshift(saved);
       employerForm.originalSlug.value = saved.slug;
+      employerRecovery.clear();
       const deleteBtn = document.getElementById('employer-delete-btn');
       if (deleteBtn) deleteBtn.hidden = false;
       const statusLabel = saved.status === 'publish' ? 'published' : saved.status === 'pending' ? 'saved as pending' : 'saved as a draft';
