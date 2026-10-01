@@ -1,3 +1,4 @@
+import { isPrivatePage, isPublishedRecord } from './indexing-policy.js';
 import http from 'node:http';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -1141,6 +1142,23 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
   const seoApiBase = process.env.TRIKONET_API_BASE || 'https://api.trikonet.com';
+  const privatePage = isPrivatePage(path, requestUrl.searchParams);
+  if (privatePage || path.startsWith('/api/')) res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  if (path.startsWith('/job/') && !privatePage) {
+    try {
+      const slug = decodeURIComponent(path.slice('/job/'.length));
+      const localResponse = await fetch(`${seoApiBase}/api/local/jobs/${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
+      let published = false;
+      if (localResponse.ok) published = isPublishedRecord(await localResponse.json());
+      else if (localResponse.status === 404) {
+        const response = await fetch(`${seoApiBase}/api/wp/job_listing?slug=${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
+        if (!response.ok) throw new Error('Jobs unavailable');
+        published = (await response.json()).some(isPublishedRecord);
+      } else throw new Error('Jobs unavailable');
+      if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
+    } catch { res.writeHead(503, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
+  }
+
   if (path === '/sitemap-seo-job-pages.xml') {
     try {
       const response = await fetch(`${seoApiBase}/sitemap-seo-job-pages.xml`, {signal:AbortSignal.timeout(15000)});
@@ -1216,6 +1234,9 @@ const server = http.createServer(async (req, res) => {
         .replace(/<title>[\s\S]*?<\/title>/,`<title>${JOBS_SEO_TITLE}</title>`)
         .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${JOBS_SEO_DESCRIPTION}">`)
         .replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/jobs">');
+    }
+    if (privatePage && target === join(root,'index.html')) {
+      fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
     }
     res.writeHead(200, {
       'Content-Type': types[extname(target)] || 'application/octet-stream',
