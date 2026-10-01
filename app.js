@@ -5489,6 +5489,9 @@ function fitEmployerLogos() {
     probe.crossOrigin = 'anonymous';
     probe.onload = () => {
       try {
+        // Already-square uploads keep their original artwork and framing.
+        const sourceRatio = probe.naturalWidth / probe.naturalHeight;
+        if (sourceRatio >= .95 && sourceRatio <= 1.05) return;
         const maxSample = 320;
         const scale = Math.min(1, maxSample / Math.max(probe.naturalWidth, probe.naturalHeight));
         const canvas = document.createElement('canvas');
@@ -5513,9 +5516,16 @@ function fitEmployerLogos() {
         if (occupiedArea > .68) return;
         const padding = Math.max(2, Math.round(Math.max(contentWidth, contentHeight) * .08));
         const output = document.createElement('canvas');
-        output.width = contentWidth + padding * 2;
-        output.height = contentHeight + padding * 2;
-        output.getContext('2d').drawImage(canvas, left, top, contentWidth, contentHeight, padding, padding, contentWidth, contentHeight);
+        // A square crop around the complete mark, never a center crop that
+        // cuts off wide wordmarks or the tip of a shield.
+        const side = Math.max(contentWidth, contentHeight) + padding * 2;
+        output.width = side;
+        output.height = side;
+        const outputContext = output.getContext('2d');
+        outputContext.fillStyle = '#fff';
+        outputContext.fillRect(0, 0, side, side);
+        outputContext.drawImage(canvas, left, top, contentWidth, contentHeight,
+          (side - contentWidth) / 2, (side - contentHeight) / 2, contentWidth, contentHeight);
         sourceImage.src = output.toDataURL('image/png');
         sourceImage.classList.add('is-trimmed-logo');
       } catch {
