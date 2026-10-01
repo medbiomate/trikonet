@@ -6273,13 +6273,14 @@ export async function initAdmin() {
       candidates.forEach(c => {
         const key = String(c.id || c.email);
         if (mergedMap.has(key)) {
-          mergedMap.set(key, { ...mergedMap.get(key), ...c });
+          mergedMap.set(key, { ...c, ...mergedMap.get(key) });
         } else {
           mergedMap.set(key, c);
         }
       });
       candidates = Array.from(mergedMap.values());
-      saveCandidates();
+      candidateSavedIds=candidates.map(c=>String(c.id));
+      saveCandidates(false);
       renderCandidateRows();
     }
 
@@ -11578,6 +11579,7 @@ export async function initAdmin() {
     });
 
     if (!filtered.length) {
+      const footer=document.getElementById('candidate-card-footer');if(footer)footer.textContent='No candidates found';
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:36px 16px; color:#94a3b8; font-size:13px;">No pages found matching the criteria.</td></tr>`;
       return;
     }
@@ -11929,7 +11931,7 @@ export async function initAdmin() {
 
   document.getElementById('btn-apply-posts-bulk')?.addEventListener('click', () => {
     const action = document.getElementById('bulk-action-posts-selector')?.value;
-    const selected = Array.from(document.querySelectorAll('#admin-post-rows input[type="checkbox"]:checked')).map(cb => Number(cb.value));
+    const selected = Array.from(document.querySelectorAll('#admin-post-rows input[type="checkbox"]:checked')).map(cb => String(cb.value));
     if (!selected.length) {
       alert('Please select at least one post.');
       return;
@@ -13464,7 +13466,7 @@ export async function initAdmin() {
 
   document.getElementById('btn-apply-pages-bulk')?.addEventListener('click', () => {
     const action = document.getElementById('bulk-action-pages-selector')?.value;
-    const selected = Array.from(document.querySelectorAll('#admin-page-rows input[type="checkbox"]:checked')).map(cb => Number(cb.value));
+    const selected = Array.from(document.querySelectorAll('#admin-page-rows input[type="checkbox"]:checked')).map(cb => String(cb.value));
     if (!selected.length) {
       alert('Please select at least one page.');
       return;
@@ -13699,8 +13701,8 @@ export async function initAdmin() {
     const candEdit = e.target.closest('[data-candidate-edit]');
     if (candEdit) {
       e.preventDefault();
-      const id = Number(candEdit.dataset.candidateEdit);
-      const c = candidates.find(x => x.id === id);
+      const id = String(candEdit.dataset.candidateEdit);
+      const c = candidates.find(x => String(x.id) === id);
       if (c) {
         fillCandidate(c);
         location.hash = 'candidate-editor';
@@ -13711,8 +13713,8 @@ export async function initAdmin() {
     const candFeature = e.target.closest('[data-candidate-toggle-feature]');
     if (candFeature) {
       e.preventDefault();
-      const id = Number(candFeature.dataset.candidateToggleFeature);
-      const c = candidates.find(x => x.id === id);
+      const id = String(candFeature.dataset.candidateToggleFeature);
+      const c = candidates.find(x => String(x.id) === id);
       if (c) {
         c.featured = !c.featured;
         saveCandidates();
@@ -13724,10 +13726,10 @@ export async function initAdmin() {
     const candDel = e.target.closest('[data-candidate-delete]');
     if (candDel) {
       e.preventDefault();
-      const id = Number(candDel.dataset.candidateDelete);
-      const c = candidates.find(x => x.id === id);
+      const id = String(candDel.dataset.candidateDelete);
+      const c = candidates.find(x => String(x.id) === id);
       if (c && confirm(`Delete candidate profile “${c.name}”?`)) {
-        candidates = candidates.filter(x => x.id !== id);
+        candidates = candidates.filter(x => String(x.id) !== id);
         saveCandidates();
         renderCandidateRows();
       }
@@ -13851,8 +13853,15 @@ export async function initAdmin() {
   })();
 
   let candidateStatusFilter = 'all';
+  let candidatePage=1,candidateFilterKey='',candidateSavedIds=[];
 
-  function saveCandidates() {
+  function saveCandidates(persist=true) {
+    if(persist){
+      const ids=candidates.map(c=>String(c.id));
+      const removed=candidateSavedIds.filter(id=>!ids.includes(id));
+      fetch('/api/admin/candidate-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:candidates,removed})}).then(async r=>{if(!r.ok)throw Error((await r.json()).error || 'Save failed');}).catch(error=>showAdminNotice(error.message,'error'));
+      candidateSavedIds=ids;
+    }
     try {
       localStorage.setItem('trikonet_candidates_cms', JSON.stringify(candidates));
     } catch {}
@@ -13941,7 +13950,12 @@ export async function initAdmin() {
       return;
     }
 
-    tbody.innerHTML = filtered.map(c => {
+    const filterKey=JSON.stringify([q,catVal,locVal,candidateStatusFilter]);
+    if(filterKey!==candidateFilterKey){candidatePage=1;candidateFilterKey=filterKey;}
+    const pages=Math.max(1,Math.ceil(filtered.length/20));candidatePage=Math.min(candidatePage,pages);
+    const footer=document.getElementById('candidate-card-footer');
+    if(footer)footer.innerHTML=`<span>${filtered.length} candidates · Page ${candidatePage} of ${pages}</span><div><button type="button" data-candidate-page="${candidatePage-1}" ${candidatePage===1?'disabled':''}>Previous</button> <button type="button" data-candidate-page="${candidatePage+1}" ${candidatePage===pages?'disabled':''}>Next</button></div>`;
+    tbody.innerHTML = filtered.slice((candidatePage-1)*20,candidatePage*20).map(c => {
       const initials = (c.name || 'Candidate')
         .split(' ')
         .map(w => w[0])
@@ -13969,13 +13983,13 @@ export async function initAdmin() {
               <div>
                 <strong><a href="#candidate-editor" class="row-title" data-candidate-edit="${c.id}">${escapeHtml(c.name)}</a></strong>
                 <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                  ${escapeHtml(c.email || '—')} ${c.phone ? `· ${escapeHtml(c.phone)}` : ''}
+                  ${escapeHtml(c.email || '—')}<br>Joined: ${escapeHtml(c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-GB') : 'Not recorded')} ${c.phone ? `· ${escapeHtml(c.phone)}` : ''}
                 </div>
                 <div class="row-actions modern-tax-row-actions">
                   <span><a href="#candidate-editor" data-candidate-edit="${c.id}">Edit</a> | </span>
                   <span><a href="#" data-candidate-toggle-feature="${c.id}">${c.featured ? 'Unfeature' : 'Feature'}</a> | </span>
                   <span class="trash"><a href="#" data-candidate-delete="${c.id}">Trash</a> | </span>
-                  <span><a href="/candidate/${c.slug}" target="_blank" rel="noopener">View ↗</a></span>
+                  <span><a href="#" data-candidate-profile="${escapeHtml(String(c.id))}">Profile &amp; resumes</a></span>
                 </div>
               </div>
             </div>
@@ -14005,6 +14019,29 @@ export async function initAdmin() {
     }).join('');
   }
 
+  function renderResumeFields(value) {
+    if(Array.isArray(value))return value.map(item=>`<div style="margin:12px 0;padding:12px;border:1px solid #e2e8f0;border-radius:8px">${renderResumeFields(item)}</div>`).join('');
+    if(value && typeof value==='object')return Object.entries(value).filter(([key,item])=>!['photo','previewImage','id'].includes(key)&&item!==null&&item!==''&&typeof item!=='boolean').map(([key,item])=>`<div style="margin:8px 0"><strong>${escapeHtml(key.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' '))}</strong><div>${renderResumeFields(item)}</div></div>`).join('');
+    return escapeHtml(String(value ?? ''));
+  }
+  document.addEventListener('click',async event=>{
+    const pageButton=event.target.closest('[data-candidate-page]');
+    if(pageButton){candidatePage=Number(pageButton.dataset.candidatePage);renderCandidateRows();return;}
+    const profileButton=event.target.closest('[data-candidate-profile]');
+    if(!profileButton)return;event.preventDefault();
+    const id=profileButton.dataset.candidateProfile;
+    const fallback=candidates.find(c=>String(c.id)===id);
+    try {
+      const response=await fetch(`/api/admin/candidate-profile/${encodeURIComponent(id)}`);
+      const payload=response.ok?await response.json():{profile:fallback,resumes:[]};
+      if(!response.ok && response.status!==404)throw Error('Unable to load candidate profile');
+      const dialog=document.createElement('dialog');dialog.style.cssText='width:min(850px,92vw);max-height:85vh;border:1px solid #e2e8f0;border-radius:16px;padding:24px;overflow:auto';
+      const p=payload.profile || {};
+      const fields=['email','phone','jobTitle','category','location','experience','qualification','bio'];
+      dialog.innerHTML=`<button type="button" data-close style="float:right">Close</button><h2>${escapeHtml(p.name || 'Candidate')}</h2><p>Account created: ${escapeHtml(p.createdAt?new Date(p.createdAt).toLocaleString('en-GB'):'Not recorded')}</p>${fields.filter(k=>p[k]).map(k=>`<p><b>${escapeHtml(k)}:</b> ${escapeHtml(String(p[k]))}</p>`).join('')}<h3>Saved resumes (${payload.resumes.length})</h3>${payload.resumes.length?payload.resumes.map(r=>`<details><summary>${escapeHtml(r.name)} · ${escapeHtml(new Date(r.updatedAt).toLocaleDateString('en-GB'))}</summary>${r.previewImage?`<img src="${escapeHtml(r.previewImage)}" alt="Resume preview" style="width:100%;height:auto">`:''}<div style="white-space:pre-wrap;overflow-wrap:anywhere">${renderResumeFields(r.state)}</div></details>`).join(''):'<p>No resumes saved to this account.</p>'}`;
+      document.body.append(dialog);dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
+    }catch(error){showAdminNotice(error.message,'error');}
+  });
   // --- CANDIDATE EVENT LISTENERS ---
   document.querySelectorAll('#admin-candidate-tabs a').forEach(tab => {
     tab.addEventListener('click', e => {
@@ -14029,25 +14066,25 @@ export async function initAdmin() {
 
   document.getElementById('btn-apply-candidates-bulk')?.addEventListener('click', () => {
     const action = document.getElementById('bulk-action-candidates-selector')?.value;
-    const selected = Array.from(document.querySelectorAll('#admin-candidate-rows input[type="checkbox"]:checked')).map(cb => Number(cb.value));
+    const selected = Array.from(document.querySelectorAll('#admin-candidate-rows input[type="checkbox"]:checked')).map(cb => String(cb.value));
     if (!selected.length) {
       alert('Please select at least one candidate.');
       return;
     }
     if (action === 'trash') {
       if (!confirm(`Delete ${selected.length} selected candidate(s)?`)) return;
-      candidates = candidates.filter(c => !selected.includes(c.id));
+      candidates = candidates.filter(c => !selected.includes(String(c.id)));
       saveCandidates();
       renderCandidateRows();
     } else if (action === 'feature') {
       candidates.forEach(c => {
-        if (selected.includes(c.id)) c.featured = true;
+        if (selected.includes(String(c.id))) c.featured = true;
       });
       saveCandidates();
       renderCandidateRows();
     } else if (action === 'activate') {
       candidates.forEach(c => {
-        if (selected.includes(c.id)) c.status = 'Active';
+        if (selected.includes(String(c.id))) c.status = 'Active';
       });
       saveCandidates();
       renderCandidateRows();
@@ -14057,7 +14094,7 @@ export async function initAdmin() {
   document.getElementById('admin-candidate-form')?.addEventListener('submit', e => {
     e.preventDefault();
     const form = e.target;
-    const id = Number(document.getElementById('candidate-id').value);
+    const id = document.getElementById('candidate-id').value;
     const name = form.name.value.trim();
     const slug = form.slug.value.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const jobTitle = form.jobTitle.value.trim();
@@ -14074,7 +14111,7 @@ export async function initAdmin() {
     if (!name || !email) return;
 
     if (id) {
-      const existing = candidates.find(c => c.id === id);
+      const existing = candidates.find(c => String(c.id) === String(id));
       if (existing) {
         existing.name = name;
         existing.slug = slug;
