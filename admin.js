@@ -1,4 +1,3 @@
-import { loadAdminJobs } from './admin-jobs-loader.js?v=1';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
@@ -3804,6 +3803,10 @@ export async function initAdmin() {
   const employerStatusState = document.querySelector('#employer-save-state');
 
   let localJobs = [], remoteJobs = [], localEmployers = [], remoteEmployers = [];
+  let pageJobs = [];
+  let jobTotal = 0;
+  let jobsRequest = 0;
+  let jobsController;
   let jobsLoading = true;
   let jobsLoadError = false;
   let currentStatus = 'all';
@@ -4937,45 +4940,12 @@ export async function initAdmin() {
     updateJobPreview();
   }
 
-  function renderJobRows() {
+  function renderJobRows(refresh = true) {
+    if (refresh) { void loadRemoteJobs(); return; }
     closeQuickEdit();
-    const q = (document.querySelector('#admin-search')?.value || '').toLowerCase().trim();
-    const typeFilter = document.querySelector('#filter-by-type')?.value || '';
-    const catFilter = document.querySelector('#filter-by-category')?.value || '';
-
-    let jobs = allJobs();
-
-    // Status filter
-    if (currentStatus === 'mine') {
-      jobs = jobs.filter(j => j.local);
-    } else if (currentStatus === 'publish') {
-      jobs = jobs.filter(j => j.status === 'publish' || j.status === 'active');
-    } else if (currentStatus === 'draft') {
-      jobs = jobs.filter(j => j.status === 'draft');
-    } else if (currentStatus === 'pending') {
-      jobs = jobs.filter(j => j.status === 'pending');
-    } else if (currentStatus === 'expired') {
-      jobs = jobs.filter(j => j.status === 'expired');
-    }
-
-    // Search query
-    if (q) {
-      jobs = jobs.filter(j => `${j.title} ${j.company} ${(j.categories || []).join(' ')}`.toLowerCase().includes(q));
-    }
-    // Dropdown filters
-    if (typeFilter) {
-      jobs = jobs.filter(j => (j.types || [j.type || '']).some(t => t.toLowerCase() === typeFilter.toLowerCase()));
-    }
-    if (catFilter) {
-      jobs = jobs.filter(j => (j.categories || [j.category || '']).some(c => c.toLowerCase() === catFilter.toLowerCase()));
-    }
-
-    const totalItems = jobs.length;
+    const totalItems = jobTotal;
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
-
-    const pagedJobs = jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const pagedJobs = jobsLoading ? [] : pageJobs;
 
     // Update pagination controls
     const itemsCountEl = document.querySelector('#admin-items-count');
@@ -4990,7 +4960,8 @@ export async function initAdmin() {
     const jobNotice = document.querySelector('#admin-job-load-notice');
     if (jobNotice) {
       jobNotice.hidden = !jobsLoadError;
-      jobNotice.textContent = 'Some jobs could not be loaded. Loaded jobs are shown below. Refresh to retry.';
+      jobNotice.innerHTML = 'This page could not be loaded. <button type="button" id="retry-job-page">Retry</button>';
+      document.querySelector('#retry-job-page')?.addEventListener('click', () => renderJobRows());
     }
     if (curPageEl) { curPageEl.min = 1; curPageEl.max = totalPages; }
     document.querySelector('.tablenav-page-btn.first-page')?.toggleAttribute('disabled', currentPage === 1);
@@ -5003,7 +4974,7 @@ export async function initAdmin() {
     const countMineEl = document.querySelector('#count-mine');
     if (countMineEl) countMineEl.textContent = `(${mineCount})`;
     const countAllEl = document.querySelector('#count-all');
-    if (countAllEl) countAllEl.textContent = `(${allJobs().length.toLocaleString()})`;
+    if (countAllEl && currentStatus === 'all') countAllEl.textContent = `(${jobTotal.toLocaleString()})`;
 
     if (jobRows) {
       jobRows.innerHTML = pagedJobs.length ? pagedJobs.map(j => `
@@ -6181,29 +6152,39 @@ export async function initAdmin() {
     renderReportedJobs();
   });
 
-  // Load every batch so client-side pagination and filters cover the full dataset.
+  // Request just the selected page. Ignore replies from superseded searches/pages.
   async function loadRemoteJobs() {
+    const request = ++jobsRequest;
+    jobsController?.abort();
+    jobsController = new AbortController();
     jobsLoading = true;
     jobsLoadError = false;
-    renderJobRows();
-    const jobs = await loadAdminJobs({
-      fetchPage: async page => {
-        const response = await fetch(`/api/wp/job_listing?per_page=1000&page=${page}&_fields=id,slug,title,status,date,metas,content,excerpt`);
-        if (!response.ok) throw new Error(`Unable to load jobs (HTTP ${response.status})`);
-        return response.json();
-      },
-      fetchCount: async () => {
-        const response = await fetch('/api/wp/count?type=job_listing');
-        if (!response.ok) throw new Error('Job count unavailable');
-        return Number((await response.json()).total);
-      },
-      onProgress: jobs => { remoteJobs = jobs.map(wordpressJob); renderJobRows(); },
-      onError: error => { console.error(error); jobsLoadError = true; }
+    renderJobRows(false);
+    const params = new URLSearchParams({
+      page: String(currentPage), per_page: String(pageSize), status: currentStatus,
+      q: document.querySelector('#admin-search')?.value || '',
+      job_type: document.querySelector('#filter-by-type')?.value || '',
+      category: document.querySelector('#filter-by-category')?.value || ''
     });
-    jobsLoading = false;
-    remoteJobs = jobs.map(wordpressJob);
-    renderJobRows();
-    return jobs;
+    try {
+      const response = await fetch(`/api/admin/jobs?${params}`, { signal: jobsController.signal });
+      if (!response.ok) throw new Error(`Unable to load jobs (HTTP ${response.status})`);
+      const payload = await response.json();
+      if (request !== jobsRequest) return [];
+      if (!Array.isArray(payload.jobs)) throw new Error('Invalid jobs response');
+      pageJobs = payload.jobs.map(job => job.local ? job : wordpressJob(job));
+      jobTotal = Number(payload.total) || 0;
+      currentPage = Number(payload.page) || currentPage;
+      const freshRemote = pageJobs.filter(job => !job.local);
+      const slugs = new Set(freshRemote.map(job => job.slug));
+      remoteJobs = [...remoteJobs.filter(job => !slugs.has(job.slug)), ...freshRemote];
+      return payload.jobs.filter(job => !job.local);
+    } catch (error) {
+      if (request === jobsRequest && error.name !== 'AbortError') { console.error(error); jobsLoadError = true; }
+      return [];
+    } finally {
+      if (request === jobsRequest) { jobsLoading = false; renderJobRows(false); }
+    }
   }
 
   // Load all data
@@ -6219,7 +6200,7 @@ export async function initAdmin() {
     ]);
 
     localJobs = local;
-    remoteJobs = remote.map(wordpressJob);
+
     localEmployers = employers;
     remoteEmployers = wpEmployers.map(item => {
       const m = item.metas || {};
@@ -6433,7 +6414,7 @@ export async function initAdmin() {
       }
     } catch {}
 
-    renderJobRows();
+    renderJobRows(false);
     renderTaxonomyTables();
     renderEmployerRows();
     populateEmployerDropdown();
