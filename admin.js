@@ -1,3 +1,4 @@
+import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
 import { createFormRecovery } from './admin-recovery.js?v=5';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -14019,11 +14020,6 @@ export async function initAdmin() {
     }).join('');
   }
 
-  function renderResumeFields(value) {
-    if(Array.isArray(value))return value.map(item=>`<div style="margin:12px 0;padding:12px;border:1px solid #e2e8f0;border-radius:8px">${renderResumeFields(item)}</div>`).join('');
-    if(value && typeof value==='object')return Object.entries(value).filter(([key,item])=>!['photo','previewImage','id'].includes(key)&&item!==null&&item!==''&&typeof item!=='boolean').map(([key,item])=>`<div style="margin:8px 0"><strong>${escapeHtml(key.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/_/g,' '))}</strong><div>${renderResumeFields(item)}</div></div>`).join('');
-    return escapeHtml(String(value ?? ''));
-  }
   document.addEventListener('click',async event=>{
     const pageButton=event.target.closest('[data-candidate-page]');
     if(pageButton){candidatePage=Number(pageButton.dataset.candidatePage);renderCandidateRows();return;}
@@ -14035,10 +14031,12 @@ export async function initAdmin() {
       const response=await fetch(`/api/admin/candidate-profile/${encodeURIComponent(id)}`);
       const payload=response.ok?await response.json():{profile:fallback,resumes:[]};
       if(!response.ok && response.status!==404)throw Error('Unable to load candidate profile');
-      const dialog=document.createElement('dialog');dialog.style.cssText='width:min(850px,92vw);max-height:85vh;border:1px solid #e2e8f0;border-radius:16px;padding:24px;overflow:auto';
-      const p=payload.profile || {};
-      const fields=Object.keys(p).filter(key=>!['id','name','createdAt','photo','password','passwordHash','passwordSalt'].includes(key));
-      dialog.innerHTML=`<button type="button" data-close style="float:right">Close</button><h2>${escapeHtml(p.name || 'Candidate')}</h2><p>Account created: ${escapeHtml(p.createdAt?new Date(p.createdAt).toLocaleString('en-GB'):'Not recorded')}</p>${p.photo?`<img src="${escapeHtml(p.photo)}" alt="Profile photo" style="width:100px;height:100px;object-fit:contain">`:''}${renderResumeFields(Object.fromEntries(fields.filter(k=>p[k]).map(k=>[k,p[k]])))}<h3>User-submitted profile</h3>${Object.keys(payload.submittedProfile || {}).length?renderResumeFields(payload.submittedProfile):'<p>No additional profile details saved.</p>'}<h3>Account details</h3>${renderResumeFields(payload.account || {})}${['saved_jobs','applied_jobs','followed_companies'].map(kind=>`<details><summary>${escapeHtml(kind.replace(/_/g,' '))} (${(payload.activity?.[kind] || []).length})</summary>${renderResumeFields(payload.activity?.[kind] || [])}</details>`).join('')}<h3>Submitted applications</h3>${payload.applications?.length?renderResumeFields(payload.applications):'<p>No saved applications.</p>'}<h3>Saved resumes (${payload.resumes.length})</h3>${payload.resumes.length?payload.resumes.map(r=>`<details><summary>${escapeHtml(r.name)} · ${escapeHtml(new Date(r.updatedAt).toLocaleDateString('en-GB'))}</summary>${r.previewImage?`<img src="${escapeHtml(r.previewImage)}" alt="Resume preview" style="width:100%;height:auto">`:''}<div style="white-space:pre-wrap;overflow-wrap:anywhere">${renderResumeFields(r.state)}</div></details>`).join(''):'<p>No resumes saved to this account.</p>'}`;
+      const dialog=document.createElement('dialog');dialog.className='candidate-profile-dialog';dialog.setAttribute('aria-labelledby','cp-title');
+      dialog.innerHTML=candidateProfileView(payload);
+      dialog.querySelectorAll('[data-cp-tab]').forEach(button=>button.onclick=()=>{
+        dialog.querySelectorAll('[data-cp-tab]').forEach(tab=>tab.setAttribute('aria-pressed',String(tab===button)));
+        dialog.querySelectorAll('[data-cp-panel]').forEach(panel=>panel.hidden=panel.dataset.cpPanel!==button.dataset.cpTab);
+      });
       document.body.append(dialog);dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
     }catch(error){showAdminNotice(error.message,'error');}
   });
