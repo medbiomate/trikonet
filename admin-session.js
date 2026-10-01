@@ -35,7 +35,7 @@ export function signalAdminSessionChange() {
   try { localStorage.setItem(SIGNAL_KEY, `${Date.now()}-${Math.random()}`); } catch {}
 }
 
-export function initPublicAdminBar() {
+export function initPublicAdminBar(editContext = null) {
   if (location.pathname.startsWith('/admin') || ['/trikonet-admin-access'].includes(location.pathname)) return;
   const style = document.createElement('style');
   style.textContent = `
@@ -66,6 +66,12 @@ export function initPublicAdminBar() {
     bar.className = 'public-admin-bar';
     bar.setAttribute('aria-label', 'Administration shortcuts');
     bar.innerHTML = `<a class="public-admin-brand" href="/admin">TriKonet</a><a href="/admin">Console</a><a href="/admin#jobs">Jobs</a><a href="/admin#job-new">＋ Add Job</a><span class="public-admin-account"></span><span class="public-admin-error" role="status"></span><button type="button" class="public-admin-logout">Admin Logout</button>`;
+    if (editContext?.slug && ['job', 'employer', 'post'].includes(editContext.type)) {
+      const link = document.createElement('a');
+      link.href = `/admin#${editContext.type}-editor/${encodeURIComponent(editContext.slug)}`;
+      link.textContent = { job: 'Edit Job', employer: 'Edit Employer', post: 'Edit Post' }[editContext.type];
+      bar.querySelector('.public-admin-account').before(link);
+    }
     bar.querySelector('.public-admin-account').textContent = `Hello, ${admin.name || admin.username || 'Administrator'}`;
     bar.querySelector('button').addEventListener('click', async event => {
       const button = event.currentTarget;

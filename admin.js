@@ -4287,6 +4287,37 @@ export async function initAdmin() {
       switchView('page-edit');
     } else if (hash === 'page-editor') {
       location.hash = 'pages-core';
+    } else if (hash.startsWith('job-editor/')) {
+      await editReportedJob(decodeURIComponent(hash.slice('job-editor/'.length)), true);
+    } else if (hash.startsWith('employer-editor/')) {
+      const slug = decodeURIComponent(hash.slice('employer-editor/'.length));
+      let employer = allEmployers().find(item => item.slug === slug);
+      if (!employer) {
+        try {
+          const response = await fetch(`/api/wp/employer?slug=${encodeURIComponent(slug)}`);
+          const item = response.ok ? (await response.json())[0] : null;
+          if (item) {
+            const m = item.metas || {};
+            employer = item.local ? item : {
+              id: item.id, slug: item.slug, title: item.title?.rendered || item.title || '',
+              status: item.status || 'publish', description: item.content?.rendered || item.content || '',
+              email: m._employer_email || '', phone: m._employer_phone || '', website: m._employer_website || '',
+              foundedDate: m._employer_founded_date || '', companySize: m._employer_company_size || '',
+              showProfile: m._employer_show_profile || 'show', featured: !!m._job_featured,
+              logo: m._employer_logo || m._employer_featured_image || '', openJobs: Number(m._employer_open_jobs) || 0,
+              categories: publicField(m._employer_category).split(', ').filter(Boolean),
+              locations: publicField(m._employer_location).split(', ').filter(Boolean), local: false
+            };
+          }
+        } catch {}
+      }
+      if (employer) {
+        fillEmployer(employer);
+        switchView('employer-edit');
+      } else {
+        switchView('employers');
+        showAdminNotice(`Could not load employer “${slug}” for editing.`, 'error');
+      }
     } else if (hash === 'job-editor') {
       const returnCtxStr = sessionStorage.getItem('trikonet_job_return_ctx');
       if (returnCtxStr) {
@@ -5954,7 +5985,7 @@ export async function initAdmin() {
     }
   }
 
-  async function editReportedJob(slug) {
+  async function editReportedJob(slug, keepRoute = false) {
     let job = allJobs().find(j => j.slug === slug);
     if (!job) {
       try {
@@ -5963,20 +5994,7 @@ export async function initAdmin() {
           const records = await res.json();
           if (records.length) {
             const r = records[0];
-            const m = r.metas || {};
-            job = {
-              title: r.title?.rendered || r.title || '',
-              slug: r.slug,
-              description: r.content?.rendered || r.content || '',
-              company: m._job_employer_name || '',
-              status: r.status || 'publish',
-              applyUrl: m._job_apply_url || '',
-              deadline: m._job_expires || '',
-              expiryDate: m._job_expires || '',
-              types: r.types || [],
-              categories: r.categories || [],
-              locations: r.locations || []
-            };
+            job = r.local ? r : wordpressJob(r);
           }
         }
       } catch {}
@@ -5989,8 +6007,8 @@ export async function initAdmin() {
     }
     if (job) {
       fillJob(job);
-      location.hash = 'job-editor';
-      switchView('job-editor');
+      if (!keepRoute) location.hash = 'job-editor';
+      switchView('job-edit');
       showAdminNotice(`Loaded “${job.title || slug}” into editor.`);
     } else {
       showAdminNotice(`Could not load job “${slug}” for editing.`, 'error');

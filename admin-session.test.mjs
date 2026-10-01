@@ -66,13 +66,25 @@ function barDom(h) {
     createElement() {
       const children = new Map();
       return { setAttribute() {}, remove() { mounted = null; }, querySelector(selector) {
-        if (!children.has(selector)) children.set(selector, { textContent: '', addEventListener(name, callback) { this[name] = callback; } });
+        if (!children.has(selector)) children.set(selector, { textContent: '', before(element) { children.set('edit-link', element); }, addEventListener(name, callback) { this[name] = callback; } });
         return children.get(selector);
       } };
     }
   };
   Object.assign(h.context, { document, location: { pathname: '/jobs' }, window: { addEventListener(name, callback) { listeners.set(name, callback); } }, setTimeout() { return 1; }, clearTimeout() {}, setInterval() {} });
   return { classes, listeners, mounted: () => mounted };
+}
+
+for (const type of ['job', 'employer', 'post']) {
+  test(`verified admins can edit the exact ${type}`, async () => {
+    const h = harness({ ok: true, json: async () => ({ admin }) });
+    await h.refresh();
+    const ui = barDom(h);
+    vm.runInContext(`initPublicAdminBar({ type: '${type}', slug: 'example-record' })`, h.context);
+    const link = ui.mounted().querySelector('edit-link');
+    assert.equal(link.href, `/admin#${type}-editor/example-record`);
+    assert.equal(link.textContent, { job: 'Edit Job', employer: 'Edit Employer', post: 'Edit Post' }[type]);
+  });
 }
 
 test('verified admins get shortcuts and safely rendered account names', async () => {

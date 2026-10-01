@@ -1,8 +1,8 @@
-import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=2';
+import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=3';
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=19.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
-import { renderAdmin, initAdmin } from './admin.js?v=20261001-pages';
+import { renderAdmin, initAdmin } from './admin.js?v=20261001-edit-links';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260930-bottom-icons-v44';
@@ -5712,7 +5712,8 @@ await Promise.all([...initialLoads, refreshAdminSession()]);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
-initPublicAdminBar();
+const adminEditType = path.startsWith('/job/') ? 'job' : path.startsWith('/employer/') ? 'employer' : document.querySelector('.blog-post-page') ? 'post' : null;
+initPublicAdminBar(adminEditType && !document.title.startsWith('404') ? { type: adminEditType, slug: path.split('/').filter(Boolean).pop() } : null);
 import('./page-stamp.js?v=2').then(({addPageStamp}) => addPageStamp({
   record: wpRecord,
   post: document.querySelector('.blog-post-page') ? data.posts?.find(p => path.endsWith('/' + p.slug)) : null,
