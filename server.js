@@ -1,3 +1,4 @@
+import {logoFor,socialHead} from './social-preview.js';
 import { isPrivatePage, isPublishedRecord } from './indexing-policy.js';
 import http from 'node:http';
 import { readFile, stat, writeFile } from 'node:fs/promises';
@@ -1146,23 +1147,46 @@ const server = http.createServer(async (req, res) => {
   if (privatePage || path.startsWith('/api/')) res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   const contentParts = path.split('/').filter(Boolean);
   const contentType = contentParts.length === 2 ? ({job:'job_listing',employer:'employer',blog:'posts',insurance:'posts','career-tips':'posts',health:'posts','part-time-job':'posts',visa:'posts',guides:'posts',interview:'posts','types-of-jobs':'posts',exam:'posts',general:'posts'}[contentParts[0]]) : null;
+  let shareHead = '';
   if (contentType && !privatePage) {
     try {
       const slug = decodeURIComponent(contentParts[1]);
       let published = false;
+      let contentRecord;
       let checkWordPress = true;
       if (contentType !== 'posts') {
         const collection = contentType === 'employer' ? 'employers' : 'jobs';
         const localResponse = await fetch(`${seoApiBase}/api/local/${collection}/${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
-        if (localResponse.ok) { published = isPublishedRecord(await localResponse.json()); checkWordPress = false; }
+        if (localResponse.ok) { contentRecord=await localResponse.json(); published = isPublishedRecord(contentRecord); checkWordPress = false; }
         else if (localResponse.status !== 404) throw new Error('Content unavailable');
       }
       if (checkWordPress) {
         const response = await fetch(`${seoApiBase}/api/wp/${contentType}?slug=${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
         if (!response.ok) throw new Error('Content unavailable');
-        published = (await response.json()).some(isPublishedRecord);
+        contentRecord=(await response.json()).find(isPublishedRecord);
+        published = Boolean(contentRecord);
       }
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
+      if (['job_listing','employer'].includes(contentType)) {
+        let logo=logoFor(contentRecord,contentType);
+        if(contentType==='job_listing' && !logo) {
+          const m=contentRecord.metas || {};
+          const employerSlug=contentRecord.employerSlug || String(contentRecord.employerUrl || m._job_employer_url || '').split('/').filter(Boolean).pop();
+          const params=new URLSearchParams();
+          if(employerSlug)params.set('slug',employerSlug);
+          else if(m._job_employer_posted_by)params.set('id',m._job_employer_posted_by);
+          if(params.size) {
+            try {
+              const r=await fetch(`${seoApiBase}/api/wp/employer?${params}`,{signal:AbortSignal.timeout(10000)});
+              let employer=r.ok?(await r.json())[0]:null;
+              if(!employer && employerSlug){const local=await fetch(`${seoApiBase}/api/local/employers/${encodeURIComponent(employerSlug)}`,{signal:AbortSignal.timeout(10000)});if(local.ok)employer=await local.json();}
+              logo=logoFor(employer,'employer');
+            }catch(error){console.warn('Share logo unavailable:',error.message);}
+          }
+        }
+        shareHead=socialHead(contentRecord,contentType,path,logo);
+      }
+
     } catch { res.writeHead(503, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
   }
 
@@ -1241,6 +1265,9 @@ const server = http.createServer(async (req, res) => {
         .replace(/<title>[\s\S]*?<\/title>/,`<title>${JOBS_SEO_TITLE}</title>`)
         .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${JOBS_SEO_DESCRIPTION}">`)
         .replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/jobs">');
+    }
+    if (shareHead && target === join(root,'index.html')) {
+      fileBody=fileBody.toString().replace(/<title>[\s\S]*?<\/title>/gi,'').replace(/<meta[^>]+(?:name=["'](?:description|twitter:[^"']+)|property=["']og:[^"']+)["'][^>]*>/gi,'').replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi,'').replace('</head>',shareHead+'</head>');
     }
     if (privatePage && target === join(root,'index.html')) {
       fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
