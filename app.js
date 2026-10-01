@@ -5718,6 +5718,11 @@ await Promise.all(initialLoads);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+import('./page-stamp.js?v=1').then(({addPageStamp}) => addPageStamp({
+  record: wpRecord,
+  post: document.querySelector('.blog-post-page') ? data.posts?.find(p => path.endsWith('/' + p.slug)) : null,
+  seoPage: seoPagePayload?.page
+}));
 function restoreEmployerTab() {
   if (!location.pathname.startsWith('/employer/')) return;
   const params = new URLSearchParams(location.search);
