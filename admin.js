@@ -1,5 +1,5 @@
 import { signalAdminSessionChange } from './admin-session.js?v=2';
-import { createFormRecovery } from './admin-recovery.js?v=1';
+import { createFormRecovery } from './admin-recovery.js?v=2';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -6876,6 +6876,8 @@ export async function initAdmin() {
 
   jobForm.addEventListener('submit', async e => {
     e.preventDefault();
+    await jobRecovery.flush();
+    e.preventDefault();
     jobStatusState.textContent = 'Saving…';
     const fd = new FormData(jobForm);
     const job = Object.fromEntries(fd.entries());
@@ -8031,6 +8033,8 @@ export async function initAdmin() {
   });
 
   employerForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    await employerRecovery.flush();
     e.preventDefault();
     if (employerStatusState) employerStatusState.textContent = 'Saving…';
     const saveBtn = document.getElementById('save-employer-btn');
