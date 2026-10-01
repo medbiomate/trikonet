@@ -143,7 +143,7 @@ function jobCard([title,slug,category,location,type],logo='') {
   const cleanTitle = decode(title);
   const cleanCat = decode(category);
   const cleanLoc = decode(location);
-  const catItems = cleanCat ? splitCommaCategories(cleanCat) : [];
+  const catItems = cleanCat ? splitCommaCategories(cleanCat).slice(0, 1) : [];
   const locItems = cleanLoc ? cleanLoc.split(',').map(s => s.trim()).filter(Boolean) : [];
 
   const catLinks = catItems.map(c => `<a href="/category/${esc(filterSlug(c))}">${esc(c)}</a>`).join(', ');

@@ -1,4 +1,4 @@
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=16.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=17.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';
@@ -1782,7 +1782,7 @@ function jobs(){
           const rawCompany = (j.company || j.employerName || '').trim();
           const cleanCompany = decodeHtml(rawCompany);
           const catText = j.category || (j.categories && j.categories[0]) || '';
-          const cleanCat = decodeHtml(catText);
+          const cleanCat = decodeHtml(catText).split(',')[0].trim();
           const typeText = j.type || 'Full Time';
           const locText = j.location || 'United Arab Emirates';
           const dateText = j.date || 'Recently posted';
