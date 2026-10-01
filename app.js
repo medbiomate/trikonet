@@ -1,3 +1,4 @@
+import { uniqueJobs } from './job-list-identity.js';
 import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=3';
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=21.0';
 import { formatCompanyName } from './company-name.js';
@@ -442,7 +443,9 @@ async function loadLocalJobs(){
     ].filter(Boolean).join(' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').toLowerCase();
     const localSearchScore=job=>{const title=String(job.title||'').toLowerCase(),company=String(job.company||job.metas?._job_employer_name||'').toLowerCase(),text=localSearchText(job);if(title===normalizedQuery)return 100;if(title.startsWith(normalizedQuery))return 90;if(title.includes(normalizedQuery))return 80;if(company===normalizedQuery)return 75;if(company.includes(normalizedQuery))return 65;return text.includes(normalizedQuery)?40:20};
     const localFiltered=local.filter(job=>(!normalizedQuery||queryWords.every(word=>localSearchText(job).includes(word)))&&(!queryParams.get('location')||queryParams.get('location')==='Country or City'||(job.locations||[]).includes(queryParams.get('location')))&&(!targetCat||targetCat==='All Categories'||(job.categories||[]).some(c=>c.toLowerCase().includes(targetCat.toLowerCase())))&&(!queryParams.get('job_type')||(job.types||[]).includes(queryParams.get('job_type')))).sort((a,b)=>localSearchScore(b)-localSearchScore(a));
-    data.jobs=[...(currentPage===1?localFiltered.map(mapJob):[]),...wp.map(mapJob)].slice(0,pageLimit);
+    const localUnique=uniqueJobs(localFiltered);
+    const localSlugs=new Set(localUnique.map(job=>job.slug));
+    data.jobs=uniqueJobs([...(currentPage===1?localUnique.map(mapJob):[]),...wp.filter(job=>!localSlugs.has(job.slug)).map(mapJob)]).slice(0,pageLimit);
   }catch{data.jobs=[]}
 }
 async function loadLocalEmployers(){
