@@ -1,5 +1,5 @@
 import { signalAdminSessionChange } from './admin-session.js?v=2';
-import { createFormRecovery } from './admin-recovery.js?v=4';
+import { createFormRecovery } from './admin-recovery.js?v=5';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -4669,6 +4669,7 @@ export async function initAdmin() {
     data.logo = document.getElementById('field-logo-img')?.value || data.logo || '';
     data.banner = document.getElementById('field-banner-img')?.value || data.banner || '';
     data.employerSlug = document.getElementById('field-employer-author')?.value || '';
+    data.id = jobForm?.elements.id?.value || '';
     data.originalSlug = jobForm?.originalSlug?.value || '';
     data.types = Array.from(document.querySelectorAll('input[name="types"]:checked')).map(cb => cb.value);
     data.categories = Array.from(document.querySelectorAll('input[name="categories"]:checked')).map(cb => cb.value);
@@ -4875,7 +4876,7 @@ export async function initAdmin() {
   }
 
   function fillJob(job = {}) {
-    queueMicrotask(() => jobRecovery.open(job.slug || ''));
+    queueMicrotask(() => jobRecovery.open(job.slug || '', job.id || ''));
     jobForm.reset();
     renderGutenbergChecklists();
 
@@ -6895,6 +6896,7 @@ export async function initAdmin() {
     const fd = new FormData(jobForm);
     const job = Object.fromEntries(fd.entries());
     if (e.submitter?.id === 'publish-job-btn') job.status = 'publish';
+    job.id = jobForm.elements.id?.value || '';
     job.originalSlug = jobForm.originalSlug.value;
     job.description = document.getElementById('job-rich-content')?.innerHTML?.trim() || job.description?.trim() || '';
     if ((job.applyType === 'External URL' && !job.applyUrl) || (job.applyType === 'By Email' && !job.applyEmail)) {
@@ -6987,6 +6989,7 @@ export async function initAdmin() {
       showAdminNotice(`Job “${saved.title || job.title}” ${statusLabel} successfully.`);
       jobSaveSucceeded = true;
       jobRecovery.clear();
+      jobRecovery.saved(saved);
       updateJobPreview();
       renderJobRows();
     } catch (error) {
