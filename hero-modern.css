@@ -6604,6 +6604,43 @@ main.detail-page {
   height: 100%;
 }
 
+/* Larger brand frames without cropping company artwork. */
+.featured-company-logo-wrap {
+  width: 112px;
+  height: 80px;
+  margin: 0 auto 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.featured-company-logo-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  padding: 3px;
+}
+.featured-company-logo-fallback {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  font-size: 22px;
+}
+.nurse-card-logo,
+.nurse-card-logo-fallback {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 12px !important;
+  flex-shrink: 0 !important;
+}
+.nurse-card-logo img { padding: 3px; }
+@media (max-width: 768px) {
+  .nurse-card-logo,
+  .nurse-card-logo-fallback {
+    width: 56px !important;
+    height: 56px !important;
+  }
+}
+
 .job-category-links {padding-top:40px;padding-bottom:48px;}
 .job-category-links h2 {display:flex;align-items:center;justify-content:center;gap:24px;font-size:24px;line-height:1.4;text-align:center;margin:0 0 32px;}
 .job-category-links h2::before,.job-category-links h2::after {content:"";height:1px;flex:1;max-width:160px;background:linear-gradient(90deg,transparent,var(--red));}
