@@ -7093,7 +7093,7 @@ document.addEventListener('click', e => {
     const target = tab.dataset.tab;
     if (!target) return;
     const tabUrl = new URL(location.href);
-    if (target === 'overview') tabUrl.searchParams.delete('tab');
+    if (target === 'overview' && !tabUrl.searchParams.has('jobsPage')) tabUrl.searchParams.delete('tab');
     else tabUrl.searchParams.set('tab', target);
     // Retain the jobs page so returning to Jobs restores its position.
     tabUrl.hash = '';
