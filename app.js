@@ -3181,7 +3181,6 @@ function cleanJobExcerpt(value) {
 function faq(){return `<main><section class="subhero"><h1>FAQ</h1></section><div class="content faq"><h2>History Of Trikonet</h2>${[['Who is Trikonet?','Trikonet is a job platform connecting job seekers with employment opportunities in the UAE and other Middle Eastern countries.'],['How The Trikonet Started?','Trikonet was founded after the success of Medbiomate highlighted the need for a broader job platform.'],['How are Trikonet and Medbiomate connected?','Both platforms share founders and a commitment to connecting qualified candidates with trusted opportunities.']].map(x=>`<details><summary>${x[0]}</summary><p>${x[1]}</p></details>`).join('')}</div></main>`}
 function contact(){return `<main><section class="subhero"><h1>Contact Us</h1></section><div class="content contact-grid"><div><h2>Get in touch</h2><p>Questions about jobs, employers or your Trikonet account? Send us a message.</p><p><b>Email</b><br>info@trikonet.com</p></div><form class="form-card" id="contact"><label>Name<input required></label><label>Email<input type="email" required></label><label>Message<textarea required></textarea></label><button class="primary">Send Message</button></form></div></main>`}
 function employerSignupComingSoon(){return `<main class="employer-coming-soon"><section class="employer-coming-card"><div class="employer-coming-icon" aria-hidden="true">🏢</div><span class="employer-coming-eyebrow">FOR EMPLOYERS</span><h1>Employer job posting is coming soon</h1><p>Employer registration and job posting are not open yet. We are preparing the employer portal and will launch it shortly.</p><div class="employer-coming-actions"><a class="employer-coming-primary" href="/jobs">Browse Jobs</a><a class="employer-coming-secondary" href="/contact">Contact Us</a></div><small>Thank you for your interest in hiring through Trikonet.</small></section></main>`}
-function generic(){const title=path.split('/').filter(Boolean).map(s=>s.replaceAll('-',' ')).join(' / ')||'Trikonet';return `<main><section class="subhero"><h1>${title.replace(/\b\w/g,c=>c.toUpperCase())}</h1></section><div class="content"><p>This page keeps the existing Trikonet URL available in the local migration. Its content can be edited in the CMS.</p><a class="primary" href="/jobs">Browse Jobs</a></div></main>`}
 const CANDIDATE_QUALIFICATION_LEVELS = [
   "Doctorate / PhD",
   "Master's / Post Graduate Degree (PG)",
@@ -5687,7 +5686,15 @@ function render() {
     if (postBySlug) {
       body = post(postBySlug);
     } else {
-      body = generic();
+      body = notFound404Page();
+      document.title = '404 — Page Not Found | Trikonet';
+      let robots = document.querySelector('meta[name="robots"]');
+      if (!robots) {
+        robots = document.createElement('meta');
+        robots.name = 'robots';
+        document.head.append(robots);
+      }
+      robots.content = 'noindex,follow';
     }
   }
   const memberAuthPaths = ['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up'];
