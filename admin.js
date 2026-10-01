@@ -125,7 +125,7 @@ export function renderAdmin() {
   <!-- Modern Sleek Top Header -->
   <header class="admin-top-header">
     <div class="admin-header-left">
-      <a href="#jobs" class="admin-brand" title="Trikonet Console">
+      <a href="/" class="admin-brand" title="Go to Trikonet homepage">
         <img src="/assets/logo-black.png?v=4.0" alt="Trikonet" class="admin-brand-logo-img">
         <span class="admin-brand-badge">Console</span>
       </a>
