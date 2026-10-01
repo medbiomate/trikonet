@@ -5535,18 +5535,17 @@ function fitEmployerLogos() {
         const occupiedArea = (contentWidth * contentHeight) / (canvas.width * canvas.height);
         if (occupiedArea > .68) return;
         const padding = Math.max(2, Math.round(Math.max(contentWidth, contentHeight) * .08));
-        const output = document.createElement('canvas');
-        // A square crop around the complete mark, never a center crop that
-        // cuts off wide wordmarks or the tip of a shield.
+        // Fit the original image with CSS so opening/copying it keeps its media URL.
         const side = Math.max(contentWidth, contentHeight) + padding * 2;
-        output.width = side;
-        output.height = side;
-        const outputContext = output.getContext('2d');
-        outputContext.fillStyle = `rgba(${background[0]},${background[1]},${background[2]},${background[3] / 255})`;
-        outputContext.fillRect(0, 0, side, side);
-        outputContext.drawImage(canvas, left, top, contentWidth, contentHeight,
-          (side - contentWidth) / 2, (side - contentHeight) / 2, contentWidth, contentHeight);
-        sourceImage.src = output.toDataURL('image/png');
+        const frame = sourceImage.parentElement;
+        frame.style.position = 'relative';
+        frame.style.overflow = 'hidden';
+        Object.assign(sourceImage.style, {
+          position: 'absolute', objectFit: 'fill', maxWidth: 'none', maxHeight: 'none',
+          width: `${canvas.width / side * 100}%`, height: `${canvas.height / side * 100}%`,
+          left: `${((side - contentWidth) / 2 - left) / side * 100}%`,
+          top: `${((side - contentHeight) / 2 - top) / side * 100}%`
+        });
         sourceImage.classList.add('is-trimmed-logo');
       } catch {
         sourceImage.classList.add('is-logo-fallback-enlarged');
