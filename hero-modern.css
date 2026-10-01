@@ -6627,17 +6627,17 @@ main.detail-page {
 }
 .nurse-card-logo,
 .nurse-card-logo-fallback {
-  width: 64px !important;
-  height: 64px !important;
+  width: 76px !important;
+  height: 76px !important;
   border-radius: 12px !important;
   flex-shrink: 0 !important;
 }
-.nurse-card-logo img { padding: 3px; }
+.nurse-card-logo img { padding: 0; }
 @media (max-width: 768px) {
   .nurse-card-logo,
   .nurse-card-logo-fallback {
-    width: 56px !important;
-    height: 56px !important;
+    width: 72px !important;
+    height: 72px !important;
   }
 }
 
