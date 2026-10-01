@@ -68,7 +68,7 @@ export function createFormRecovery(form, type, account) {
       let draft;
       try { draft = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
       draftId = draft?.draftId || (slug.startsWith(`autosave-${type}-`) ? slug.slice(`autosave-${type}-`.length) : crypto.randomUUID());
-      if (!draft?.values) return;
+      if (!draft?.values || type === 'job') return;
       notice.style.display = 'block';
       notice.textContent = 'An unfinished draft is available on this device. ';
       const restore = document.createElement('button');
