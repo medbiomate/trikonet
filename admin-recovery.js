@@ -1,6 +1,16 @@
 export function createFormRecovery(form, type, account) {
   const view = form.closest('.admin-view');
   let key, dirty = false, restoring = false, timer, pending, draftId, sourceSlug = '';
+  let editingSlug = '';
+  function presence(release = false) {
+    if (!editingSlug || type !== 'job') return;
+    void fetch('/api/admin/job-presence', {method:'POST',credentials:'include',keepalive:release,headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:editingSlug,release})}).catch(() => {});
+  }
+  setInterval(() => {
+    if (!document.hidden && view.classList.contains('active-view')) presence();
+    else presence(true);
+  }, 15000);
+  window.addEventListener('pagehide', () => presence(true));
   function record() {
     const data = Object.fromEntries(new FormData(form));
     const value = selector => view.querySelector(selector)?.value || '';
@@ -20,13 +30,15 @@ export function createFormRecovery(form, type, account) {
     if (!dirty || !key || pending) return pending;
     const snapshotKey = key, snapshotId = draftId;
     const data = record();
-    if (!data.title.trim()) return;
+    if (!data.title.trim() && type !== 'job') return;
     pending = (async () => {
       try {
         const response = await fetch('/api/admin/autosave', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type,draftId:snapshotId,sourceSlug,record:data}) });
         if (!response.ok) throw new Error('Draft sync failed');
         const saved = await response.json();
         if (key === snapshotKey) {
+          editingSlug = sourceSlug || saved.slug;
+          presence();
           notice.textContent = 'Saved as draft. Available in the Drafts list.';
           if (!sourceSlug && form.elements.originalSlug) form.elements.originalSlug.value = saved.slug;
         }
@@ -60,6 +72,9 @@ export function createFormRecovery(form, type, account) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   return {
     open(slug = '') {
+      if (type === 'job' && !slug && pending && !sourceSlug) return;
+      presence(true);
+      editingSlug = slug;
       clearTimeout(timer);
       dirty = false;
       sourceSlug = slug;
@@ -67,7 +82,11 @@ export function createFormRecovery(form, type, account) {
       notice.style.display = 'none';
       let draft;
       try { draft = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
-      draftId = draft?.draftId || (slug.startsWith(`autosave-${type}-`) ? slug.slice(`autosave-${type}-`.length) : crypto.randomUUID());
+      draftId = (type === 'job' && !slug) ? crypto.randomUUID() : draft?.draftId || (slug.startsWith(`autosave-${type}-`) ? slug.slice(`autosave-${type}-`.length) : crypto.randomUUID());
+      if (type === 'job') {
+        if (!slug) { dirty = true; save(); void sync(); }
+        else presence();
+      }
       if (!draft?.values || type === 'job') return;
       notice.style.display = 'block';
       notice.textContent = 'An unfinished draft is available on this device. ';
@@ -91,6 +110,6 @@ export function createFormRecovery(form, type, account) {
       notice.append(restore);
     },
     async flush() { clearTimeout(timer); if (pending) await pending; await sync(); },
-    clear() { clearTimeout(timer); if (key) localStorage.removeItem(key); dirty = false; notice.style.display = 'none'; }
+    clear() { presence(true); editingSlug = ''; clearTimeout(timer); if (key) localStorage.removeItem(key); dirty = false; notice.style.display = 'none'; }
   };
 }

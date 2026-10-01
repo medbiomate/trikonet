@@ -1,5 +1,5 @@
 import { signalAdminSessionChange } from './admin-session.js?v=2';
-import { createFormRecovery } from './admin-recovery.js?v=3';
+import { createFormRecovery } from './admin-recovery.js?v=4';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -5020,6 +5020,7 @@ export async function initAdmin() {
           <div class="modern-title-line">
             <a class="row-title" href="#job-editor" data-job-edit="${esc(j.slug)}">${esc(j.title)}</a>
             <span class="modern-company-text">${esc(j.company || 'Trikonet')}</span>
+            ${j.editingNames?.length ? `<span style="display:block;color:#2563eb;font-size:12px" role="status">${esc(j.editingNames.join(', '))} ${j.editingNames.length > 1 ? 'are' : 'is'} editing this job</span>` : ''}
           </div>
           <div class="row-actions">
             <a href="#job-editor" class="row-action-link edit-link" data-job-edit="${esc(j.slug)}">Edit</a>
@@ -6177,13 +6178,17 @@ export async function initAdmin() {
   });
 
   // Request just the selected page. Ignore replies from superseded searches/pages.
-  async function loadRemoteJobs() {
+  setInterval(() => {
+    if (!document.hidden && document.querySelector('#view-jobs')?.classList.contains('active-view') && !jobsLoading && !document.querySelector('input[name="post[]"]:checked') && !document.querySelector('.inline-edit-row')) void loadRemoteJobs(true);
+  }, 5000);
+
+  async function loadRemoteJobs(quiet = false) {
     const request = ++jobsRequest;
     jobsController?.abort();
     jobsController = new AbortController();
-    jobsLoading = true;
+    jobsLoading = !quiet;
     jobsLoadError = false;
-    renderJobRows(false);
+    if (!quiet) renderJobRows(false);
     const params = new URLSearchParams({
       page: String(currentPage), per_page: String(pageSize), status: currentStatus,
       q: document.querySelector('#admin-search')?.value || '',
@@ -6197,6 +6202,14 @@ export async function initAdmin() {
       if (request !== jobsRequest) return [];
       if (!Array.isArray(payload.jobs)) throw new Error('Invalid jobs response');
       pageJobs = payload.jobs.map(job => job.local ? job : wordpressJob(job));
+      try {
+        const presenceResponse = await fetch('/api/admin/job-presence');
+        if (presenceResponse.ok) {
+          const editors = await presenceResponse.json();
+          if (request !== jobsRequest) return [];
+          pageJobs = pageJobs.map(job => ({...job,editingNames:editors.filter(editor => editor.slug === job.slug).map(editor => editor.name)}));
+        }
+      } catch { /* Jobs remain usable when presence is temporarily unavailable. */ }
       jobTotal = Number(payload.total) || 0;
       currentPage = Number(payload.page) || currentPage;
       const freshRemote = pageJobs.filter(job => !job.local);
