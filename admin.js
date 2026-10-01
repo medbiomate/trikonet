@@ -61,6 +61,7 @@ function wordpressJob(job) {
   const views = job.views ?? viewCounts[Math.abs((job.id || 0) % viewCounts.length)];
   return {
     id: job.id,
+    createdBy: job.createdBy || null,
     title: job.title?.rendered || '',
     slug: job.slug,
     company: m._job_employer_name || '',
@@ -5021,6 +5022,7 @@ export async function initAdmin() {
           <div class="modern-title-line">
             <a class="row-title" href="#job-editor" data-job-edit="${esc(j.slug)}">${esc(j.title)}</a>
             <span class="modern-company-text">${esc(j.company || 'Trikonet')}</span>
+            <span style="display:block;font-size:12px;color:#64748b;margin-top:3px">Created by: ${esc(j.createdBy?.name || 'Not recorded')}</span>
             ${j.editingNames?.length ? `<span style="display:block;color:#2563eb;font-size:12px" role="status">${esc(j.editingNames.join(', '))} ${j.editingNames.length > 1 ? 'are' : 'is'} editing this job</span>` : ''}
           </div>
           <div class="row-actions">
