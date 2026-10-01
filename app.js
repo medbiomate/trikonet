@@ -5476,7 +5476,13 @@ function isResumeBuilderPath(p) {
 }
 
 function fitEmployerLogos() {
-  document.querySelectorAll('.emp-profile-logo-img').forEach(sourceImage => {
+  document.querySelectorAll('.emp-profile-logo-img, .nurse-card-logo img, .featured-company-logo-wrap img').forEach(sourceImage => {
+    // Keep offscreen lazy logos lazy; fit their whitespace only after loading.
+    if (!sourceImage.complete) {
+      sourceImage.addEventListener('load', fitEmployerLogos, { once: true });
+      return;
+    }
+    if (!sourceImage.naturalWidth) return;
     if (sourceImage.dataset.trimAttempted === 'true') return;
     sourceImage.dataset.trimAttempted = 'true';
     const probe = new Image();
