@@ -391,6 +391,7 @@ function mapJob(record){
     category:fieldValues(m._job_category)||(record.categories||[]).join(', ')||record.category||'',
     location:fieldValues(m._job_location)||(record.locations||[]).join(', ')||record.location||'',
     type:fieldValues(m._job_type)||(record.types||[]).join(', ')||record.type||'',
+    publishedDate:record.publishedDate || record.datePosted || record.postedDate || record.date || record.createdAt || m._job_date_posted || '',
     date:date,
     deadline:deadline,
     expiryDate:deadline,
