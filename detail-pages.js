@@ -139,10 +139,11 @@ const phoneMask = value => value ? `${value.slice(0,-3)}***` : '';
 const slugFromUrl = value => { try { return new URL(value).pathname; } catch { return '#'; } };
 const filterSlug = value => decode(value).trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-function jobCard([title,slug,category,location,type],logo='') {
+function jobCard([title,slug,category,location,type,publishedDate],logo='') {
   const cleanTitle = decode(title);
   const cleanCat = decode(category);
   const cleanLoc = decode(location);
+  const published = formatJobDate(publishedDate);
   const catItems = cleanCat ? splitCommaCategories(cleanCat).slice(0, 1) : [];
   const locItems = cleanLoc ? cleanLoc.split(',').map(s => s.trim()).filter(Boolean) : [];
 
@@ -157,7 +158,7 @@ function jobCard([title,slug,category,location,type],logo='') {
   const logoHtml = logo
     ? `<img src="${esc(logo)}" alt="" onerror="this.outerHTML='<div class=&quot;detail-job-logo-fallback&quot;>${fallback}</div>'">`
     : `<div class="detail-job-logo-fallback">${fallback}</div>`;
-  return `<article class="detail-job-row"><a href="/job/${esc(slug)}" aria-label="View ${esc(cleanTitle)}">${logoHtml}</a><div class="detail-job-row-main"><h3><a href="/job/${esc(slug)}">${esc(cleanTitle)}</a></h3>${meta ? `<p>${meta}</p>` : ''}<span class="detail-pill">${esc(type || 'Full Time')}</span></div><span class="detail-bookmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span></article>`;
+  return `<article class="detail-job-row"><a href="/job/${esc(slug)}" aria-label="View ${esc(cleanTitle)}">${logoHtml}</a><div class="detail-job-row-main"><h3><a href="/job/${esc(slug)}">${esc(cleanTitle)}</a></h3>${meta ? `<p>${meta}</p>` : ''}<span class="detail-pill">${esc(type || 'Full Time')}</span>${published ? `<span class="detail-job-published" style="display:inline-block;margin-left:12px;color:#64748b;font-size:13px">Published ${esc(published)}</span>` : ''}</div><span class="detail-bookmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span></article>`;
 }
 
 function relatedJobCard(record, employerLogo = '') {
@@ -642,7 +643,8 @@ export function renderEmployerDetail(record, path, jobs = []) {
         job.slug || '',
         (job.categories || []).join(', ') || job.category || '',
         (job.locations || []).join(', ') || job.location || '',
-        job.type || 'Full Time'
+        job.type || 'Full Time',
+        job.publishedDate || job.datePosted || job.postedDate || job.date || job.createdAt || ''
       ];
     });
   }
