@@ -5500,11 +5500,22 @@ function fitEmployerLogos() {
         const context = canvas.getContext('2d', { willReadFrequently: true });
         context.drawImage(probe, 0, 0, canvas.width, canvas.height);
         const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        // Infer the solid background from all four corners, including dark
+        // brand colours. White foreground artwork is not blank space.
+        const cornerOffsets = [0, (canvas.width - 1) * 4,
+          (canvas.height - 1) * canvas.width * 4,
+          (canvas.width * canvas.height - 1) * 4];
+        const background = [0, 1, 2, 3].map(channel =>
+          Math.round(cornerOffsets.reduce((sum, offset) => sum + pixels[offset + channel], 0) / 4));
+        if (cornerOffsets.some(offset => [0, 1, 2, 3].some(channel =>
+          Math.abs(pixels[offset + channel] - background[channel]) > 24))) return;
         let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
         for (let y = 0; y < canvas.height; y++) {
           for (let x = 0; x < canvas.width; x++) {
             const offset = (y * canvas.width + x) * 4;
-            const visible = pixels[offset + 3] > 18 && Math.min(pixels[offset], pixels[offset + 1], pixels[offset + 2]) < 242;
+            const visible = pixels[offset + 3] > 18 &&
+              (background[3] <= 18 || [0, 1, 2].some(channel =>
+                Math.abs(pixels[offset + channel] - background[channel]) > 28));
             if (!visible) continue;
             left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y);
           }
@@ -5522,7 +5533,7 @@ function fitEmployerLogos() {
         output.width = side;
         output.height = side;
         const outputContext = output.getContext('2d');
-        outputContext.fillStyle = '#fff';
+        outputContext.fillStyle = `rgba(${background[0]},${background[1]},${background[2]},${background[3] / 255})`;
         outputContext.fillRect(0, 0, side, side);
         outputContext.drawImage(canvas, left, top, contentWidth, contentHeight,
           (side - contentWidth) / 2, (side - contentHeight) / 2, contentWidth, contentHeight);
