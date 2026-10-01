@@ -31,11 +31,27 @@ export function mountContentAd() {
   else if (isFeed) cards[3].after(ad);
   else if (path === '/' && main.children.length > 2) main.children[1].after(ad);
   else main.append(ad);
+  const placements = [ad];
+  if (article) {
+    const multiplex = document.createElement('aside');
+    multiplex.className = 'content-ad content-ad-multiplex';
+    multiplex.setAttribute('aria-label', 'Advertisement');
+    multiplex.innerHTML = `<span class="content-ad-label">Advertisement</span>
+      <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed"
+        data-ad-client="ca-pub-4310822705633659" data-ad-slot="8730100272"></ins>`;
+    // Separate sponsored recommendations from editorial related articles.
+    article.after(multiplex);
+    placements.push(multiplex);
+  }
   // Request only when the placement approaches the viewport, not on startup.
   const observer = new IntersectionObserver(entries => {
-    if (!entries.some(entry => entry.isIntersecting) || !ad.clientWidth) return;
-    observer.disconnect();
-    (window.adsbygoogle = window.adsbygoogle || []).push({});
+    for (const entry of entries) {
+      const placement = entry.target;
+      if (!entry.isIntersecting || !placement.clientWidth || placement.dataset.requested) continue;
+      placement.dataset.requested = 'true';
+      observer.unobserve(placement);
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    }
   }, { rootMargin: '200px' });
-  observer.observe(ad);
+  placements.forEach(placement => observer.observe(placement));
 }

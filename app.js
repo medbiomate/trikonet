@@ -5711,7 +5711,7 @@ await Promise.all(initialLoads);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
-import('./content-ads.js?v=3').then(({mountContentAd}) => mountContentAd());
+import('./content-ads.js?v=4').then(({mountContentAd}) => mountContentAd());
 document.querySelector('#app').removeAttribute('data-seo-pending');
 document.getElementById('seo-loading')?.remove();
 if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
