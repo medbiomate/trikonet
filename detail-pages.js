@@ -232,7 +232,7 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
   const m = employer?.metas || {};
   const compName = decode(employer?.title?.rendered || employer?.title || company || 'Company');
   const profileUrl = resolveEmployerProfile(employer, jobEmployerUrl, compName);
-  const empLogo = logo || employer?.logo || m._employer_logo || m._employer_featured_image_img || '';
+  const empLogo = employer?.logo || m._employer_logo || m._employer_featured_image_img || logo || '';
   
   // Category
   const compCatList = (category ? splitCommaCategories(category) : [])
@@ -395,7 +395,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   const date = resolveJobDate(record);
   const expiry = resolveJobDeadline(record);
   const isBateel = record.slug === 'bateel-international' || employer?.slug === 'bateel-international';
-  const logo = record.logo || m._job_logo || employer?.metas?._employer_logo || employer?.metas?._employer_featured_image_img || employer?.metas?._employer_featured_image || (isBateel ? '/assets/bateel.jpg' : '');
+  const logo = record.logo || m._job_logo || employer?.logo || employer?.metas?._employer_logo || employer?.metas?._employer_featured_image_img || employer?.metas?._employer_featured_image || (isBateel ? '/assets/bateel.jpg' : '');
   const employerPath = resolveEmployerProfile(employer, record.employerUrl || m._job_employer_url, company);
   const desc = record.description || '';
   const hasHtml = /<[a-z][\s\S]*>/i.test(desc);
