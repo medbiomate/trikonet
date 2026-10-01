@@ -6139,6 +6139,21 @@ if(jobSaveButton&&currentJobView){
   });
 }
 const applyButton=document.querySelector('.detail-actions .apply');
+if (applyButton && path.startsWith('/job/')) {
+  const actions = applyButton.closest('.detail-actions');
+  const title = document.querySelector('.detail-hero .detail-title');
+  if (actions && title) {
+    const topApply = applyButton.cloneNode(true);
+    topApply.classList.add('mobile-top-apply');
+    title.append(topApply);
+    topApply.addEventListener('click', event => { event.preventDefault(); applyButton.click(); });
+    const mobile = matchMedia('(max-width: 768px)');
+    const updateDock = () => actions.classList.toggle('mobile-apply-visible', mobile.matches && topApply.getBoundingClientRect().bottom <= 0);
+    window.addEventListener('scroll', updateDock, { passive: true });
+    window.addEventListener('resize', updateDock);
+    updateDock();
+  }
+}
 if(applyButton&&currentJobView)applyButton.addEventListener('click',()=>{
   if(currentUser)upsertMemberCollection('applied_jobs',{...currentJobView,appliedAt:new Date().toISOString()});
 });
