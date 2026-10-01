@@ -498,7 +498,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
           </div>
           <div class="overview-list">
             ${date ? `
-            <div class="overview-item">
+            <div class="overview-item overview-date">
               <div class="overview-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -514,7 +514,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
             </div>` : ''}
 
             ${location ? `
-            <div class="overview-item">
+            <div class="overview-item overview-location">
               <div class="overview-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -528,7 +528,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
             </div>` : ''}
 
             ${type ? `
-            <div class="overview-item">
+            <div class="overview-item overview-type">
               <div class="overview-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>

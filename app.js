@@ -1,4 +1,4 @@
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=15.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=16.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 import { renderAdmin, initAdmin } from './admin.js?v=11.0';

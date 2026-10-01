@@ -344,6 +344,17 @@
     padding: 0;
   }
 
+  .detail-exact .detail-grid:not(.employer-detail-grid) .detail-sidebar { display: contents; }
+  .detail-exact .detail-grid:not(.employer-detail-grid) .overview { order: -1; padding: 20px; }
+  .detail-exact .detail-grid:not(.employer-detail-grid) .job-description { order: 0; }
+  .detail-exact .detail-grid:not(.employer-detail-grid) .detail-sidebar > :not(.overview) { order: 1; }
+  .detail-exact .overview-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px 12px; }
+  .detail-exact .overview-item { grid-column: 1 / -1; margin: 0; min-width: 0; }
+  .detail-exact .overview-location { grid-column: 1; grid-row: 1; }
+  .detail-exact .overview-type { grid-column: 2; grid-row: 1; }
+  .detail-exact .overview-icon { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px; }
+  .detail-exact .overview-title { font-size: 10px; }
+  .detail-exact .overview-val { font-size: 14px; line-height: 1.5; }
   .detail-exact .detail-grid:not(.employer-detail-grid) .job-desc-heading {
     margin-bottom: 16px;
     font-size: 17px;
