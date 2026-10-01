@@ -611,3 +611,14 @@
     margin-top: 14px;
   }
 }
+
+/* Put the primary Jobs destination first in the mobile accordion. */
+@media (max-width: 1100px) {
+  .nav-jobs-mega .mega-side-col {
+    display: contents;
+  }
+  .nav-jobs-mega .mega-cta-card {
+    order: -1;
+    margin: 0 0 14px;
+  }
+}
