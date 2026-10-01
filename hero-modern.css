@@ -6632,12 +6632,20 @@ main.detail-page {
   border-radius: 12px !important;
   flex-shrink: 0 !important;
 }
-.nurse-card-logo img { padding: 0; }
+.nurse-card-logo img {
+  width: 50px;
+  height: 50px;
+  padding: 3px;
+}
 @media (max-width: 768px) {
   .nurse-card-logo,
   .nurse-card-logo-fallback {
     width: 72px !important;
     height: 72px !important;
+  }
+  .nurse-card-logo img {
+    width: 44px;
+    height: 44px;
   }
 }
 
