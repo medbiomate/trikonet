@@ -171,7 +171,8 @@ function relatedJobCard(record, employerLogo = '') {
     type = (record?.type && record?.type !== 'job_listing') ? record.type : 'Full Time';
   }
   const logo = record?.logo || m._job_logo || employerLogo;
-  return jobCard([title, record?.slug || '', category, location, type], logo);
+  const publishedDate=record?.publishedDate || record?.datePosted || record?.postedDate || record?.date || record?.createdAt || '';
+  return jobCard([title, record?.slug || '', category, location, type, publishedDate], logo);
 }
 
 function formatSocialLinks(socials) {

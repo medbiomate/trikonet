@@ -313,8 +313,12 @@ if (cats.length) {
         .catch(() => [])
     );
     const catResults = await Promise.all(catPromises);
-    const seenCat = new Set();
-    categoryJobs = catResults.flat().filter(j => j && j.slug && !seenCat.has(j.slug) && seenCat.add(j.slug));
+    const localResponse=await fetch('/api/local/jobs');
+    const localCandidates=localResponse.ok?await localResponse.json():[];
+    const localRelated=localCandidates.filter(job=>extractJobCats(job).some(category=>cats.some(c=>c.toLowerCase()===category.toLowerCase())));
+    const overrides=new Map(localCandidates.map(job=>[job.slug,job]));
+    const publishedTime=job=>Date.parse(job.publishedDate || job.datePosted || job.postedDate || job.date || job.createdAt || '') || 0;
+    categoryJobs=uniqueJobs([...catResults.flat().map(job=>overrides.get(job.slug)||job),...localRelated]).filter(job=>job && job.slug).sort((a,b)=>publishedTime(b)-publishedTime(a));
   } catch {}
 }}else if(type==='employer'&&wpRecord){if(wpRecord.local){try{const localJobsRes=await fetch('/api/local/jobs');if(localJobsRes.ok){const lJobs=await localJobsRes.json();profileJobs=lJobs.filter(j=>j.employerSlug===wpRecord.slug||j.company===(wpRecord.title?.rendered||wpRecord.title)).map(mapJob)}}catch{}}else if(wpRecord.id){const jobsResponse=await fetch(`/api/wp/job_listing?employer_id=${wpRecord.id}&per_page=100`);if(jobsResponse.ok)profileJobs=(await jobsResponse.json()).map(mapJob);if(!profileJobs.length&&wpRecord.slug){const slugResponse=await fetch(`/api/wp/job_listing?employer_slug=${encodeURIComponent(wpRecord.slug)}&per_page=100`);if(slugResponse.ok)profileJobs=(await slugResponse.json()).map(mapJob)}}}}catch{wpRecord=null}}
 const fieldValues=value=>value&&typeof value==='object'?Object.values(value).join(', '):'';
