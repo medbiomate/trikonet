@@ -6149,7 +6149,9 @@ const upsertMemberCollection=(kind,item,remove=false)=>{
   items=items.filter(entry=>String(entry.slug||entry.id||'')!==identity);
   if(!remove)items.unshift(item);
   try{localStorage.setItem(key,JSON.stringify(items.slice(0,200)))}catch{}
+  fetch('/api/candidate/activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({[kind]:items.slice(0,200)})}).catch(error=>console.warn('Account activity sync failed:',error.message));
 };
+if(currentUser){const activity=Object.fromEntries(['saved_jobs','applied_jobs','followed_companies'].map(kind=>[kind,readMemberCollection(kind)]).filter(([,items])=>items.length));if(Object.values(activity).some(items=>items.length))fetch('/api/candidate/activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(activity)}).catch(()=>{});}
 const currentDetailJob=path.startsWith('/job/')?(wpRecord||data.jobs.find(job=>path.endsWith(`/${job.slug}`))):null;
 const currentJobView=currentDetailJob?mapJob(currentDetailJob):null;
 const jobSaveButton=document.querySelector('.detail-actions .save');
