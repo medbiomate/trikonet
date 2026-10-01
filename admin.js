@@ -6963,7 +6963,10 @@ export async function initAdmin() {
       job.publishedDate = todayFormatted;
     }
     job.date = todayFormatted;
-    job.postedDate = job.datePosted || job.postedDate || new Date(nowIso).toISOString().slice(0, 10);
+    if(['publish','published','active'].includes(job.status)){
+      const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(nowIso));
+      job.publishedDate=job.datePosted=job.postedDate=today;
+    } else job.postedDate = job.datePosted || job.postedDate || new Date(nowIso).toISOString().slice(0, 10);
 
     const pubBtn = document.getElementById('publish-job-btn');
     const draftBtn = document.getElementById('save-draft-btn');
