@@ -6637,6 +6637,10 @@ main.detail-page {
   height: 100%;
   padding: 3px;
 }
+.nurse-card-logo img.is-trimmed-logo {
+  padding: 0;
+  border-radius: inherit;
+}
 @media (max-width: 768px) {
   .nurse-card-logo,
   .nurse-card-logo-fallback {
