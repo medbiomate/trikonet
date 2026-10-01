@@ -6649,7 +6649,7 @@ main.detail-page {
   }
 }
 
-.page-update-stamp {border-top:1px solid #e2e8f0;background:#fff;color:#8a8a8a;font-size:11px;line-height:1.6;padding:12px 0;}
+.page-update-stamp {border-top:1px solid #e2e8f0;background:#fff;color:#8a8a8a;font-size:9px;line-height:1.4;padding:5px 0;}
 .page-update-stamp .wrap {display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .page-update-date {margin-left:auto;}
 @media(max-width:600px){.page-update-stamp .wrap{align-items:flex-start;flex-direction:column;gap:2px;}.page-update-date{margin-left:0;}}
