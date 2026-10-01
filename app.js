@@ -2,7 +2,7 @@ import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminS
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=19.0';
 import { formatCompanyName } from './company-name.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
-import { renderAdmin, initAdmin } from './admin.js?v=20261001-shared-drafts';
+import { renderAdmin, initAdmin } from './admin.js?v=20261001-published-only';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260930-bottom-icons-v44';
@@ -5703,7 +5703,9 @@ if(isCvAppRoute) { /* The library loads its own account data; unrelated content 
 else if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadConnectedContent());
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
-else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord(),loadLocalJobs(),loadCounts());
+else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
+  if (wpRecord && (wpRecord.autosaved || String(wpRecord.slug || '').startsWith('autosave-') || !['publish','published','active',''].includes(String(wpRecord.status || '').toLowerCase()))) wpRecord = null;
+}),loadLocalJobs(),loadCounts());
 else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord(),loadCounts());
 else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent(),loadCounts());
 else initialLoads.push(loadConnectedContent(),loadCounts());

@@ -6008,7 +6008,7 @@ export async function initAdmin() {
     }
     if (!job) {
       try {
-        const res = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}`);
+        const res = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}?admin=1`);
         if (res.ok) job = await res.json();
       } catch {}
     }
@@ -6227,7 +6227,7 @@ export async function initAdmin() {
   // Load all data
   async function loadData() {
     const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
-      fetch('/api/local/jobs').then(r => r.json()).catch(() => []),
+      fetch('/api/local/jobs?admin=1').then(r => r.ok ? r.json() : []).catch(() => []),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
       loadRemoteJobs(),
