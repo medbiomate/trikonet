@@ -978,7 +978,7 @@ export function renderAdmin() {
                 </div>
                 <div class="modern-field-wrap">
                   <label class="modern-label">URL Slug</label>
-                  <input type="text" name="slug" id="field-slug" class="modern-input" placeholder="job-slug" required>
+                  <input type="text" name="slug" id="field-slug" class="modern-input" placeholder="job-slug">
                 </div>
               </div>
 
@@ -3755,6 +3755,7 @@ export async function initAdmin() {
     document.querySelectorAll('#field-slug, input[name="qe_slug"]').forEach(input => {
       if (input.id === 'field-slug' || input.name === 'qe_slug') { input.readOnly = restricted; const wrapper = input.closest('.modern-field-wrap') || input.closest('.modern-qe-field'); if (wrapper) wrapper.hidden = restricted; }
     });
+    document.querySelectorAll('.modern-qe-slug-chip').forEach(chip => { chip.hidden = restricted; });
   };
   new MutationObserver(lockJobUrlControls).observe(document.body,{childList:true,subtree:true});
   // Logout handler
@@ -7252,7 +7253,7 @@ export async function initAdmin() {
     const val = gutenbergTitleInput.value.trim();
     if (docStatusTitleEl) docStatusTitleEl.textContent = `${val || 'No title'} · Job`;
     if (summaryTitleEl) summaryTitleEl.textContent = val || 'No title';
-    if (slugInput && !jobForm.originalSlug.value) {
+    if (slugInput && !jobForm.originalSlug.value && activeAdminSession.role === 'Administrator') {
       slugInput.value = val.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }
     updateJobPreview();
