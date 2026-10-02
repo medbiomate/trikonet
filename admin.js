@@ -58,8 +58,7 @@ function wordpressJob(job) {
   if (!employerSlug && m._job_employer_name) {
     employerSlug = m._job_employer_name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   }
-  const viewCounts = [0, 11, 3, 43, 8, 14, 29, 2, 19, 52];
-  const views = job.views ?? viewCounts[Math.abs((job.id || 0) % viewCounts.length)];
+  const views = Number(job.views) || 0;
   return {
     id: job.id,
     createdBy: job.createdBy || null,
@@ -6207,6 +6206,11 @@ export async function initAdmin() {
       if (request !== jobsRequest) return [];
       if (!Array.isArray(payload.jobs)) throw new Error('Invalid jobs response');
       pageJobs = payload.jobs.map(job => job.local ? job : wordpressJob(job));
+      const viewsResponse = await fetch(`/api/admin/job-views?${new URLSearchParams({slugs:pageJobs.map(job => job.slug).join(',')})}`, {signal:jobsController.signal,cache:'no-store'});
+      if (!viewsResponse.ok) throw new Error('Unable to load job view counts');
+      const viewCounts = await viewsResponse.json();
+      if (request !== jobsRequest) return [];
+      pageJobs = pageJobs.map(job => ({...job,views:Number(viewCounts[job.slug]) || 0}));
       try {
         const presenceResponse = await fetch('/api/admin/job-presence');
         if (presenceResponse.ok) {

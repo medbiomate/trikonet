@@ -6,7 +6,7 @@ import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=21.0'
 import { formatCompanyName } from './company-name.js';
 import { employerProfileHref } from './employer-link.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
-import { renderAdmin, initAdmin } from './admin.js?v=20261001-job-id';
+import { renderAdmin, initAdmin } from './admin.js?v=20261002-job-views';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260930-bottom-icons-v44';
@@ -5744,6 +5744,9 @@ await Promise.all([...initialLoads, refreshAdminSession()]);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+if (path.startsWith('/job/') && document.querySelector('#jobDescriptionCopy') && !queryParams.has('preview') && !queryParams.has('draft')) {
+  fetch('/api/job-view', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:path.split('/').filter(Boolean).pop()})}).catch(error => console.warn('Job view tracking unavailable:',error));
+}
 import('./display-ads.js?v=8').then(({initDisplayAds}) => initDisplayAds()).catch(error => console.warn('Display ad setup failed:', error));
 const adminEditType = path.startsWith('/job/') ? 'job' : path.startsWith('/employer/') ? 'employer' : document.querySelector('.blog-post-page') ? 'post' : null;
 initPublicAdminBar(adminEditType && !document.title.startsWith('404') ? { type: adminEditType, slug: path.split('/').filter(Boolean).pop() } : null);
