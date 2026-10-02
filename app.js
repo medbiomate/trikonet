@@ -5743,7 +5743,7 @@ await Promise.all([...initialLoads, refreshAdminSession()]);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
-import('./display-ads.js?v=1').then(({initDisplayAds}) => initDisplayAds()).catch(error => console.warn('Display ad setup failed:', error));
+import('./display-ads.js?v=2').then(({initDisplayAds}) => initDisplayAds()).catch(error => console.warn('Display ad setup failed:', error));
 const adminEditType = path.startsWith('/job/') ? 'job' : path.startsWith('/employer/') ? 'employer' : document.querySelector('.blog-post-page') ? 'post' : null;
 initPublicAdminBar(adminEditType && !document.title.startsWith('404') ? { type: adminEditType, slug: path.split('/').filter(Boolean).pop() } : null);
 import('./page-stamp.js?v=2').then(({addPageStamp}) => addPageStamp({
