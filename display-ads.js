@@ -34,7 +34,19 @@ export function initDisplayAds() {
     else (jobs.querySelector('.nurse-results-main, .jobs-main-content') || jobs).append(placement);
   }
 
-  const ad = placement.querySelector('ins');
+  initializeAd(placement.querySelector('ins'));
+  if (article) {
+    const recommendations = document.createElement('aside');
+    recommendations.dataset.trikonetMultiplexAd = '';
+    recommendations.setAttribute('aria-label', 'Advertisement');
+    recommendations.style.cssText = 'width:100%;min-width:0;margin:32px auto;clear:both;';
+    recommendations.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-4310822705633659" data-ad-slot="8043473058"></ins>';
+    article.append(recommendations);
+    initializeAd(recommendations.querySelector('ins'));
+  }
+}
+
+function initializeAd(ad) {
   // Request only once, once the responsive container has a measurable width.
   const resize = new ResizeObserver(() => {
     if (!ad.isConnected || ad.getBoundingClientRect().width <= 0) return;
