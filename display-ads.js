@@ -3,7 +3,6 @@ import { isPrivatePage } from './indexing-policy.js';
 
 export function initDisplayAds() {
   initAdditionalFeedAd();
-  initJobDetailAds();
   if (document.querySelector('[data-trikonet-display-ad]')) return;
   const article = document.querySelector('.post-article-content');
   const home = location.pathname === '/' && document.querySelector('.recent-section');
@@ -64,27 +63,6 @@ function initAdditionalFeedAd() {
   placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-6f+dq-1k-5h+pz" data-ad-client="ca-pub-4310822705633659" data-ad-slot="7101926479"></ins>';
   main.append(placement);
   initializeAd(placement.querySelector('ins'));
-}
-
-function initJobDetailAds() {
-  if (!location.pathname.startsWith('/job/') || isPrivatePage(location.pathname, new URLSearchParams(location.search))) return;
-  const description = document.querySelector('.job-description');
-  if (!description || document.querySelector('[data-trikonet-job-detail-ad]')) return;
-  const heading = description.querySelector('.job-desc-heading');
-  const company = description.querySelector('.detail-about-company-card');
-  const toggle = description.querySelector('.job-description-toggle');
-  for (const position of ['before-description', 'before-company']) {
-    const anchor = position === 'before-description' ? heading : (company || toggle);
-    if (!anchor) continue;
-    const placement = document.createElement('aside');
-    placement.dataset.trikonetJobDetailAd = position;
-    placement.setAttribute('aria-label', 'Advertisement');
-    placement.style.cssText = 'width:100%;min-width:0;margin:32px 0;clear:both;';
-    placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:100px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
-    if (position === 'before-company' && !company) anchor.after(placement);
-    else anchor.before(placement);
-    initializeAd(placement.querySelector('ins'));
-  }
 }
 
 function initializeAd(ad) {
