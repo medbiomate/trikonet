@@ -7,7 +7,7 @@ import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=21.0'
 import { formatCompanyName } from './company-name.js';
 import { employerProfileHref } from './employer-link.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
-import { renderAdmin, initAdmin } from './admin.js?v=20261002-auto-job-urls';
+import { renderAdmin, initAdmin } from './admin.js?v=20261002-posted-time';
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
 import { initCVBuilder } from './cvBuilder.js?v=20260930-bottom-icons-v44';

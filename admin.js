@@ -47,6 +47,8 @@ const statusLabel = st => {
 
 const publicField = v => v && typeof v === 'object' ? Object.values(v).join(', ') : '';
 
+import { jobPostedTime } from './job-posted-time.js';
+
 function wordpressJob(job) {
   const m = job.metas || {};
   const employerUrl = m._job_employer_url || '';
@@ -61,6 +63,7 @@ function wordpressJob(job) {
   const views = Number(job.views) || 0;
   return {
     id: job.id,
+    sourceTimestamp: job.modified_gmt ? job.modified_gmt + 'Z' : job.date_gmt ? job.date_gmt + 'Z' : '',
     createdBy: job.createdBy || null,
     updatedBy: job.updatedBy || null,
     title: job.title?.rendered || '',
@@ -5053,6 +5056,7 @@ export async function initAdmin() {
         </td>
         <td class="column-posted">
           <span class="modern-date-posted">${formatWpDate(j.postedDate || j.datePosted || j.createdAt)}</span>
+          ${jobPostedTime(j) ? `<small style="display:block;color:#64748b;margin-top:4px;white-space:nowrap">${esc(jobPostedTime(j))}</small>` : ''}
         </td>
         <td class="column-expires">
           <span class="modern-date-expires">${formatWpDate(j.expiryDate || '2027-02-06')}</span>
