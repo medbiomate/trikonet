@@ -19,6 +19,7 @@ export function initDisplayAds() {
     placement.querySelector('ins').outerHTML = `<ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="${layout}" data-ad-client="ca-pub-4310822705633659" data-ad-slot="${slot}"></ins>`;
   }
   if (article) {
+    placement.querySelector('ins').outerHTML = '<ins class="adsbygoogle" style="display:block;text-align:center" data-ad-layout="in-article" data-ad-format="fluid" data-ad-client="ca-pub-4310822705633659" data-ad-slot="1198863108"></ins>';
     const paragraphs = Array.from(article.children).filter(el => el.tagName === 'P');
     if (paragraphs.length >= 3) paragraphs[2].after(placement);
     else {
