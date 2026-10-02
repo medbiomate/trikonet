@@ -374,12 +374,12 @@ export function renderAdmin() {
           <!-- 1. Integrated Status Tabs Navigation -->
           <div class="modern-card-tab-bar">
             <ul class="modern-status-nav" id="admin-status-tabs">
-              <li class="all"><a href="#" class="current" data-status="all"><span>All</span> <span class="count" id="count-all">(18,499)</span></a></li>
-              <li class="publish"><a href="#" data-status="publish"><span>Published</span> <span class="count" id="count-publish">(13,626)</span></a></li>
-              <li class="draft"><a href="#" data-status="draft"><span>Drafts</span> <span class="count" id="count-draft">(295)</span></a></li>
-              <li class="pending"><a href="#" data-status="pending"><span>Pending</span> <span class="count" id="count-pending">(1)</span></a></li>
-              <li class="expired"><a href="#" data-status="expired"><span>Expired</span> <span class="count" id="count-expired">(4,577)</span></a></li>
-              <li class="mine"><a href="#" data-status="mine"><span>Mine</span> <span class="count" id="count-mine">(15)</span></a></li>
+              <li class="all"><a href="#" class="current" data-status="all"><span>All</span> <span class="count" id="count-all">(—)</span></a></li>
+              <li class="publish"><a href="#" data-status="publish"><span>Published</span> <span class="count" id="count-publish">(—)</span></a></li>
+              <li class="draft"><a href="#" data-status="draft"><span>Drafts</span> <span class="count" id="count-draft">(—)</span></a></li>
+              <li class="pending"><a href="#" data-status="pending"><span>Pending</span> <span class="count" id="count-pending">(—)</span></a></li>
+              <li class="expired"><a href="#" data-status="expired"><span>Expired</span> <span class="count" id="count-expired">(—)</span></a></li>
+              <li class="mine"><a href="#" data-status="mine"><span>Mine</span> <span class="count" id="count-mine">(—)</span></a></li>
             </ul>
           </div>
 
@@ -5017,12 +5017,6 @@ export async function initAdmin() {
     document.querySelector('.tablenav-page-btn.next-page')?.toggleAttribute('disabled', currentPage === totalPages);
     document.querySelector('.tablenav-page-btn.last-page')?.toggleAttribute('disabled', currentPage === totalPages);
 
-    // Update status counts
-    const mineCount = allJobs().filter(j => j.local).length;
-    const countMineEl = document.querySelector('#count-mine');
-    if (countMineEl) countMineEl.textContent = `(${mineCount})`;
-    const countAllEl = document.querySelector('#count-all');
-    if (countAllEl && currentStatus === 'all') countAllEl.textContent = `(${jobTotal.toLocaleString()})`;
 
     if (jobRows) {
       jobRows.innerHTML = pagedJobs.length ? pagedJobs.map(j => `
@@ -6214,6 +6208,10 @@ export async function initAdmin() {
       const payload = await response.json();
       if (request !== jobsRequest) return [];
       if (!Array.isArray(payload.jobs)) throw new Error('Invalid jobs response');
+      for (const status of ['all','publish','draft','pending','expired','mine']) {
+        const counter = document.getElementById(`count-${status}`);
+        if (counter) counter.textContent = Number.isFinite(payload.counts?.[status]) ? `(${payload.counts[status].toLocaleString()})` : '(—)';
+      }
       pageJobs = payload.jobs.map(job => job.local ? job : wordpressJob(job));
       const viewsResponse = await fetch(`/api/admin/job-views?${new URLSearchParams({slugs:pageJobs.map(job => job.slug).join(',')})}`, {signal:jobsController.signal,cache:'no-store'});
       if (!viewsResponse.ok) throw new Error('Unable to load job view counts');
