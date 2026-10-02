@@ -1,5 +1,8 @@
 // The async AdSense loader is already included once in index.html.
+import { isPrivatePage } from './indexing-policy.js';
+
 export function initDisplayAds() {
+  initAdditionalFeedAd();
   if (document.querySelector('[data-trikonet-display-ad]')) return;
   const article = document.querySelector('.post-article-content');
   const home = location.pathname === '/' && document.querySelector('.recent-section');
@@ -44,6 +47,22 @@ export function initDisplayAds() {
     article.append(recommendations);
     initializeAd(recommendations.querySelector('ins'));
   }
+}
+
+function initAdditionalFeedAd() {
+  const path = location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/' || isPrivatePage(path, new URLSearchParams(location.search))) return;
+  if (document.querySelector('[data-trikonet-additional-feed-ad], #cv-builder-root, .not-found-page')) return;
+  if (/^404\b|page not found/i.test(document.title)) return;
+  const main = document.querySelector('#app main');
+  if (!main) return;
+  const placement = document.createElement('aside');
+  placement.dataset.trikonetAdditionalFeedAd = '';
+  placement.setAttribute('aria-label', 'Advertisement');
+  placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;margin:32px auto;clear:both;';
+  placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-6f+dq-1k-5h+pz" data-ad-client="ca-pub-4310822705633659" data-ad-slot="7101926479"></ins>';
+  main.append(placement);
+  initializeAd(placement.querySelector('ins'));
 }
 
 function initializeAd(ad) {
