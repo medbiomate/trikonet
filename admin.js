@@ -3750,6 +3750,13 @@ export async function initAdmin() {
     window.location.assign('https://www.trikonet.com/');
   });
   let activeAdminSession = {};
+  const lockJobUrlControls = () => {
+    const restricted = activeAdminSession.role !== 'Administrator';
+    document.querySelectorAll('#field-slug, input[name="qe_slug"]').forEach(input => {
+      if (input.id === 'field-slug' || input.name === 'qe_slug') { input.readOnly = restricted; const wrapper = input.closest('.modern-field-wrap') || input.closest('.modern-qe-field'); if (wrapper) wrapper.hidden = restricted; }
+    });
+  };
+  new MutationObserver(lockJobUrlControls).observe(document.body,{childList:true,subtree:true});
   // Logout handler
   document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
@@ -3769,6 +3776,7 @@ export async function initAdmin() {
       location.replace('/admin-login?reason=session-expired');
       return;
     }
+    activeAdminSession = (await sessionResponse.json()).admin || {};
   } catch {
     showAdminNotice('Unable to verify your administrator session. Please refresh and try again.', 'error');
     return;
@@ -3777,7 +3785,8 @@ export async function initAdmin() {
   // Populate logged-in admin user info in header
   try {
     const adminSess = JSON.parse(localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session') || '{}');
-    activeAdminSession = adminSess;
+    activeAdminSession = { ...adminSess, ...activeAdminSession };
+    lockJobUrlControls();
     if (adminSess.name || adminSess.username) {
       const titleEl = document.querySelector('.admin-user-title');
       const subEl = document.querySelector('.admin-user-sub');
@@ -5280,7 +5289,7 @@ export async function initAdmin() {
     titleInput?.focus();
 
     // Auto-sync slug if it matches current slug or is empty
-    let autoSyncSlug = (slugInput.value.trim() === '' || slugInput.value.trim() === job.slug);
+    let autoSyncSlug = false; // Published URLs change only through an explicit administrator edit.
     titleInput?.addEventListener('input', () => {
       if (autoSyncSlug) {
         slugInput.value = titleInput.value.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

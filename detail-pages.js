@@ -1,3 +1,4 @@
+import { publicJobPath } from './job-urls.js';
 import { formatCompanyName } from './company-name.js';
 const bateelJobs = [
   ['Corporate Accounting Manager','corporate-accounting-manager','Accountant, Accounting or Finance','Dubai'],
@@ -403,7 +404,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   const content = record.content?.rendered || (record.local ? (hasHtml ? desc : (desc ? desc.split(/\n\s*\n/).map(p => `<p>${esc(p).replaceAll('\n', '<br>')}</p>`).join('') : '<p>Job description is not available.</p>')) : '<p>Job description is not available.</p>');
   const experience = record.experience || m['custom-text-27987527'] || '';
   const qualification = record.qualification || m['custom-text-28953441'] || '';
-  const shareUrl = encodeURIComponent(`https://www.trikonet.com${path}`);
+  const shareUrl = encodeURIComponent(`https://www.trikonet.com${publicJobPath(record)}`);
   const currentCompany = (m._job_employer_name || record.company || employer?.title?.rendered || employer?.title || '').trim().toLowerCase();
   const currentEmployerId = m._job_employer_posted_by || employer?.id;
   const isSameCompany = (job) => {

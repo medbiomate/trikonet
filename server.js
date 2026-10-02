@@ -153,7 +153,8 @@ function dataUrlBytes(value) {
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const path = decodeURIComponent(requestUrl.pathname);
+  let path = decodeURIComponent(requestUrl.pathname);
+  let resolvedJobUrl = null;
   // One production address; preserve the complete path and query string.
   // Do not redirect API, development or local requests.
   if (requestUrl.hostname === 'trikonet.com') {
@@ -188,6 +189,17 @@ const server = http.createServer(async (req, res) => {
     } catch {
       return sendJson(res, 502, { error: 'Logo unavailable' });
     }
+  }
+  if (/^\/(job|jobs)\/[^/]+\/?$/.test(path) && ['GET','HEAD'].includes(req.method) && !requestUrl.searchParams.has('preview') && !requestUrl.searchParams.has('draft')) {
+    try {
+      const response = await fetch(`${process.env.TRIKONET_API_BASE || 'https://api.trikonet.com'}/api/job-url?path=${encodeURIComponent(path)}`, {signal:AbortSignal.timeout(10000)});
+      if (response.ok) {
+        resolvedJobUrl = await response.json();
+        if (path !== resolvedJobUrl.publicPath) { res.writeHead(301,{Location:resolvedJobUrl.publicPath}); return res.end(); }
+        path = `/job/${resolvedJobUrl.slug}`;
+      } else if (response.status === 404) { res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex'}); return res.end('<h1>Page Not Found</h1>'); }
+      else throw new Error('Job URL service unavailable');
+    } catch { res.writeHead(503,{'Content-Type':'text/html','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
   }
   const legacyJob = path.match(/^\/jobs\/([^/]+)\/?$/);
   if (legacyJob && ['GET','HEAD'].includes(req.method)) {
@@ -1184,12 +1196,27 @@ const server = http.createServer(async (req, res) => {
             }catch(error){console.warn('Share logo unavailable:',error.message);}
           }
         }
-        shareHead=socialHead(contentRecord,contentType,path,logo);
+        shareHead=socialHead(contentRecord,contentType,resolvedJobUrl?.publicPath || path,logo);
       }
 
     } catch { res.writeHead(503, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
   }
 
+  if (['/sitemap-jobs.xml','/job_listing-sitemap.xml'].includes(path)) {
+    try {
+      const response = await fetch(`${seoApiBase}/api/local/jobs`, {signal:AbortSignal.timeout(15000)});
+      if (!response.ok) throw new Error('Jobs unavailable');
+      const jobs = (await response.json()).filter(isPublishedRecord);
+      let xml = await readFile(join(root,path.slice(1)),'utf8');
+      const escapeXml = value => String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      for (const job of jobs) {
+        const canonical = `https://www.trikonet.com${job.publicPath || `/job/${job.slug}`}`;
+        for (const alias of job.urlAliases || []) xml = xml.split(`https://www.trikonet.com${alias}`).join(escapeXml(canonical));
+        if (!xml.includes(escapeXml(canonical))) xml = xml.replace('</urlset>', `<url><loc>${escapeXml(canonical)}</loc></url></urlset>`);
+      }
+      res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'no-store'}); return res.end(xml);
+    } catch { res.writeHead(503); return res.end('Sitemap temporarily unavailable'); }
+  }
   if (path === '/sitemap-seo-job-pages.xml') {
     try {
       const response = await fetch(`${seoApiBase}/sitemap-seo-job-pages.xml`, {signal:AbortSignal.timeout(15000)});
@@ -1269,6 +1296,7 @@ const server = http.createServer(async (req, res) => {
     if (shareHead && target === join(root,'index.html')) {
       fileBody=fileBody.toString().replace(/<title>[\s\S]*?<\/title>/gi,'').replace(/<meta[^>]+(?:name=["'](?:description|twitter:[^"']+)|property=["']og:[^"']+)["'][^>]*>/gi,'').replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi,'').replace('</head>',shareHead+'</head>');
     }
+    if (resolvedJobUrl && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="job-url-data" type="application/json">${JSON.stringify(resolvedJobUrl).replace(/</g,'\u003c')}</script></head>`);
     if (privatePage && target === join(root,'index.html')) {
       fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
     }

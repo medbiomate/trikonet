@@ -1,3 +1,4 @@
+import { publicJobPath } from './job-urls.js';
 import {publicJobPage} from './public-job-page.js';
 import { uniqueJobs } from './job-list-identity.js';
 import { restoreArticleImages } from './article-images.js';
@@ -27,7 +28,8 @@ const seed = {
 };
 const store = {get(){try{return JSON.parse(localStorage.getItem('trikonetCMS'))||structuredClone(seed)}catch{return structuredClone(seed)}},set(v){localStorage.setItem('trikonetCMS',JSON.stringify(v))},reset(){localStorage.removeItem('trikonetCMS');location.reload()}};
 const data=store.get();
-let path=location.pathname.replace(/\/$/,'')||'/';
+const resolvedJobUrl = JSON.parse(document.getElementById('job-url-data')?.textContent || 'null');
+let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.replace(/\/$/,'')||'/';
 const SITE_ORIGIN='https://www.trikonet.com';
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
@@ -6072,7 +6074,7 @@ function cleanSchemaText(value=''){const box=document.createElement('div');box.i
 function isoSchemaDate(value){const date=new Date(value||'');return Number.isNaN(date.getTime())?'':date.toISOString()}
 function addStructuredData(){
   if(path.startsWith('/admin'))return;
-  const origin=SITE_ORIGIN,currentUrl=`${origin}${location.pathname}${location.search}`;
+  const origin=SITE_ORIGIN,currentUrl=`${origin}${resolvedJobUrl?.publicPath || location.pathname}`;
   const orgId=`${origin}/#organization`,siteId=`${origin}/#website`,pageId=`${origin}${location.pathname}#webpage`;
   const graph=[
     {'@type':'Organization','@id':orgId,name:'Trikonet',url:`${origin}/`,logo:{'@type':'ImageObject',url:`${origin}/assets/logo-black.png?${LOGO_VERSION}`},email:'info@trikonet.com'},
@@ -6097,10 +6099,10 @@ function addStructuredData(){
     const address={ '@type':'PostalAddress',streetAddress:source.streetAddress||m._job_street_address||source.address||undefined,addressLocality:source.addressLocality||m._job_address_locality||job.location||undefined,addressRegion:source.addressRegion||m._job_address_region||undefined,addressCountry:'AE' };
     Object.keys(address).forEach(key=>address[key]===undefined&&delete address[key]);
     const typeMap={'Full Time':'FULL_TIME','Part Time':'PART_TIME','Freelance':'CONTRACTOR','Contract':'CONTRACTOR','Internship':'INTERN','Temporary':'TEMPORARY'};
-    const posting={'@type':'JobPosting','@id':`${currentUrl}#job`,title:job.title||pageName,description:source.description||description||job.title,identifier:{'@type':'PropertyValue',name:job.company||'Trikonet',value:String(source.id||source.slug||job.slug||'')},datePosted:isoSchemaDate(source.datePosted||source.postedDate||source.date||source.createdAt||job.date),validThrough:isoSchemaDate(source.deadline||source.expiryDate||m._job_application_deadline_date||job.deadline),employmentType:source.employmentType||m._job_employment_type||typeMap[job.type]||job.type||undefined,hiringOrganization:{'@type':'Organization',name:job.company||'Trikonet',sameAs:m._job_employer_url||job.employerUrl||undefined,logo:job.logo?new URL(job.logo,origin).href:undefined},jobLocation:{'@type':'Place',address},url:currentUrl};
+    const posting={'@type':'JobPosting','@id':`${currentUrl}#job`,title:job.title||pageName,description:source.description||description||job.title,identifier:{'@type':'PropertyValue',name:job.company||'Trikonet',value:String(source.urlJobId||source.id||source.slug||job.slug||'')},datePosted:isoSchemaDate(source.datePosted||source.postedDate||source.date||source.createdAt||job.date),validThrough:isoSchemaDate(source.deadline||source.expiryDate||m._job_application_deadline_date||job.deadline),employmentType:source.employmentType||m._job_employment_type||typeMap[job.type]||job.type||undefined,hiringOrganization:{'@type':'Organization',name:job.company||'Trikonet',sameAs:m._job_employer_url||job.employerUrl||undefined,logo:job.logo?new URL(job.logo,origin).href:undefined},jobLocation:{'@type':'Place',address},url:currentUrl};
     Object.keys(posting).forEach(key=>posting[key]===undefined&&delete posting[key]);graph.push(posting);
   }
-  if(path==='/jobs'||path==='/job-list'||path==='/job-openings')graph.push({'@type':'ItemList','@id':`${currentUrl}#jobs`,name:'Job listings',numberOfItems:data.jobs.length,itemListElement:data.jobs.map((job,index)=>({'@type':'ListItem',position:index+1,url:`${origin}/job/${job.slug}`,name:job.title}))});
+  if(path==='/jobs'||path==='/job-list'||path==='/job-openings')graph.push({'@type':'ItemList','@id':`${currentUrl}#jobs`,name:'Job listings',numberOfItems:data.jobs.length,itemListElement:data.jobs.map((job,index)=>({'@type':'ListItem',position:index+1,url:`${origin}${publicJobPath(job)}`,name:job.title}))});
   if(path==='/employers')graph.push({'@type':'ItemList','@id':`${currentUrl}#employers`,name:'Employer listings',numberOfItems:(data.employers||[]).length,itemListElement:(data.employers||[]).map((employer,index)=>({'@type':'ListItem',position:index+1,url:`${origin}/employer/${employer.slug}`,name:employer.title}))});
   const currentPost=data.posts.find(post=>path.endsWith(`/${post.slug}`));
   if(currentPost)graph.push({'@type':['Article','BlogPosting'],'@id':`${currentUrl}#article`,headline:currentPost.title,description:currentPost.excerpt||cleanSchemaText(currentPost.content),datePublished:isoSchemaDate(currentPost.rawDate||currentPost.date)||undefined,image:currentPost.featuredImage?new URL(currentPost.featuredImage,origin).href:undefined,author:{'@type':'Person',name:currentPost.author||'Trikonet'},publisher:{'@id':orgId},mainEntityOfPage:{'@id':pageId}});
@@ -7203,3 +7205,14 @@ document.addEventListener('click', e => {
     return;
   }
 });
+
+function updatePermanentJobLinks() {
+  const jobs = [...data.jobs, ...(resolvedJobUrl?.job ? [resolvedJobUrl.job] : [])];
+  const paths = new Map(jobs.map(job => [job.slug, publicJobPath(job)]));
+  document.querySelectorAll('a[href^="/job/"]').forEach(link => {
+    const slug = decodeURIComponent(new URL(link.href).pathname.split('/')[2] || '');
+    if (paths.has(slug)) link.setAttribute('href', paths.get(slug));
+  });
+}
+updatePermanentJobLinks();
+new MutationObserver(updatePermanentJobLinks).observe(document.getElementById('app') || document.body, {childList:true,subtree:true});
