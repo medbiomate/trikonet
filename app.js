@@ -1,5 +1,6 @@
 import {publicJobPage} from './public-job-page.js';
 import { uniqueJobs } from './job-list-identity.js';
+import { restoreArticleImages } from './article-images.js';
 import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=3';
 import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=21.0';
 import { formatCompanyName } from './company-name.js';
@@ -3001,7 +3002,7 @@ function ensureTocTitles(html=''){
 function estimateReadingTime(text=''){const words=String(text).replace(/<[^>]+>/g,' ').trim().split(/\s+/).filter(Boolean).length;return Math.max(1,Math.round(words/200))||3}
 function post(p){
   const postTitle=decodeHtml(p.title||'');
-  const content=ensureTocTitles(p.content||`<p>${p.excerpt}</p>`);
+  const content=ensureTocTitles(restoreArticleImages(p.content||`<p>${p.excerpt}</p>`));
   const featured=p.featuredImage?`<figure class="post-featured-image"><img src="${escapeAttr(p.featuredImage)}" alt="${escapeAttr(p.title)}"></figure>`:'';
   const prefix = p.urlPrefix || p.url_prefix || POST_SLUG_PREFIXES[p.slug] || 'blog';
   const categoryName=p.categoryName||CATEGORY_PREFIX_LABELS[prefix]||(p.category!=='blog'?p.category:'Career Advice');
