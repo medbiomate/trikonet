@@ -335,8 +335,8 @@
   }
 
   .detail-exact .detail-grid:not(.employer-detail-grid) {
-    /* Reserve 250px for a mobile ad, plus 24px of space on each side. */
-    padding: 298px 16px 60px;
+    /* Compact mobile space between the job header and overview. */
+    padding: 80px 16px 60px;
     box-sizing: border-box;
     max-width: 100%;
   }
