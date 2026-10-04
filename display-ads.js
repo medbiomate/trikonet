@@ -7,6 +7,7 @@ export function initDisplayAds() {
   if (/^404\b|page not found/i.test(document.title)) return;
   initJobDetailAd();
   initAdditionalFeedAd();
+  initEmployerJobsAds();
   if (document.querySelector('[data-trikonet-display-ad]')) return;
   const article = document.querySelector('.post-article-content');
   const jobs = document.querySelector('.jobs-layout, .nurse-results-layout');
@@ -82,8 +83,29 @@ function initAdditionalFeedAd() {
   if (companyCard) {
     placement.style.width = '100%';
     companyCard.before(placement);
-  } else main.append(placement);
+  } else {
+    const tabs = main.querySelector('.emp-profile-tabs-strip');
+    if (tabs) tabs.before(placement);
+    else main.append(placement);
+  }
   initializeAd(placement.querySelector('ins'));
+}
+
+function initEmployerJobsAds() {
+  const list = document.querySelector('.emp-positions-list');
+  if (!list || list.querySelector('[data-trikonet-employer-jobs-ad]')) return;
+  const cards = Array.from(list.children);
+  // Place ads between cards, with at least five jobs between placements.
+  for (let index = 4; index < cards.length - 1 && index < 10; index += 5) {
+    const placement = document.createElement('aside');
+    placement.className = 'site-ad';
+    placement.dataset.trikonetEmployerJobsAd = '';
+    placement.setAttribute('aria-label', 'Advertisement');
+    placement.style.cssText = 'width:100%;min-width:0;grid-column:1 / -1;';
+    placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+    cards[index].after(placement);
+    initializeAd(placement.querySelector('ins'));
+  }
 }
 
 function initializeAd(ad) {

@@ -59,3 +59,31 @@ for (const hasCompany of [true, false]) {
     if (hasCompany) assert.equal(inserted[0].style.width, '100%');
   });
 }
+
+const employerHelper = source.slice(source.indexOf('function initEmployerJobsAds()'), source.indexOf('function initializeAd('));
+for (const [count, expected] of [[5, []], [6, [4]], [12, [4, 9]]]) {
+  test(`company list with ${count} jobs places ads between cards`, () => {
+    const indices = [], ads = [];
+    const list = { querySelector: () => ads[0], children: Array.from({ length: count }, (_, index) => ({ after: ad => { indices.push(index); ads.push(ad); } })) };
+    const context = vm.createContext({
+      document: { querySelector: () => list, createElement: () => ({ dataset: {}, style: {}, setAttribute() {}, querySelector: () => ({}) }) },
+      initializeAd() {}
+    });
+    vm.runInContext(employerHelper, context);
+    context.initEmployerJobsAds();
+    context.initEmployerJobsAds();
+    assert.deepEqual(indices, expected);
+  });
+}
+test('company page ad is positioned above its tabs', () => {
+  let inserted = 0;
+  const main = { querySelector: selector => selector === '.emp-profile-tabs-strip' ? { before: () => inserted++ } : null, append: () => assert.fail('ad should be above tabs') };
+  const context = vm.createContext({
+    location: { pathname: '/employer/sample', search: '' }, URLSearchParams, isPrivatePage,
+    document: { title: 'Company', querySelector: selector => selector === '#app main' ? main : null, createElement: () => ({ dataset: {}, style: {}, setAttribute() {}, querySelector: () => ({}) }) },
+    initializeAd() {}
+  });
+  vm.runInContext(additionalHelper, context);
+  context.initAdditionalFeedAd();
+  assert.equal(inserted, 1);
+});
