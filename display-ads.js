@@ -12,9 +12,10 @@ export function initDisplayAds() {
   if (!article && !home && !jobs) return;
 
   const placement = document.createElement('aside');
+  placement.className = 'site-ad';
   placement.dataset.trikonetDisplayAd = '';
   placement.setAttribute('aria-label', 'Advertisement');
-  placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;margin:32px auto;clear:both;';
+  placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;clear:both;';
   placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:100px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
   if (jobs && !article && !home) {
     placement.style.gridColumn = '1 / -1';
@@ -41,9 +42,10 @@ export function initDisplayAds() {
   initializeAd(placement.querySelector('ins'));
   if (article) {
     const recommendations = document.createElement('aside');
+    recommendations.className = 'site-ad';
     recommendations.dataset.trikonetMultiplexAd = '';
     recommendations.setAttribute('aria-label', 'Advertisement');
-    recommendations.style.cssText = 'width:100%;min-width:0;margin:32px auto;clear:both;';
+    recommendations.style.cssText = 'width:100%;min-width:0;clear:both;';
     recommendations.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-4310822705633659" data-ad-slot="8043473058"></ins>';
     article.append(recommendations);
     initializeAd(recommendations.querySelector('ins'));
@@ -57,8 +59,9 @@ function initJobDetailAd() {
   const grid = main?.querySelector('.detail-grid:not(.employer-detail-grid)');
   if (!grid || main.querySelector('[data-trikonet-job-detail-ad]')) return;
   const placement = document.createElement('aside');
+  placement.className = 'site-ad';
   placement.dataset.trikonetJobDetailAd = '';
-  placement.className = 'job-detail-ad';
+  placement.className = 'site-ad job-detail-ad';
   placement.setAttribute('aria-label', 'Advertisement');
   placement.innerHTML = '<div class="job-detail-ad-label">Advertisement</div><ins class="adsbygoogle" style="display:block;width:100%;height:100px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="horizontal" data-full-width-responsive="false"></ins>';
   grid.before(placement);
@@ -73,9 +76,10 @@ function initAdditionalFeedAd() {
   const main = document.querySelector('#app main');
   if (!main) return;
   const placement = document.createElement('aside');
+  placement.className = 'site-ad';
   placement.dataset.trikonetAdditionalFeedAd = '';
   placement.setAttribute('aria-label', 'Advertisement');
-  placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;margin:32px auto;clear:both;';
+  placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;clear:both;';
   placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-6f+dq-1k-5h+pz" data-ad-client="ca-pub-4310822705633659" data-ad-slot="7101926479"></ins>';
   main.append(placement);
   initializeAd(placement.querySelector('ins'));

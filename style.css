@@ -1522,3 +1522,17 @@ mark.wp-highlight, mark { background: #fef08a; color: inherit; padding: 1px 4px;
 .member-page,.campaign-page{min-height:70vh;background:#f6f8fc;padding:56px max(24px,calc((100vw - 1280px)/2))}.auth-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;max-width:980px;margin:auto}.member-card{background:#fff;border:1px solid #dce3ee;border-radius:18px;padding:32px;box-shadow:0 12px 35px rgba(27,45,78,.08)}.member-card h1,.campaign-heading h1{margin:0 0 10px}.member-card label,.composer label{display:grid;gap:8px;margin:18px 0;font-weight:700;color:#34425a}.member-card input,.member-card textarea,.composer input,.composer textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:13px 14px;font:inherit}.form-message{color:#a40e0e;min-height:24px}.locked{text-align:center;max-width:620px;margin:auto}.lock-icon{font-size:34px}.campaign-heading{display:flex;justify-content:space-between;gap:24px;align-items:center;margin-bottom:28px}.eyebrow{color:#b51212;font-weight:800;font-size:12px;letter-spacing:.12em}.campaign-layout{display:grid;grid-template-columns:240px minmax(420px,1fr) 260px;gap:22px;align-items:start}.template-panel,.draft-panel{background:#fff;border:1px solid #dce3ee;border-radius:16px;padding:18px}.template-choice,.draft-choice{display:grid;width:100%;text-align:left;border:0;border-bottom:1px solid #e7ebf2;background:transparent;padding:15px 8px;cursor:pointer}.template-choice:hover,.draft-choice:hover{background:#f5f8ff}.template-choice span,.draft-choice span{font-size:12px;color:#718096;margin-top:5px}.email-toolbar{display:flex;gap:6px;background:#f4f7fb;border:1px solid #cbd5e1;border-bottom:0;border-radius:10px 10px 0 0;padding:8px}.email-toolbar button{border:0;background:#fff;border-radius:6px;padding:7px 10px}.email-editor{min-height:280px;border:1px solid #cbd5e1;border-radius:0 0 10px 10px;padding:18px;font-weight:400;outline:none}.email-editor:focus{border-color:#2765e8;box-shadow:0 0 0 3px rgba(39,101,232,.12)}.campaign-actions{display:flex;gap:12px;margin-top:18px}
 @media(max-width:950px){.campaign-layout{grid-template-columns:1fr}.template-panel,.draft-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.template-panel h2,.draft-panel h2{grid-column:1/-1}}
 @media(max-width:700px){.auth-grid{grid-template-columns:1fr}.member-page,.campaign-page{padding:28px 16px}.campaign-heading{align-items:flex-start;flex-direction:column}.template-panel,.draft-panel{grid-template-columns:1fr}.member-card{padding:22px}}
+
+/* Keep manual ads clearly separated from surrounding content. */
+.site-ad {
+  box-sizing: border-box;
+  margin: 48px auto;
+  padding: 24px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.site-ad:has(ins[data-ad-status="unfilled"]) { display: none; }
+@media (max-width: 850px) {
+  .site-ad { margin: 32px auto; padding: 20px 16px; }
+}
