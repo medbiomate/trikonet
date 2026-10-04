@@ -99,7 +99,11 @@ function initAdditionalFeedAd() {
     companyCard.before(placement);
   } else {
     const tabs = main.querySelector('.emp-profile-tabs-strip');
-    if (tabs) tabs.before(placement);
+    const about = tabs && main.querySelector('.emp-about-block');
+    if (about && window.matchMedia('(min-width: 851px)').matches) {
+      placement.style.cssText = 'display:block;width:100%;min-width:0;clear:both;';
+      about.after(placement);
+    } else if (tabs) tabs.before(placement);
     else main.append(placement);
   }
   initializeAd(placement.querySelector('ins'));

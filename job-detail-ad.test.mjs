@@ -90,3 +90,17 @@ test('company page ad is positioned above its tabs', () => {
   context.initAdditionalFeedAd();
   assert.equal(inserted, 1);
 });
+
+for (const desktop of [true, false]) {
+  test(desktop ? 'desktop company ad appears below About' : 'mobile company ad remains above tabs', () => {
+    const positions = [];
+    const main = { querySelector: selector => selector === '.emp-profile-tabs-strip' ? { before: () => positions.push('above-tabs') } : selector === '.emp-about-block' ? { after: () => positions.push('below-about') } : null };
+    const context = vm.createContext({
+      window: { matchMedia: () => ({ matches: desktop }) },
+      location: { pathname: '/employer/sample', search: '' }, URLSearchParams, isPrivatePage,
+      document: { title: 'Company', querySelector: selector => selector === '#app main' ? main : null, createElement: () => ({ dataset: {}, style: {}, setAttribute() {}, querySelector: () => ({}) }) }, initializeAd() {}
+    });
+    vm.runInContext(additionalHelper, context); context.initAdditionalFeedAd();
+    assert.deepEqual(positions, [desktop ? 'below-about' : 'above-tabs']);
+  });
+}
