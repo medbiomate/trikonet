@@ -2,6 +2,7 @@
 import { isPrivatePage } from './indexing-policy.js';
 
 export function initDisplayAds() {
+  initJobDetailAd();
   initAdditionalFeedAd();
   if (document.querySelector('[data-trikonet-display-ad]')) return;
   const article = document.querySelector('.post-article-content');
@@ -47,6 +48,21 @@ export function initDisplayAds() {
     article.append(recommendations);
     initializeAd(recommendations.querySelector('ins'));
   }
+}
+
+function initJobDetailAd() {
+  if (!window.matchMedia('(max-width: 850px)').matches) return;
+  if (isPrivatePage(location.pathname, new URLSearchParams(location.search))) return;
+  const main = document.querySelector('.detail-page.detail-exact:not(.employer-detail-page)');
+  const grid = main?.querySelector('.detail-grid:not(.employer-detail-grid)');
+  if (!grid || main.querySelector('[data-trikonet-job-detail-ad]')) return;
+  const placement = document.createElement('aside');
+  placement.dataset.trikonetJobDetailAd = '';
+  placement.className = 'job-detail-ad';
+  placement.setAttribute('aria-label', 'Advertisement');
+  placement.innerHTML = '<div class="job-detail-ad-label">Advertisement</div><ins class="adsbygoogle" style="display:block;width:100%;height:100px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="horizontal" data-full-width-responsive="false"></ins>';
+  grid.before(placement);
+  initializeAd(placement.querySelector('ins'));
 }
 
 function initAdditionalFeedAd() {
