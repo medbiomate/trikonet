@@ -2,13 +2,14 @@
 import { isPrivatePage } from './indexing-policy.js';
 
 export function initDisplayAds() {
+  if (isPrivatePage(location.pathname, new URLSearchParams(location.search))) return;
+  if (/^404\b|page not found/i.test(document.title)) return;
   initJobDetailAd();
   initAdditionalFeedAd();
   if (document.querySelector('[data-trikonet-display-ad]')) return;
   const article = document.querySelector('.post-article-content');
   const home = location.pathname === '/' && document.querySelector('.recent-section');
   const jobs = document.querySelector('.jobs-layout, .nurse-results-layout');
-  const desktopJobs = jobs && window.matchMedia('(min-width: 1024px)').matches;
   if (!article && !home && !jobs) return;
 
   const placement = document.createElement('aside');
@@ -16,15 +17,12 @@ export function initDisplayAds() {
   placement.dataset.trikonetDisplayAd = '';
   placement.setAttribute('aria-label', 'Advertisement');
   placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;clear:both;';
-  placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:100px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+  placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
   if (jobs && !article && !home) {
     placement.style.gridColumn = '1 / -1';
-    const slot = desktopJobs ? '1669636395' : '4340031766';
-    const layout = desktopJobs ? '-fi-1w-35-hv+1jv' : '-gh-1r-14-7s+wc';
-    placement.querySelector('ins').outerHTML = `<ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="${layout}" data-ad-client="ca-pub-4310822705633659" data-ad-slot="${slot}"></ins>`;
+
   }
   if (article) {
-    placement.querySelector('ins').outerHTML = '<ins class="adsbygoogle" style="display:block;text-align:center" data-ad-layout="in-article" data-ad-format="fluid" data-ad-client="ca-pub-4310822705633659" data-ad-slot="1198863108"></ins>';
     const paragraphs = Array.from(article.children).filter(el => el.tagName === 'P');
     if (paragraphs.length >= 3) paragraphs[2].after(placement);
     else {
@@ -53,7 +51,6 @@ export function initDisplayAds() {
 }
 
 function initJobDetailAd() {
-  if (!window.matchMedia('(max-width: 850px)').matches) return;
   if (isPrivatePage(location.pathname, new URLSearchParams(location.search))) return;
   const main = document.querySelector('.detail-page.detail-exact:not(.employer-detail-page)');
   const grid = main?.querySelector('.detail-grid:not(.employer-detail-grid)');
@@ -62,8 +59,9 @@ function initJobDetailAd() {
   placement.className = 'site-ad';
   placement.dataset.trikonetJobDetailAd = '';
   placement.className = 'site-ad job-detail-ad';
+  placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;clear:both;';
   placement.setAttribute('aria-label', 'Advertisement');
-  placement.innerHTML = '<div class="job-detail-ad-label">Advertisement</div><ins class="adsbygoogle" style="display:block;width:100%;height:100px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="horizontal" data-full-width-responsive="false"></ins>';
+  placement.innerHTML = '<div class="job-detail-ad-label">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
   grid.before(placement);
   initializeAd(placement.querySelector('ins'));
 }
@@ -80,7 +78,7 @@ function initAdditionalFeedAd() {
   placement.dataset.trikonetAdditionalFeedAd = '';
   placement.setAttribute('aria-label', 'Advertisement');
   placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;clear:both;';
-  placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-6f+dq-1k-5h+pz" data-ad-client="ca-pub-4310822705633659" data-ad-slot="7101926479"></ins>';
+  placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-format="auto" data-full-width-responsive="true" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388"></ins>';
   main.append(placement);
   initializeAd(placement.querySelector('ins'));
 }

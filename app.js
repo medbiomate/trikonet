@@ -5756,7 +5756,7 @@ document.querySelector('#app').innerHTML=render();
 if (path.startsWith('/job/') && document.querySelector('#jobDescriptionCopy') && !queryParams.has('preview') && !queryParams.has('draft')) {
   fetch('/api/job-view', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:path.split('/').filter(Boolean).pop()})}).catch(error => console.warn('Job view tracking unavailable:',error));
 }
-import('./display-ads.js?v=10').then(({initDisplayAds}) => initDisplayAds()).catch(error => console.warn('Display ad setup failed:', error));
+import('./display-ads.js?v=11').then(({initDisplayAds}) => initDisplayAds()).catch(error => console.warn('Display ad setup failed:', error));
 const adminEditType = path.startsWith('/job/') ? 'job' : path.startsWith('/employer/') ? 'employer' : document.querySelector('.blog-post-page') ? 'post' : null;
 adminSessionReady.then(() => initPublicAdminBar(adminEditType && !document.title.startsWith('404') ? { type: adminEditType, slug: path.split('/').filter(Boolean).pop() } : null));
 import('./page-stamp.js?v=2').then(({addPageStamp}) => addPageStamp({

@@ -1527,12 +1527,11 @@ mark.wp-highlight, mark { background: #fef08a; color: inherit; padding: 1px 4px;
 .site-ad {
   box-sizing: border-box;
   margin: 48px auto;
-  padding: 24px 20px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #f8fafc;
+  padding: 20px 0;
+  border: 0;
+  background: transparent;
 }
 .site-ad:has(ins[data-ad-status="unfilled"]) { display: none; }
 @media (max-width: 850px) {
-  .site-ad { margin: 32px auto; padding: 20px 16px; }
+  .site-ad { margin: 32px auto; padding: 16px 0; }
 }
