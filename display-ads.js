@@ -5,13 +5,14 @@ export function initDisplayAds() {
   if (['/', '/index.html'].includes(location.pathname.replace(/\/+$/, '') || '/')) return;
   if (isPrivatePage(location.pathname, new URLSearchParams(location.search))) return;
   if (/^404\b|page not found/i.test(document.title)) return;
+  const article = document.querySelector('.post-article-content');
+  if (article) { initBlogAds(article); return; }
   initJobDetailAd();
   initAdditionalFeedAd();
   initEmployerJobsAds();
   if (document.querySelector('[data-trikonet-display-ad]')) return;
-  const article = document.querySelector('.post-article-content');
   const jobs = document.querySelector('.jobs-layout, .nurse-results-layout');
-  if (!article && !jobs) return;
+  if (!jobs) return;
 
   const placement = document.createElement('aside');
   placement.className = 'site-ad';
@@ -19,34 +20,34 @@ export function initDisplayAds() {
   placement.setAttribute('aria-label', 'Advertisement');
   placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;clear:both;';
   placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
-  if (jobs && !article) {
-    placement.style.gridColumn = '1 / -1';
-
-  }
-  if (article) {
-    const paragraphs = Array.from(article.children).filter(el => el.tagName === 'P');
-    if (paragraphs.length >= 3) paragraphs[2].after(placement);
-    else {
-      const feedback = article.querySelector('.content-feedback-section');
-      if (feedback) feedback.before(placement);
-      else article.append(placement);
-    }
-  } else if (jobs) {
-    const feed = jobs.querySelector('.job-grid, .nurse-job-list');
-    if (feed && feed.children.length >= 3) feed.children[2].after(placement);
-    else (jobs.querySelector('.nurse-results-main, .jobs-main-content') || jobs).append(placement);
-  }
+  placement.style.gridColumn = '1 / -1';
+  const feed = jobs.querySelector('.job-grid, .nurse-job-list');
+  if (feed && feed.children.length >= 3) feed.children[2].after(placement);
+  else (jobs.querySelector('.nurse-results-main, .jobs-main-content') || jobs).append(placement);
 
   initializeAd(placement.querySelector('ins'));
-  if (article) {
-    const recommendations = document.createElement('aside');
-    recommendations.className = 'site-ad';
-    recommendations.dataset.trikonetMultiplexAd = '';
-    recommendations.setAttribute('aria-label', 'Advertisement');
-    recommendations.style.cssText = 'width:100%;min-width:0;clear:both;';
-    recommendations.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-4310822705633659" data-ad-slot="8043473058"></ins>';
-    article.append(recommendations);
-    initializeAd(recommendations.querySelector('ins'));
+
+}
+
+function initBlogAds(article) {
+  if (document.querySelector('[data-trikonet-blog-ad]')) return;
+  const blocks = Array.from(article.children).filter(block =>
+    ['P', 'UL', 'OL', 'BLOCKQUOTE', 'FIGURE', 'TABLE', 'DIV'].includes(block.tagName)
+    && !block.classList.contains('content-feedback-section')
+    && block.textContent.trim().length > 40
+  );
+  for (let spot = 0; spot < 5; spot++) {
+    const placement = document.createElement('aside');
+    placement.className = 'site-ad';
+    placement.dataset.trikonetBlogAd = String(spot + 1);
+    placement.setAttribute('aria-label', 'Advertisement');
+    placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;clear:both;';
+    placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+    if (spot === 0) article.before(placement);
+    else if (spot === 4) article.after(placement);
+    else if (blocks.length) blocks[Math.min(blocks.length - 1, Math.max(0, Math.ceil(blocks.length * spot / 4) - 1))].after(placement);
+    else article.append(placement);
+    initializeAd(placement.querySelector('ins'), true);
   }
 }
 
@@ -108,7 +109,16 @@ function initEmployerJobsAds() {
   }
 }
 
-function initializeAd(ad) {
+function initializeAd(ad, lazy = false) {
+  if (lazy && typeof IntersectionObserver !== 'undefined') {
+    const viewport = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      viewport.disconnect();
+      initializeAd(ad);
+    }, { rootMargin: '300px' });
+    viewport.observe(ad);
+    return;
+  }
   // Request only once, once the responsive container has a measurable width.
   const resize = new ResizeObserver(() => {
     if (!ad.isConnected || ad.getBoundingClientRect().width <= 0) return;
