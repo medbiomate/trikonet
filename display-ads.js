@@ -11,6 +11,7 @@ export function initDisplayAds() {
   if (jobs) { initJobListingAds(jobs); return; }
   initJobDetailAd();
   initAdditionalFeedAd();
+  initOtherJobsAd();
   initEmployerJobsAds();
 }
 
@@ -94,6 +95,19 @@ function initAdditionalFeedAd() {
     else main.append(placement);
   }
   initializeAd(placement.querySelector('ins'));
+}
+
+function initOtherJobsAd() {
+  const section = document.querySelector('.detail-exact .detail-org-jobs-box');
+  if (!section || document.querySelector('[data-trikonet-other-jobs-ad]')) return;
+  const placement = document.createElement('aside');
+  placement.className = 'site-ad';
+  placement.dataset.trikonetOtherJobsAd = '';
+  placement.setAttribute('aria-label', 'Advertisement');
+  placement.style.cssText = 'display:block;width:100%;min-width:0;order:1;';
+  placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+  section.before(placement);
+  initializeAd(placement.querySelector('ins'), true);
 }
 
 function initEmployerJobsAds() {
