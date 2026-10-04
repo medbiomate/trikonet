@@ -62,14 +62,21 @@ function initJobDetailAd() {
   const main = document.querySelector('.detail-page.detail-exact:not(.employer-detail-page)');
   const grid = main?.querySelector('.detail-grid:not(.employer-detail-grid)');
   if (!grid || main.querySelector('[data-trikonet-job-detail-ad]')) return;
+  const mobile = window.matchMedia('(max-width: 850px)').matches;
+  const heading = main.querySelector('.job-description .job-desc-heading');
+  if (!mobile && !heading) return;
   const placement = document.createElement('aside');
   placement.className = 'site-ad';
   placement.dataset.trikonetJobDetailAd = '';
   placement.className = 'site-ad job-detail-ad';
   placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;clear:both;';
   placement.setAttribute('aria-label', 'Advertisement');
-  placement.innerHTML = '<div class="job-detail-ad-label">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
-  grid.before(placement);
+  placement.innerHTML = '<div class="job-detail-ad-label" style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+  if (mobile) grid.before(placement);
+  else {
+    placement.style.cssText = 'display:block;width:100%;min-width:0;margin:24px 0 32px;clear:both;';
+    heading.after(placement);
+  }
   initializeAd(placement.querySelector('ins'));
 }
 
