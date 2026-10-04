@@ -79,7 +79,11 @@ function initAdditionalFeedAd() {
   placement.setAttribute('aria-label', 'Advertisement');
   placement.style.cssText = 'width:calc(100% - 32px);max-width:1100px;min-width:0;clear:both;';
   placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-format="auto" data-full-width-responsive="true" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388"></ins>';
-  main.append(placement);
+  const companyCard = main.querySelector('.job-description .detail-about-company-card');
+  if (companyCard) {
+    placement.style.width = '100%';
+    companyCard.before(placement);
+  } else main.append(placement);
   initializeAd(placement.querySelector('ins'));
 }
 

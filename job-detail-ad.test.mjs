@@ -39,3 +39,23 @@ test('desktop job pages also receive a responsive display placement', () => {
   assert.match(h.placements[0].innerHTML, /data-ad-format="auto"/);
   assert.match(h.placements[0].innerHTML, /min-height:250px/);
 });
+
+const additionalHelper = source.slice(source.indexOf('function initAdditionalFeedAd()'), source.indexOf('function initializeAd('));
+for (const hasCompany of [true, false]) {
+  test(hasCompany ? 'second job ad sits before the company card' : 'pages without a company card retain their bottom ad', () => {
+    const inserted = [], appended = [], requested = [];
+    const main = { querySelector: () => hasCompany ? { before: value => inserted.push(value) } : null, append: value => appended.push(value) };
+    const context = vm.createContext({
+      location: { pathname: '/job/sample', search: '' }, URLSearchParams, isPrivatePage,
+      document: { title: 'Sample job', querySelector: selector => selector === '#app main' ? main : null,
+        createElement: () => ({ dataset: {}, style: {}, setAttribute() {}, querySelector: () => ({}) }) },
+      initializeAd: value => requested.push(value)
+    });
+    vm.runInContext(additionalHelper, context);
+    context.initAdditionalFeedAd();
+    assert.equal(inserted.length, hasCompany ? 1 : 0);
+    assert.equal(appended.length, hasCompany ? 0 : 1);
+    assert.equal(requested.length, 1);
+    if (hasCompany) assert.equal(inserted[0].style.width, '100%');
+  });
+}
