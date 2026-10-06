@@ -6684,7 +6684,7 @@ main.detail-page {
 /* Plain resume link below the main Apply button, outside the bottom dock. */
 .detail-exact .detail-hero .detail-resume-promo {
   display: block;
-  align-self: center;
+  align-self: flex-end;
   margin: -4px 0 0;
   padding: 0;
   color: #b00008;
@@ -6699,5 +6699,5 @@ main.detail-page {
 .detail-exact .detail-hero .mobile-top-resume { display: none; }
 @media (max-width: 768px) {
   .detail-exact .detail-hero .detail-action-group > .detail-resume-promo { display: none; }
-  .detail-exact .detail-hero .detail-title > .mobile-top-resume { display: block; margin: 10px auto 0; }
+  .detail-exact .detail-hero .detail-title > .mobile-top-resume { display: block; width: 100%; max-width: 320px; margin: 10px auto 0; text-align: right; }
 }
