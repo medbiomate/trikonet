@@ -6680,3 +6680,33 @@ main.detail-page {
 @media(max-width:480px){.job-category-links:has(.job-category-links-action) .job-category-links-grid{grid-template-columns:minmax(0,1fr);}}
 @media(max-width:768px){.job-category-links{padding-top:28px;padding-bottom:32px;}.job-category-links h2{font-size:21px;gap:12px;margin-bottom:22px;}.job-category-links-box{padding:16px;border-radius:18px;}.job-category-links-grid{gap:12px;}}
 @media(max-width:480px){.job-category-links-box{padding:12px;}.job-category-links-grid a{min-height:64px;}.job-category-links-action a{width:100%;text-align:center;}}
+
+/* Resume builder invitation immediately beneath the job application. */
+.detail-exact .detail-hero:not(.employer-hero) .detail-actions {
+  flex-wrap: wrap;
+  max-width: 320px;
+}
+.detail-exact .detail-hero:not(.employer-hero) .detail-resume-promo {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1px solid #f1d8dc;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+  text-decoration: none;
+  text-align: center;
+}
+.detail-resume-promo-link { color: #b00008; font-weight: 600; }
+.detail-exact .detail-resume-promo:hover { background: #fff7f7; border-color: #e8afb7; }
+.detail-exact .detail-resume-promo:focus-visible { outline: 2px solid #b00008; outline-offset: 3px; }
+@media (max-width: 768px) {
+  .detail-exact .detail-hero:not(.employer-hero) .detail-actions { max-width: 420px; }
+}

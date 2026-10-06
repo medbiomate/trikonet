@@ -389,7 +389,14 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   const m=record.metas||{};
   const title=decode(record.title?.rendered||record.title);
   const company=m._job_employer_name||record.company||'';
-  const catList = parseCategories(record);
+  const seenCategories = new Set();
+  const catList = parseCategories(record).filter(category => {
+    const key = category.replace(/\s+/g, ' ').toLocaleLowerCase();
+    if (seenCategories.has(key)) return false;
+    seenCategories.add(key);
+    return true;
+  });
+  const categoryLinks = categories => categories.map(c => `<a class="detail-meta-link" href="/category/${esc(filterSlug(c))}">${esc(c)}</a>`).join(', ');
   const locList = parseLocations(record);
   const category = catList.join(', ');
   const location = locList.join(', ');
@@ -414,7 +421,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
     return false;
   };
   const related = (relatedJobs || []).filter(item => item && item.slug !== record.slug && !isSameCompany(item)).slice(0, 4);
-  const catMeta = catList.length ? `<span class="detail-meta-item"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${catList.map(c => `<a class="detail-meta-link" href="/category/${esc(filterSlug(c))}">${esc(c)}</a>`).join(', ')}</span>` : '';
+  const catMeta = catList.length ? `<span class="detail-meta-item detail-category-meta"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg><span class="detail-category-text">${categoryLinks(catList.slice(0, 2))}</span></span>` : '';
   const locMeta = locList.length ? `<span class="detail-meta-item"><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${locList.map(l => `<a class="detail-meta-link" href="/job-location/${esc(filterSlug(l))}">${esc(l)}</a>`).join(', ')}</span>` : '';
   const dateMeta = date ? `<span><svg class="meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${esc(date)}</span>` : '';
   const metaSpans = [catMeta, locMeta, dateMeta].filter(Boolean).join('');
@@ -438,6 +445,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
         <div class="detail-actions">
           <a class="primary apply" href="${esc(record.applyUrl||m._job_apply_url||'#')}" target="_blank" rel="noopener noreferrer nofollow">Apply Now</a>
           <button class="save" type="button" aria-label="Save job"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+          <a class="detail-resume-promo" href="/resume-builder"><span class="detail-resume-promo-link">Build a free resume <span aria-hidden="true">→</span></span></a>
         </div>
         </div>
       </div>
@@ -462,6 +470,8 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
             </div>
           </div>
         ` : ''}
+
+        ${catList.length > 2 ? `<div class="detail-extra-categories"><span class="detail-extra-categories-label">More categories:</span><div>${categoryLinks(catList.slice(2))}</div></div>` : ''}
 
         <!-- About The Company (Bottom Below Job Description) -->
         ${aboutCompanyHtml}

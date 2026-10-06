@@ -714,3 +714,28 @@
     margin-bottom: 10px;
   }
 }
+
+/* Keep category text in one wrapping flow, separate from its icon. */
+.detail-exact .detail-meta .detail-category-meta {
+  max-width: 100%;
+  min-width: 0;
+  align-items: baseline;
+}
+.detail-exact .detail-meta .detail-category-text {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.detail-exact .detail-extra-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.detail-extra-categories-label { font-weight: 600; }
+.detail-exact .detail-extra-categories a { color: #64748b; text-decoration: none; }
+.detail-exact .detail-extra-categories a:hover { color: #b91c1c; }
