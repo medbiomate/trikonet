@@ -6190,6 +6190,12 @@ if (applyButton && path.startsWith('/job/')) {
     const topApply = applyButton.cloneNode(true);
     topApply.classList.add('mobile-top-apply');
     title.append(topApply);
+    const resumeLink = document.querySelector('.detail-hero .detail-resume-promo');
+    if (resumeLink) {
+      const mobileResumeLink = resumeLink.cloneNode(true);
+      mobileResumeLink.classList.add('mobile-top-resume');
+      title.append(mobileResumeLink);
+    }
     topApply.addEventListener('click', event => { event.preventDefault(); applyButton.click(); });
     const mobile = matchMedia('(max-width: 768px)');
     const updateDock = () => actions.classList.toggle('mobile-apply-visible', mobile.matches && topApply.getBoundingClientRect().bottom <= 0);

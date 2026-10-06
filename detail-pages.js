@@ -445,8 +445,8 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
         <div class="detail-actions">
           <a class="primary apply" href="${esc(record.applyUrl||m._job_apply_url||'#')}" target="_blank" rel="noopener noreferrer nofollow">Apply Now</a>
           <button class="save" type="button" aria-label="Save job"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
-          <a class="detail-resume-promo" href="/resume-builder"><span class="detail-resume-promo-link">Build a free resume <span aria-hidden="true">→</span></span></a>
         </div>
+          <a class="detail-resume-promo" href="/resume-builder"><span class="detail-resume-promo-link">Build a free resume <span aria-hidden="true">→</span></span></a>
         </div>
       </div>
     </section>
