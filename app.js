@@ -685,9 +685,7 @@ function header(){
     try { candidateAvatar = JSON.parse(localStorage.getItem('cvBuilderPluginState') || '{}').photo || ''; } catch {}
   }
   const candidateInitial = escapeAttr((currentUser?.name || 'U').charAt(0).toUpperCase());
-  const candidateComp = typeof currentUser?.completionPercentage === 'number'
-    ? currentUser.completionPercentage
-    : (currentUser?.profile ? calculateCandidateCompletion(currentUser.profile) : 0);
+  const candidateComp = calculateCandidateCompletion(currentUser?.profile);
   const isProfileComplete = candidateComp >= 85;
   const profileBadge = isProfileComplete ? '' : `<span class="nav-profile-badge" aria-label="1 notification" title="Profile ${candidateComp}% complete — complete your profile to get verified">1</span>`;
   const accountIcon = pathData => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${pathData}</svg>`;
@@ -3543,28 +3541,9 @@ const CANDIDATE_COUNTRIES = [
 
 function calculateCandidateCompletion(p) {
   if (!p || typeof p !== 'object') return 0;
-  let score = 0;
-  if (p.name?.trim()) score += 5;
-  if (p.email?.trim()) score += 5;
-  if (p.phone?.trim()) score += 5;
-  if (p.nationality?.trim()) score += 5;
-  if (p.currentLocation?.trim()) score += 5;
-  if (p.industry?.trim()) score += 5;
-  if (p.category?.trim()) score += 5;
-  if (p.role?.trim()) score += 5;
-  if (p.currentDesignation?.trim()) score += 5;
-  if (p.experience?.trim()) score += 5;
-  if (p.qualification?.trim()) score += 5;
-  if (p.degree?.trim()) score += 5;
-  if (p.specialization?.trim()) score += 5;
-  if ((Array.isArray(p.licenses) && p.licenses.length > 0) || p.licenseStatus?.trim()) score += 5;
-  if ((Array.isArray(p.languages) && p.languages.length > 0) || (typeof p.languages === 'string' && p.languages.trim())) score += 5;
-  if (p.salaryExpectation?.trim()) score += 5;
-  if (p.availability?.trim()) score += 5;
-  if (p.noticePeriod?.trim() || p.hospitalType?.trim()) score += 5;
-  if (Array.isArray(p.locations) && p.locations.length > 0) score += 5;
-  if (p.summary?.trim() || p.photo) score += 5;
-  return Math.min(100, Math.max(0, score));
+  const values = [p.name, p.email, p.phone, p.currentLocation, p.role || p.currentDesignation, p.experience, p.qualification || p.degree, p.category, p.skills, p.locations];
+  const filled = value => Array.isArray(value) ? value.some(item => String(item).trim()) : Boolean(String(value || '').trim());
+  return Math.round(values.filter(filled).length / values.length * 100);
 }
 
 function candidateProfileWorkspace(profile) {
@@ -3572,9 +3551,7 @@ function candidateProfileWorkspace(profile) {
   const p = profile || {};
   const currentPhoto = p.photo || currentUser?.avatar || '';
   const initial = escapeAttr((p.name || currentUser?.name || 'U').charAt(0).toUpperCase());
-  const completion = typeof currentUser?.completionPercentage === 'number'
-    ? currentUser.completionPercentage
-    : calculateCandidateCompletion(p);
+  const completion = calculateCandidateCompletion(p);
 
   const phoneStr = String(p.phone || '').trim();
   const matchedCountry = CANDIDATE_COUNTRIES.find(c => phoneStr.startsWith(c.dial)) || CANDIDATE_COUNTRIES[0];
