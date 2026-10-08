@@ -1886,3 +1886,7 @@
     padding-inline: 17px;
   }
 }
+
+.auth-entry-page .auth-google-row { grid-template-columns: 1fr; }
+.auth-google-button { min-height: 44px; display: flex; justify-content: center; }
+.auth-google-row .form-message:empty { display: none; }

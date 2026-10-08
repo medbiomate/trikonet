@@ -1,3 +1,4 @@
+import { initGoogleSignIn } from './google-sign-in.js';
 import { publicJobPath } from './job-urls.js';
 import {publicJobPage} from './public-job-page.js';
 import { uniqueJobs } from './job-list-identity.js';
@@ -5029,15 +5030,9 @@ function accountPage(forcedMode) {
 
         <div class="auth-divider"><span>or continue with</span></div>
 
-        <div class="auth-social-row">
-          <button type="button" class="auth-social-btn" onclick="alert('Google Sign-in: Please enter your credentials above.')">
-            <svg class="social-svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.02h3.87c2.26-2.09 3.67-5.17 3.67-9.11z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.02c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.12C3.26 21.3 7.37 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.61H1.28C.46 8.23 0 10.06 0 12s.46 3.77 1.28 5.39l3.99-3.12z"/><path fill="#EA4335" d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.28 6.61l3.99 3.12c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
-            <span>Google</span>
-          </button>
-          <button type="button" class="auth-social-btn" onclick="alert('LinkedIn Sign-in: Please enter your credentials above.')">
-            <svg class="social-svg" viewBox="0 0 24 24"><path fill="#0A66C2" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-            <span>LinkedIn</span>
-          </button>
+        <div class="auth-social-row auth-google-row">
+          <div class="auth-google-button" data-google-signin></div>
+          <p class="form-message" data-google-message aria-live="polite">Loading Google sign-in…</p>
         </div>
 
         <footer class="auth-footer-prompt">
@@ -5100,15 +5095,9 @@ function accountPage(forcedMode) {
 
         <div class="auth-divider"><span>or continue with</span></div>
 
-        <div class="auth-social-row">
-          <button type="button" class="auth-social-btn" onclick="alert('Google Sign-up: Please fill in your name and email above.')">
-            <svg class="social-svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.02h3.87c2.26-2.09 3.67-5.17 3.67-9.11z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3.02c-1.08.72-2.45 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.28v3.12C3.26 21.3 7.37 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.61H1.28C.46 8.23 0 10.06 0 12s.46 3.77 1.28 5.39l3.99-3.12z"/><path fill="#EA4335" d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.28 6.61l3.99 3.12c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
-            <span>Google</span>
-          </button>
-          <button type="button" class="auth-social-btn" onclick="alert('LinkedIn Sign-up: Please fill in your name and email above.')">
-            <svg class="social-svg" viewBox="0 0 24 24"><path fill="#0A66C2" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-            <span>LinkedIn</span>
-          </button>
+        <div class="auth-social-row auth-google-row">
+          <div class="auth-google-button" data-google-signin></div>
+          <p class="form-message" data-google-message aria-live="polite">Loading Google sign-in…</p>
         </div>
 
         <footer class="auth-footer-prompt">
@@ -6319,6 +6308,8 @@ async function submitAuth(form,endpoint){
     }
   }
 }
+
+initGoogleSignIn();
 
 document.querySelector('#loginForm')?.addEventListener('submit',event=>{event.preventDefault();submitAuth(event.currentTarget,'/api/auth/login')});
 document.querySelector('#registerForm')?.addEventListener('submit',event=>{event.preventDefault();submitAuth(event.currentTarget,'/api/auth/register')});
