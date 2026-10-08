@@ -293,7 +293,25 @@ const jobsPageSize=10;
 const escapeAttr=value=>String(value||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const icons={search:'⌕',pin:'⌖',bag:'▣'};
 let wpRecord=null,wpEmployer=null,profileJobs=[],orgJobs=[],categoryJobs=[],currentUser=null,emailCampaigns=[];
-async function loadAccount(){try{const response=await fetch('/api/auth/me');if(response.ok){currentUser=(await response.json()).user;if(path.startsWith('/admin') && currentUser){const campaigns=await fetch('/api/email-campaigns');if(campaigns.ok)emailCampaigns=await campaigns.json()}}}catch{}}
+async function loadAccount(){
+  try {
+    const response=await fetch('/api/auth/me');
+    if(!response.ok)return;
+    currentUser=(await response.json()).user;
+    if(currentUser){
+      const profileResponse=await fetch('/api/candidate/profile');
+      if(profileResponse.ok){
+        const saved=await profileResponse.json();
+        currentUser.profile=saved.profile || currentUser.profile || {};
+        currentUser.completionPercentage=saved.completionPercentage;
+        currentUser.id ||= currentUser.userId;
+      }else{
+        currentUser.profileLoadError=true;
+      }
+    }
+    if(path.startsWith('/admin') && currentUser){const campaigns=await fetch('/api/email-campaigns');if(campaigns.ok)emailCampaigns=await campaigns.json()}
+  }catch{if(currentUser)currentUser.profileLoadError=true;}
+}
 async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{const savedResponse=await fetch(`/api/local/${type==='job_listing'?'jobs':'employers'}/${encodeURIComponent(slug)}`);if(savedResponse.ok)wpRecord=await savedResponse.json();if(!wpRecord){const response=await fetch(`/api/wp/${type}?slug=${encodeURIComponent(slug)}`);if(response.ok){const records=await response.json();wpRecord=records[0]||null}}if(type==='job_listing'){let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){const [employerResponse,localEmployerResponse]=await Promise.all([fetch(`/api/wp/employer?slug=${encodeURIComponent(employerSlug)}`),fetch(`/api/local/employers/${encodeURIComponent(employerSlug)}`)]);if(localEmployerResponse.ok)wpEmployer=await localEmployerResponse.json();else if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
 categoryJobs=[];
 const extractJobCats = (rec) => {
@@ -3549,6 +3567,7 @@ function calculateCandidateCompletion(p) {
 }
 
 function candidateProfileWorkspace(profile) {
+  if(currentUser?.profileLoadError)return `<main class="member-workspace member-workspace-locked"><section><h1>Your profile could not load</h1><p>Please reload to retrieve your saved details before editing.</p><button type="button" onclick="location.reload()">Reload profile</button></section></main>`;
   const p = profile || {};
   const currentPhoto = p.photo || currentUser?.avatar || '';
   const initial = escapeAttr((p.name || currentUser?.name || 'U').charAt(0).toUpperCase());
