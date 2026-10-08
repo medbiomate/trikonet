@@ -303,6 +303,7 @@ async function loadAccount(){
       if(profileResponse.ok){
         const saved=await profileResponse.json();
         currentUser.profile=saved.profile || currentUser.profile || {};
+        currentUser.name=currentUser.profile.name||currentUser.name;currentUser.email=currentUser.profile.email||currentUser.email;
         currentUser.completionPercentage=saved.completionPercentage;
         currentUser.id ||= currentUser.userId;
       }else{
@@ -3649,7 +3650,7 @@ function candidateProfileWorkspace(profile) {
         </div>
         <div class="profile-field">
           <label for="candEmail">Email Address (Registered)</label>
-          <input type="email" id="candEmail" value="${escapeAttr(p.email || currentUser?.email || '')}" readonly style="background:#f8fafc;cursor:not-allowed;">
+          <input type="email" id="candEmail" value="${escapeAttr(p.email || currentUser?.email || '')}" readonly style="background:#f8fafc;cursor:not-allowed;"><button type="button" data-change-account-email>Change email</button>
         </div>
         <div class="profile-field">
           <label for="candPhoneNumber">Phone Number *</label>
@@ -7270,3 +7271,13 @@ document.querySelectorAll('[data-password-reset]').forEach(link => link.addEvent
  });
  replacement.querySelector('[name="email"]').focus();
 }));
+
+// Refresh account identity from the database on return and while signed in.
+async function refreshAccountIdentity(){if(!currentUser||document.visibilityState!=='visible')return;try{const response=await fetch('/api/auth/me');if(!response.ok)return;const {user}=await response.json();if(!user)return;const changed=currentUser.name!==user.name||currentUser.email!==user.email;Object.assign(currentUser,user);if(changed){const response=await fetch('/api/candidate/profile');if(response.ok)currentUser.profile=(await response.json()).profile;document.querySelectorAll('.nav-account-summary strong,.mobile-account-summary strong').forEach(el=>el.textContent=user.name);document.querySelectorAll('.nav-profile-initial').forEach(el=>el.textContent=user.name?.charAt(0)||'U');document.querySelectorAll('.candidate-profile-hero h1').forEach(el=>{if(el.firstChild?.nodeType===3)el.firstChild.textContent=user.name+' '});}}catch{}}
+window.addEventListener('focus',refreshAccountIdentity);setInterval(refreshAccountIdentity,15000);
+// The email belongs to the same account; updating it requires verification.
+document.addEventListener('click',async event=>{
+ const trigger=event.target.closest('[data-change-account-email]');if(!trigger)return;
+ let email=prompt('Enter your new account email:');if(!email)return;
+ try{const request=await fetch('/api/candidate/email/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const pending=await request.json();if(!request.ok)throw Error(pending.error);const code=prompt(pending.message);if(!code)return;const response=await fetch('/api/candidate/email/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:pending.challenge,code})});const result=await response.json();if(!response.ok)throw Error(result.error);Object.assign(currentUser,result.user);currentUser.profile=result.profile;const field=document.querySelector('#candEmail');if(field)field.value=result.user.email;alert('Email updated. Your account and saved data are unchanged.');}catch(error){alert(error.message||'Unable to update email.');}
+});
