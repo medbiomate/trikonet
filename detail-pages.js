@@ -823,17 +823,6 @@ export function renderEmployerDetail(record, path, jobs = []) {
           <!-- Tab 1: Overview Tab Panel -->
           <div class="emp-tab-panel active" id="panel-overview" data-panel="overview">
             
-            <!-- About Company Card -->
-            <section class="emp-card-block emp-about-block">
-              <h2 class="emp-card-title">About ${esc(title)}</h2>
-              <div class="emp-about-content" id="empAboutText">
-                <div class="emp-about-rendered wordpress-content">
-                  ${cleanBio}
-                </div>
-              </div>
-              <button type="button" class="emp-readmore-btn" id="empReadMoreBtn" onclick="const p = document.getElementById('empAboutText'); p.classList.toggle('expanded'); this.textContent = p.classList.contains('expanded') ? 'Show less' : 'Read more';">Read more</button>
-            </section>
-
             <!-- More Information Card -->
             <section class="emp-card-block">
               <h2 class="emp-card-title">More Information</h2>
@@ -879,6 +868,18 @@ export function renderEmployerDetail(record, path, jobs = []) {
                   </div>
                 ` : ''}
               </div>
+            </section>
+
+
+            <!-- About Company Card -->
+            <section class="emp-card-block emp-about-block">
+              <h2 class="emp-card-title">About ${esc(title)}</h2>
+              <div class="emp-about-content" id="empAboutText">
+                <div class="emp-about-rendered wordpress-content">
+                  ${cleanBio}
+                </div>
+              </div>
+              <button type="button" class="emp-readmore-btn" id="empReadMoreBtn" onclick="const p = document.getElementById('empAboutText'); p.classList.toggle('expanded'); this.textContent = p.classList.contains('expanded') ? 'Show less' : 'Read more';">Read more</button>
             </section>
 
           </div>

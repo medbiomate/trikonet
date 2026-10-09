@@ -5,7 +5,7 @@ import {publicJobPage} from './public-job-page.js';
 import { uniqueJobs } from './job-list-identity.js';
 import { restoreArticleImages } from './article-images.js';
 import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=3';
-import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=21.0';
+import { renderJobDetail, renderEmployerDetail } from './detail-pages.js?v=20261009-info-first';
 import { formatCompanyName } from './company-name.js';
 import { employerProfileHref } from './employer-link.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
