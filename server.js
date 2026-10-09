@@ -1,3 +1,4 @@
+import { sendAsset } from './asset-response.mjs';
 import {logoFor,socialHead} from './social-preview.js';
 import { isPrivatePage, isPublishedRecord } from './indexing-policy.js';
 import http from 'node:http';
@@ -1300,11 +1301,10 @@ const server = http.createServer(async (req, res) => {
     if (privatePage && target === join(root,'index.html')) {
       fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
     }
-    res.writeHead(200, {
-      'Content-Type': types[extname(target)] || 'application/octet-stream',
-      'Cache-Control': ['.png','.jpg','.jpeg','.webp','.gif','.avif','.svg','.mp4','.woff','.woff2'].includes(extname(target)) ? 'public, max-age=86400' : 'no-cache, no-store, must-revalidate'
+    await sendAsset(req, res, fileBody, types[extname(target)] || 'application/octet-stream', {
+      html: target === join(root, 'index.html'),
+      versioned: requestUrl.searchParams.has('v') || ['.png','.jpg','.jpeg','.webp','.gif','.avif','.svg','.mp4','.woff','.woff2'].includes(extname(target))
     });
-    res.end(fileBody);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not found');

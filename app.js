@@ -530,7 +530,17 @@ function updateLiveJobCountUI(){
 }
 
 let baseCountsFetched = false;
-async function loadCounts(){
+const COUNT_REFRESH_MS = 60000;
+let countsRequest = null;
+let countsRequestedAt = -Infinity;
+function loadCounts(){
+  if (countsRequest) return countsRequest;
+  if (Date.now() - countsRequestedAt < COUNT_REFRESH_MS) return Promise.resolve();
+  countsRequestedAt = Date.now();
+  countsRequest = fetchCounts().finally(() => { countsRequest = null; });
+  return countsRequest;
+}
+async function fetchCounts(){
   try{
     if (!baseCountsFetched) {
       const response=await fetch('/api/wp/counts');
@@ -579,7 +589,7 @@ async function loadCounts(){
 
 if(typeof window!=='undefined'){
   window.addEventListener('focus',()=>{loadCounts().catch(()=>{})});
-  setInterval(()=>{loadCounts().catch(()=>{})},10000);
+  setInterval(()=>{if(document.visibilityState==='visible')loadCounts().catch(()=>{})},COUNT_REFRESH_MS);
 }
 export function detectBlogCategory(title = '', excerpt = '') {
   const t = (title + ' ' + excerpt).toLowerCase();
@@ -667,7 +677,7 @@ const resolveLogo = (logo, fallback) => {
   if (!chosen) return `/assets/logo-black.png?${LOGO_VERSION}`;
   const base = chosen.split('?')[0];
   if (base.endsWith('/assets/logo-black.png') || base.endsWith('/assets/logo-white.png') || base.endsWith('/assets/trikonet-logo.png')) {
-    return `${base}?${LOGO_VERSION}`;
+    return `${base.replace(/\.png$/, '.webp')}?${LOGO_VERSION}`;
   }
   return chosen;
 };
@@ -1253,7 +1263,7 @@ function homeHero(s={}){
       </div>
 
       <div class="hero-minimal-image-wrap">
-        <img class="hero-minimal-image" src="/assets/hero-team.png" alt="Trikonet UAE Professionals Team" width="1116" height="542">
+        <img class="hero-minimal-image" src="/assets/hero-team.webp" fetchpriority="high" decoding="async" alt="Trikonet UAE Professionals Team" width="1116" height="542">
       </div>
     </div>
   </section>`;
@@ -1389,7 +1399,7 @@ function homeTopCompanies(s = {}) {
     return `
       <a class="featured-company-card" href="/employer/${escapeAttr(e.slug)}" aria-label="View jobs at ${escapeAttr(displayTitle)}" style="text-decoration:none;color:inherit">
         <div class="featured-company-logo-wrap">
-          ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(displayTitle)}" data-backup="${escapeAttr(e.logoBackup||'')}" onerror="if(this.dataset.backup&&!this.dataset.retried){this.dataset.retried='1';this.src=this.dataset.backup;}else{this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';}">` : ''}
+          ${e.logo ? `<img src="${escapeAttr(e.logo)}" alt="${escapeAttr(displayTitle)}" loading="lazy" decoding="async" data-backup="${escapeAttr(e.logoBackup||'')}" onerror="if(this.dataset.backup&&!this.dataset.retried){this.dataset.retried='1';this.src=this.dataset.backup;}else{this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';}">` : ''}
           <div class="featured-company-logo-fallback" style="${e.logo ? 'display:none;' : 'display:flex;'}">
             ${initials}
           </div>
@@ -5495,6 +5505,8 @@ function fitEmployerLogos() {
       return;
     }
     if (!sourceImage.naturalWidth) return;
+    const ratio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+    if (ratio >= .95 && ratio <= 1.05) return;
     if (sourceImage.dataset.trimAttempted === 'true') return;
     sourceImage.dataset.trimAttempted = 'true';
     const probe = new Image();
@@ -5713,12 +5725,23 @@ function render() {
   if (memberAuthPaths.includes(path)) return body + footer();
   return header() + body + footer();
 }
+// Start the homepage image and title before the API requests complete.
+// Controls are added with the full render once their live options are ready.
+if (path === '/') {
+  const heroWidget = homeWidgets().find(item => item.type === 'hero');
+  if (heroWidget) {
+    const shell = document.createElement('template');
+    shell.innerHTML = `<main>${homeHero(heroWidget.settings)}</main>`;
+    shell.content.querySelector('.hero-minimal-search-box')?.remove();
+    document.querySelector('#app').replaceChildren(shell.content);
+  }
+}
 // Counts refresh their own badges; don't delay the main content for them.
 loadCounts().catch(()=>{});
 const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
 const initialLoads=isCvAppRoute ? [] : [loadAccount(),loadSeoPages()];
 if(isCvAppRoute) { /* The library loads its own account data; unrelated content must not block it. */ }
-else if(path==='/')initialLoads.push(loadLocalJobs(),loadTopEmployers(),loadConnectedContent());
+else if(path==='/')initialLoads.push(loadTopEmployers(),loadConnectedContent());
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
@@ -5726,7 +5749,7 @@ else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(()
 }),loadLocalJobs());
 else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord().then(loadEmployerJobPage),loadCounts());
 else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent(),loadCounts());
-else initialLoads.push(loadConnectedContent(),loadCounts());
+else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent(),loadCounts());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
   initialLoads.push(adminSessionReady, import('./admin.js?v=20261002-posted-time').then(module => {
@@ -5783,13 +5806,21 @@ fitEmployerLogos();
 // backup. A ready CDN image always wins; only pending images are retried.
 document.querySelectorAll('.featured-company-logo-wrap img[data-backup]').forEach(image=>{
   if(!image.dataset.backup || image.dataset.backup===image.src)return;
-  const timer=setTimeout(()=>{
-    if(image.complete&&image.naturalWidth>0)return;
-    if(image.dataset.retried)return;
-    image.dataset.retried='1';
-    image.src=image.dataset.backup;
-  },1200);
-  image.addEventListener('load',()=>clearTimeout(timer),{once:true});
+  const startBackupTimer=()=>{
+    const timer=setTimeout(()=>{
+      if(image.complete&&image.naturalWidth>0)return;
+      if(image.dataset.retried)return;
+      image.dataset.retried='1';
+      image.src=image.dataset.backup;
+    },1200);
+    image.addEventListener('load',()=>clearTimeout(timer),{once:true});
+  };
+  if(image.loading==='lazy' && 'IntersectionObserver' in window){
+    const observer=new IntersectionObserver(entries=>{
+      if(entries.some(entry=>entry.isIntersecting)){observer.disconnect();startBackupTimer();}
+    },{rootMargin:'300px'});
+    observer.observe(image);
+  }else startBackupTimer();
 });
 initCandidateProfile();
 document.querySelectorAll('.emp-follow-btn').forEach(button => {
