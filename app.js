@@ -1,3 +1,4 @@
+import { revealPage } from './page-ready.js?v=1';
 import { initGoogleSignIn } from './google-sign-in.js';
 import { publicJobPath } from './job-urls.js';
 import {publicJobPage} from './public-job-page.js';
@@ -5725,17 +5726,6 @@ function render() {
   if (memberAuthPaths.includes(path)) return body + footer();
   return header() + body + footer();
 }
-// Start the homepage image and title before the API requests complete.
-// Controls are added with the full render once their live options are ready.
-if (path === '/') {
-  const heroWidget = homeWidgets().find(item => item.type === 'hero');
-  if (heroWidget) {
-    const shell = document.createElement('template');
-    shell.innerHTML = `<main>${homeHero(heroWidget.settings)}</main>`;
-    shell.content.querySelector('.hero-minimal-search-box')?.remove();
-    document.querySelector('#app').replaceChildren(shell.content);
-  }
-}
 // Counts refresh their own badges; don't delay the main content for them.
 loadCounts().catch(()=>{});
 const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
@@ -7289,3 +7279,6 @@ document.addEventListener('click',async event=>{
  let email=prompt('Enter your new account email:');if(!email)return;
  try{const request=await fetch('/api/candidate/email/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const pending=await request.json();if(!request.ok)throw Error(pending.error);const code=prompt(pending.message);if(!code)return;const response=await fetch('/api/candidate/email/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:pending.challenge,code})});const result=await response.json();if(!response.ok)throw Error(result.error);Object.assign(currentUser,result.user);currentUser.profile=result.profile;const field=document.querySelector('#candEmail');if(field)field.value=result.user.email;alert('Email updated. Your account and saved data are unchanged.');}catch(error){alert(error.message||'Unable to update email.');}
 });
+
+// Reveal only after synchronous page setup and visible assets have settled.
+await revealPage();
