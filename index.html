@@ -8,10 +8,9 @@
     .page-loading #app { visibility: hidden !important; }
     #page-preloader { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; background: #fff; }
     .preloader-brand { display: flex; flex-direction: column; align-items: center; gap: 22px; font: 500 14px/1.5 system-ui,sans-serif; color: #64748b; }
-    .preloader-brand img { width: 160px; height: 54px; object-fit: contain; }
-    .preloader-ring { width: 30px; height: 30px; border: 3px solid #f4e4e5; border-top-color: #b00008; border-radius: 50%; animation: page-loader-spin .8s linear infinite; }
-    @keyframes page-loader-spin { to { transform: rotate(360deg); } }
-    @media (prefers-reduced-motion: reduce) { .preloader-ring { animation: none; } }
+    .loading-scene-video { display: block; width: min(560px,90vw); height: auto; aspect-ratio: 640 / 326; object-fit: contain; background: #fff; filter: brightness(1.01); }
+    .preloader-static-logo { display: none; width: 160px; height: 54px; object-fit: contain; }
+    @media (prefers-reduced-motion: reduce) { .loading-scene-video { display: none; } .preloader-static-logo { display: block; } }
   </style>
   <noscript><style>#page-preloader{display:none!important}</style></noscript>
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -585,7 +584,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #app::-webkit-scrollbar, *::-w
 }
 </style><body>
 <div id="page-preloader" role="status" aria-live="polite" aria-label="Loading Trikonet">
-  <div class="preloader-brand"><img src="/assets/logo-black.webp" width="160" height="54" alt="Trikonet"><span class="preloader-ring" aria-hidden="true"></span><span id="preloader-message">Loading your next opportunity…</span></div>
+  <div class="preloader-brand"><video class="loading-scene-video" autoplay muted loop playsinline preload="auto" aria-hidden="true"><source src="/assets/loading-scene-mobile.mp4" media="(max-width: 768px)" type="video/mp4"><source src="/assets/loading-scene-smooth.mp4" type="video/mp4"></video><img class="preloader-static-logo" src="/assets/logo-black.webp" width="160" height="54" alt="Trikonet"><span id="preloader-message">Loading your next opportunity…</span></div>
 </div>
 <div id="app"></div><style></style>
 <script>
@@ -602,5 +601,5 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #app::-webkit-scrollbar, *::-w
     }, 20000);
   }
 </script>
-<script src="/config.js?v=20261009-performance"></script><script type="module" src="/app.js?v=20261009-preloader-v1"></script></body>
+<script src="/config.js?v=20261009-performance"></script><script type="module" src="/app.js?v=20261009-preloader-fast-v2"></script></body>
 </html>

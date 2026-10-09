@@ -1,4 +1,4 @@
-import { revealPage } from './page-ready.js?v=1';
+import { revealPage } from './page-ready.js?v=2';
 import { initGoogleSignIn } from './google-sign-in.js';
 import { publicJobPath } from './job-urls.js';
 import {publicJobPage} from './public-job-page.js';
@@ -35,7 +35,7 @@ let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.repl
 const SITE_ORIGIN='https://www.trikonet.com';
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
-  if (path.startsWith('/admin')) return;
+  if (path === '/' || path.startsWith('/admin')) return;
   try {
     const embedded=document.getElementById('category-directory-data');
     const cachedLinks=embedded?JSON.parse(embedded.textContent):[];
@@ -296,11 +296,11 @@ const icons={search:'⌕',pin:'⌖',bag:'▣'};
 let wpRecord=null,wpEmployer=null,profileJobs=[],orgJobs=[],categoryJobs=[],currentUser=null,emailCampaigns=[];
 async function loadAccount(){
   try {
-    const response=await fetch('/api/auth/me');
+    const response=await fetch('/api/auth/me', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});
     if(!response.ok)return;
     currentUser=(await response.json()).user;
     if(currentUser){
-      const profileResponse=await fetch('/api/candidate/profile');
+      const profileResponse=await fetch('/api/candidate/profile', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});
       if(profileResponse.ok){
         const saved=await profileResponse.json();
         currentUser.profile=saved.profile || currentUser.profile || {};
@@ -518,7 +518,7 @@ async function loadLocalEmployers(){
     data.employerResultTotal=q||location||category||minJobs?data.employers.length:Math.max(Number(data.counts?.employer||0)+localMatched.length,data.employers.length);
   }catch{data.employers=[]}
 }
-async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20');if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
+async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20', {signal:AbortSignal.timeout(2500)});if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
 function updateLiveJobCountUI(){
   const liveCount = (data.counts && data.counts.job_listing) ? data.counts.job_listing : 13621;
   const formattedCount = Number(liveCount).toLocaleString() + '+';
@@ -658,8 +658,9 @@ async function loadConnectedContent(){
     const isArticlePath=pathParts.length===2&&(pathParts[0]==='blog'||Boolean(POST_SLUG_PREFIXES[candidateSlug]));
     const postQuery=isArticlePath
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
-      : `/api/wp/posts?per_page=${path==='/'?12:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
-    const [taxonomyResponse,postsResponse]=await Promise.all([fetch('/api/wp/taxonomies'),fetch(postQuery)]);
+      : `/api/wp/posts?per_page=${path==='/'?6:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
+    const contentOptions = path === '/' ? {signal:AbortSignal.timeout(2500)} : {};
+    const [taxonomyResponse,postsResponse]=await Promise.all([fetch('/api/wp/taxonomies',contentOptions),fetch(postQuery,contentOptions)]);
     if(taxonomyResponse.ok){
       data.taxonomies=await taxonomyResponse.json();
       if(Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
@@ -7271,7 +7272,7 @@ document.querySelectorAll('[data-password-reset]').forEach(link => link.addEvent
 }));
 
 // Refresh account identity from the database on return and while signed in.
-async function refreshAccountIdentity(){if(!currentUser||document.visibilityState!=='visible')return;try{const response=await fetch('/api/auth/me');if(!response.ok)return;const {user}=await response.json();if(!user)return;const changed=currentUser.name!==user.name||currentUser.email!==user.email;Object.assign(currentUser,user);if(changed){const response=await fetch('/api/candidate/profile');if(response.ok)currentUser.profile=(await response.json()).profile;document.querySelectorAll('.nav-account-summary strong,.mobile-account-summary strong').forEach(el=>el.textContent=user.name);document.querySelectorAll('.nav-profile-initial').forEach(el=>el.textContent=user.name?.charAt(0)||'U');document.querySelectorAll('.candidate-profile-hero h1').forEach(el=>{if(el.firstChild?.nodeType===3)el.firstChild.textContent=user.name+' '});}}catch{}}
+async function refreshAccountIdentity(){if(!currentUser||document.visibilityState!=='visible')return;try{const response=await fetch('/api/auth/me', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(!response.ok)return;const {user}=await response.json();if(!user)return;const changed=currentUser.name!==user.name||currentUser.email!==user.email;Object.assign(currentUser,user);if(changed){const response=await fetch('/api/candidate/profile', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(response.ok)currentUser.profile=(await response.json()).profile;document.querySelectorAll('.nav-account-summary strong,.mobile-account-summary strong').forEach(el=>el.textContent=user.name);document.querySelectorAll('.nav-profile-initial').forEach(el=>el.textContent=user.name?.charAt(0)||'U');document.querySelectorAll('.candidate-profile-hero h1').forEach(el=>{if(el.firstChild?.nodeType===3)el.firstChild.textContent=user.name+' '});}}catch{}}
 window.addEventListener('focus',refreshAccountIdentity);setInterval(refreshAccountIdentity,15000);
 // The email belongs to the same account; updating it requires verification.
 document.addEventListener('click',async event=>{
