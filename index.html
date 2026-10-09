@@ -584,21 +584,14 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #app::-webkit-scrollbar, *::-w
 }
 </style><body>
 <div id="page-preloader" role="status" aria-live="polite" aria-label="Loading Trikonet">
-  <div class="preloader-brand"><video class="loading-scene-video" autoplay muted loop playsinline preload="auto" aria-hidden="true"><source src="/assets/loading-scene-mobile.mp4" media="(max-width: 768px)" type="video/mp4"><source src="/assets/loading-scene-smooth.mp4" type="video/mp4"></video><img class="preloader-static-logo" src="/assets/logo-black.webp" width="160" height="54" alt="Trikonet"><span id="preloader-message">Loading your next opportunity…</span></div>
+  <div class="preloader-brand"><video class="loading-scene-video" autoplay muted loop playsinline preload="auto" aria-hidden="true"><source src="/assets/loading-scene-mobile.mp4" media="(max-width: 768px)" type="video/mp4"><source src="/assets/loading-scene-smooth.mp4" type="video/mp4"></video><img class="preloader-static-logo" src="/assets/logo-black.webp" width="160" height="54" alt="Trikonet"></div>
 </div>
 <div id="app"></div><style></style>
 <script>
   if (document.documentElement.classList.contains('page-loading')) {
     document.getElementById('app').setAttribute('inert', '');
     document.getElementById('app').setAttribute('aria-busy', 'true');
-    window.trikonetLoadingTimer = setTimeout(function () {
-      const message = document.getElementById('preloader-message');
-      if (!message) return;
-      message.textContent = 'Taking longer than expected. Please reload to try again.';
-      const button = document.createElement('button');
-      button.textContent = 'Reload page'; button.onclick = function () { location.reload(); };
-      message.parentElement.append(button);
-    }, 20000);
+
   }
 </script>
 <script src="/config.js?v=20261009-performance"></script><script type="module" src="/app.js?v=20261009-preloader-fast-v2"></script></body>
