@@ -1,5 +1,14 @@
 import { publicJobPath } from './job-urls.js';
 import { formatCompanyName } from './company-name.js';
+function applicationAction(record,m){
+  const method=record.applyType||m._job_apply_type||'External URL';
+  if(method==='Walk-in')return `<div class="walk-in-details"><strong>Walk-in Interview</strong><p>${esc(record.walkInDetails||m._job_walk_in_details||'Contact the employer for interview details.').replaceAll('\n','<br>')}</p></div>`;
+  let href=record.applyUrl||m._job_apply_url||'#',label='Apply Now';
+  if(method==='By Email'){href='mailto:'+(record.applyEmail||m._job_apply_email||'');label='Apply by Email';}
+  if(method==='WhatsApp'){href='https://wa.me/'+String(record.applyWhatsApp||m._job_apply_whatsapp||'').replace(/\D/g,'');label='Apply on WhatsApp';}
+  if(!/^(https?:\/\/|mailto:|#)/i.test(href))href='#';
+  return `<a class="primary apply" href="${esc(href)}" target="_blank" rel="noopener noreferrer nofollow">${label}</a>`;
+}
 const bateelJobs = [
   ['Corporate Accounting Manager','corporate-accounting-manager','Accountant, Accounting or Finance','Dubai'],
   ['Human Resources Business Partner','human-resources-business-partner-9','Human Resource','Dubai'],
@@ -443,7 +452,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
         <div class="detail-action-group">
         <button class="detail-report-job-btn detail-report-corner-btn" type="button" id="openJobReportBtn" aria-label="Report this job"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg><span>Report this job</span></button>
         <div class="detail-actions">
-          <a class="primary apply" href="${esc(record.applyUrl||m._job_apply_url||'#')}" target="_blank" rel="noopener noreferrer nofollow">Apply Now</a>
+          ${applicationAction(record,m)}
           <button class="save" type="button" aria-label="Save job"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
         </div>
           <a class="detail-resume-promo" href="/resume-builder"><span class="detail-resume-promo-link">Build a free resume <span aria-hidden="true">→</span></span></a>

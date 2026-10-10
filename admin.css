@@ -8259,3 +8259,5 @@ mark.wp-highlight {
   background: #d97706;
   box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
 }
+
+#job-form .modern-field-wrap[hidden], #job-apply-url-wrap[hidden], #job-apply-email-wrap[hidden], #job-apply-whatsapp-wrap[hidden], #job-apply-walkin-wrap[hidden] { display:none !important; }

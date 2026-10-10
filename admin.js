@@ -858,6 +858,8 @@ export function renderAdmin() {
                       <select name="applyType" id="job-apply-type" class="modern-select" required>
                         <option value="External URL">External Career Page / URL</option>
                         <option value="By Email">Direct Email</option>
+                        <option value="WhatsApp">WhatsApp Number</option>
+                        <option value="Walk-in">Walk-in Interview</option>
                         <option value="Internal Form">Platform Application Form</option>
                       </select>
                       <small class="modern-field-help">Only the field required for the selected method will be shown.</small>
@@ -872,6 +874,16 @@ export function renderAdmin() {
                   <div class="modern-field-wrap" id="job-apply-email-wrap" hidden>
                     <label class="modern-label">Application Email <span class="req">*</span></label>
                     <div class="application-input-with-icon"><span>✉</span><input type="email" name="applyEmail" id="job-apply-email" class="modern-input" placeholder="careers@company.com"></div>
+                  </div>
+
+                  <div class="modern-field-wrap" id="job-apply-whatsapp-wrap" hidden>
+                    <label class="modern-label" for="job-apply-whatsapp">WhatsApp Number <span class="req">*</span></label>
+                    <input type="tel" name="applyWhatsApp" id="job-apply-whatsapp" class="modern-input" placeholder="+971 50 123 4567">
+                    <small class="modern-field-help">Include the country code.</small>
+                  </div>
+                  <div class="modern-field-wrap" id="job-apply-walkin-wrap" hidden>
+                    <label class="modern-label" for="job-walkin-details">Walk-in Interview Details <span class="req">*</span></label>
+                    <textarea name="walkInDetails" id="job-walkin-details" class="modern-input" rows="5" placeholder="Interview date, time, venue, address, contact person, and documents to bring"></textarea>
                   </div>
 
                   <div class="application-timeline-panel">
@@ -4881,14 +4893,19 @@ export async function initAdmin() {
   }
   function updateApplicationMethodUI() {
     const method = jobForm.elements['applyType']?.value || 'External URL';
-    const urlWrap = document.getElementById('job-apply-url-wrap');
-    const emailWrap = document.getElementById('job-apply-email-wrap');
-    const url = document.getElementById('job-apply-url');
-    const email = document.getElementById('job-apply-email');
-    if (urlWrap) urlWrap.hidden = method !== 'External URL';
-    if (emailWrap) emailWrap.hidden = method !== 'By Email';
-    if (url) url.required = method === 'External URL';
-    if (email) email.required = method === 'By Email';
+    const fields = [
+      ['External URL','job-apply-url-wrap','job-apply-url'],
+      ['By Email','job-apply-email-wrap','job-apply-email'],
+      ['WhatsApp','job-apply-whatsapp-wrap','job-apply-whatsapp'],
+      ['Walk-in','job-apply-walkin-wrap','job-walkin-details']
+    ];
+    for(const [type,wrapId,inputId] of fields){
+      const selected=method===type;
+      const wrap=document.getElementById(wrapId);
+      const input=document.getElementById(inputId);
+      if(wrap){wrap.hidden=!selected;wrap.style.display=selected?'':'none';}
+      if(input){input.required=selected;input.disabled=!selected;}
+    }
   }
 
   function fillJob(job = {}) {
@@ -6921,14 +6938,19 @@ export async function initAdmin() {
     job.id = jobForm.elements.id?.value || '';
     job.originalSlug = jobForm.originalSlug.value;
     job.description = document.getElementById('job-rich-content')?.innerHTML?.trim() || job.description?.trim() || '';
-    if ((job.applyType === 'External URL' && !job.applyUrl) || (job.applyType === 'By Email' && !job.applyEmail)) {
-      const field = job.applyType === 'By Email' ? document.getElementById('job-apply-email') : document.getElementById('job-apply-url');
-      field?.focus();
-      field?.scrollIntoView({ behavior:'smooth', block:'center' });
-      alert(`Enter the ${job.applyType === 'By Email' ? 'application email address' : 'direct application URL'} before saving.`);
-      jobStatusState.textContent = 'Application destination is required.';
+    const destinationFields={'External URL':'applyUrl','By Email':'applyEmail','WhatsApp':'applyWhatsApp','Walk-in':'walkInDetails'};
+    const destination=destinationFields[job.applyType];
+    if(destination && !String(job[destination]||'').trim()){
+      alert('Enter the details for the selected application method.');
+      jobStatusState.textContent='Application details are required.';
       return;
     }
+    if(job.applyType==='WhatsApp' && !/^\+?[1-9]\d{6,14}$/.test(job.applyWhatsApp.replace(/[\s()-]/g,''))){
+      alert('Enter a valid WhatsApp number including the country code.');
+      jobStatusState.textContent='Correct the WhatsApp number.';
+      return;
+    }
+    for(const field of Object.values(destinationFields))if(field!==destination)job[field]='';
     if (job.deadline && job.expiryDate && job.expiryDate < job.deadline) {
       listingExpiry?.focus();
       alert('Listing Expiry Date cannot be earlier than the Application Deadline.');
