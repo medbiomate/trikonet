@@ -12,6 +12,7 @@ import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 let renderAdmin, initAdmin;
 import { renderSeoLanding } from './seo-public.js?v=1';
 import { JOBS_SEO_TITLE, JOBS_SEO_DESCRIPTION } from './jobs-seo.js';
+import { legalPageForPath, renderLegalContent, legalStyles } from './legal-pages.js';
 
 const seed = {
   jobs:[
@@ -5653,6 +5654,11 @@ function render() {
     } else {
       body = notFound404Page();
     }
+  }
+  else if (legalPageForPath(path)) {
+    const page = legalPageForPath(path);
+    document.title = `${page.title} | Trikonet`;
+    body = `<style>${legalStyles}</style>${renderLegalContent(page)}`;
   }
   else if (path === '/faq') body = faq();
   else if (path === '/contact') body = contact();
