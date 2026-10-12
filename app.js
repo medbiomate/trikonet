@@ -38,10 +38,11 @@ const data=store.get();
 const resolvedJobUrl = JSON.parse(document.getElementById('job-url-data')?.textContent || 'null');
 let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.replace(/\/$/,'')||'/';
 const SITE_ORIGIN='https://www.trikonet.com';
+const MEMBER_PATHS=['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile','/saved-jobs','/applied-jobs','/followed-companies'];
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
   if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || path === '/employers' || legalPageForPath(path)) return;
-  if (document.getElementById('public-content-data')) return;
+  if (MEMBER_PATHS.includes(path) || document.getElementById('public-content-data')) return;
   // Related links and page metadata are independent; avoid a network waterfall.
   const linksReady = (async () => {
     try {
@@ -3644,7 +3645,7 @@ function render() {
   return header() + body + footer();
 }
 // Counts refresh their own badges; don't delay the main content for them.
-loadCounts().catch(()=>{});
+if (!MEMBER_PATHS.includes(path)) loadCounts().catch(()=>{});
 const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
 let homeContentReady;
 const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : [loadAccount(),loadSeoPages()];
@@ -3663,7 +3664,7 @@ if (path.startsWith('/job/') || path.startsWith('/employer/')) {
     renderEmployerDetail = module.renderEmployerDetail;
   }));
 }
-if(isCvAppRoute || path.startsWith('/admin')) { /* These screens load their own data. */ }
+if(isCvAppRoute || path.startsWith('/admin') || MEMBER_PATHS.includes(path)) { /* These screens load their own data. */ }
 else if(path==='/')homeContentReady=Promise.allSettled([loadTopEmployers(),loadConnectedContent()]);
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadDirectoryTaxonomies());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadDirectoryTaxonomies());

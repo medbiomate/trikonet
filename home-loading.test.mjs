@@ -7,7 +7,7 @@ test('pending homepage content does not enter the blocking render loads', async 
   const start = source.indexOf('if(isCvAppRoute || path.startsWith');
   const end = source.indexOf('const adminSessionReady', start);
   const calls = [];
-  const context = vm.createContext({path:'/',isCvAppRoute:false,initialLoads:[],Promise,
+  const context = vm.createContext({path:'/',MEMBER_PATHS:[],isCvAppRoute:false,initialLoads:[],Promise,
     loadTopEmployers(){calls.push('companies');return new Promise(()=>{});},
     loadConnectedContent(){calls.push('articles');return new Promise(()=>{});}});
   vm.runInContext(source.slice(start,end),context);

@@ -29,3 +29,14 @@ test('startup failure preserves server-rendered jobs and removes both loaders',(
  vm.runInContext(s.slice(s.indexOf('export function'),s.indexOf('const timeout')).replace('export function','function'),c);
  c.showLoadingRecovery(Error('module failed'));assert.ok(removals.includes('page-preloader'));assert.ok(removals.includes('seo-loading'));assert.ok(removals.includes('inert'));
 });
+
+test('login and saved-job routes do not await unrelated public content',()=>{
+ const source=readFileSync(new URL('./app.js',import.meta.url),'utf8');
+ const routes=source.match(/const MEMBER_PATHS=([^;]+);/)[1];
+ const branch=source.slice(source.indexOf('if(isCvAppRoute || path.startsWith'),source.indexOf('const adminSessionReady'));
+ for(const path of ['/login','/register','/profile','/saved-jobs','/applied-jobs']){
+  const c=vm.createContext({path,isCvAppRoute:false,initialLoads:[]});
+  vm.runInContext('const MEMBER_PATHS='+routes+';'+branch,c);
+  assert.equal(c.initialLoads.length,0);
+ }
+});
