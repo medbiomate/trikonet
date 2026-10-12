@@ -6649,12 +6649,6 @@ main.detail-page {
   }
 }
 
-.mobile-top-apply {display:none!important;}
-@media(max-width:768px){
-  .detail-exact .detail-hero .mobile-top-apply {display:flex!important;align-items:center;justify-content:center;flex:0 0 auto!important;width:100%!important;max-width:320px!important;height:48px!important;min-height:48px!important;max-height:48px!important;padding:0 20px!important;font-size:15px!important;line-height:20px!important;margin:16px auto 0;box-sizing:border-box;border-radius:10px;}
-  .detail-exact .detail-hero:not(.employer-hero) .detail-actions {visibility:hidden!important;pointer-events:none!important;}
-  .detail-exact .detail-hero:not(.employer-hero) .detail-actions.mobile-apply-visible {visibility:visible!important;pointer-events:auto!important;}
-}
 .page-update-stamp {border-top:1px solid #e2e8f0;background:#fff;color:#8a8a8a;font-size:9px;line-height:1.4;padding:5px 0;}
 .page-update-stamp .wrap {display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .page-update-date {margin-left:auto;}
@@ -6698,6 +6692,6 @@ main.detail-page {
 .detail-exact .detail-resume-promo:focus-visible { outline: 2px solid #b00008; outline-offset: 3px; }
 .detail-exact .detail-hero .mobile-top-resume { display: none; }
 @media (max-width: 768px) {
-  .detail-exact .detail-hero .detail-action-group > .detail-resume-promo { display: none; }
+  .detail-exact .detail-hero .detail-action-group > .detail-resume-promo { display: block; }
   .detail-exact .detail-hero .detail-title > .mobile-top-resume { display: block; width: 100%; max-width: 320px; margin: 10px auto 0; text-align: right; }
 }
