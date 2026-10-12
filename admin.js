@@ -14034,8 +14034,9 @@ export async function initAdmin() {
           <th scope="row" class="check-column"><input type="checkbox" value="${c.id}" aria-label="Select ${escapeHtml(c.name)}"></th>
           <td class="column-candidate-name">
             <div style="display:flex; align-items:center; gap:10px;">
-              <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #0284c7, #3b82f6); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                ${initials}
+              <div style="position:relative; overflow:hidden; width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #0284c7, #3b82f6); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                <span>${escapeHtml(initials)}</span>
+                ${(c.photo || c.avatar) ? `<img src="${escapeHtml(c.photo || c.avatar)}" alt="${escapeHtml(c.name || 'Candidate')} profile photo" loading="lazy" decoding="async" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.remove()">` : ''}
               </div>
               <div>
                 <strong><a href="#candidate-editor" class="row-title" data-candidate-edit="${c.id}">${escapeHtml(c.name)}</a></strong>
