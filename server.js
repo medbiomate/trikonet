@@ -1,4 +1,4 @@
-import { loadContentRecord } from './content-record.js';
+import { loadContentRecord, fetchContentResponse } from './content-record.js';
 import { sendAsset } from './asset-response.mjs';
 import {logoFor,socialHead} from './social-preview.js';
 import { isPrivatePage, isPublishedRecord } from './indexing-policy.js';
@@ -194,7 +194,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (/^\/(job|jobs)\/[^/]+\/?$/.test(path) && ['GET','HEAD'].includes(req.method) && !requestUrl.searchParams.has('preview') && !requestUrl.searchParams.has('draft')) {
     try {
-      const response = await fetch(`${process.env.TRIKONET_API_BASE || 'https://api.trikonet.com'}/api/job-url?path=${encodeURIComponent(path)}`, {signal:AbortSignal.timeout(10000)});
+      const response = await fetchContentResponse(fetch, `${process.env.TRIKONET_API_BASE || 'https://api.trikonet.com'}/api/job-url?path=${encodeURIComponent(path)}`);
       if (response.ok) {
         resolvedJobUrl = await response.json();
         if (path !== resolvedJobUrl.publicPath) { res.writeHead(301,{Location:resolvedJobUrl.publicPath}); return res.end(); }
@@ -1195,7 +1195,7 @@ const server = http.createServer(async (req, res) => {
 
   if (['/sitemap-jobs.xml','/job_listing-sitemap.xml'].includes(path)) {
     try {
-      const response = await fetch(`${seoApiBase}/api/local/jobs`, {signal:AbortSignal.timeout(15000)});
+      const response = await fetchContentResponse(fetch, `${seoApiBase}/api/local/jobs`);
       if (!response.ok) throw new Error('Jobs unavailable');
       const jobs = (await response.json()).filter(isPublishedRecord);
       let xml = await readFile(join(root,path.slice(1)),'utf8');
@@ -1210,7 +1210,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (path === '/sitemap-seo-job-pages.xml') {
     try {
-      const response = await fetch(`${seoApiBase}/sitemap-seo-job-pages.xml`, {signal:AbortSignal.timeout(15000)});
+      const response = await fetchContentResponse(fetch, `${seoApiBase}/sitemap-seo-job-pages.xml`);
       res.writeHead(response.status,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'no-store'});
       return res.end(await response.text());
     } catch {res.writeHead(503);return res.end('Sitemap temporarily unavailable');}
