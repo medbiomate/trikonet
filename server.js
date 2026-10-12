@@ -1,3 +1,4 @@
+import { loadContentRecord } from './content-record.js';
 import { sendAsset } from './asset-response.mjs';
 import {logoFor,socialHead} from './social-preview.js';
 import { isPrivatePage, isPublishedRecord } from './indexing-policy.js';
@@ -1166,19 +1167,8 @@ const server = http.createServer(async (req, res) => {
       const slug = decodeURIComponent(contentParts[1]);
       let published = false;
       let contentRecord;
-      let checkWordPress = true;
-      if (contentType !== 'posts') {
-        const collection = contentType === 'employer' ? 'employers' : 'jobs';
-        const localResponse = await fetch(`${seoApiBase}/api/local/${collection}/${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
-        if (localResponse.ok) { contentRecord=await localResponse.json(); published = isPublishedRecord(contentRecord); checkWordPress = false; }
-        else if (localResponse.status !== 404) throw new Error('Content unavailable');
-      }
-      if (checkWordPress) {
-        const response = await fetch(`${seoApiBase}/api/wp/${contentType}?slug=${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(10000)});
-        if (!response.ok) throw new Error('Content unavailable');
-        contentRecord=(await response.json()).find(isPublishedRecord);
-        published = Boolean(contentRecord);
-      }
+      contentRecord = await loadContentRecord(fetch, seoApiBase, contentType, slug);
+      published = Boolean(contentRecord && isPublishedRecord(contentRecord));
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
       if (['job_listing','employer'].includes(contentType)) {
         let logo=logoFor(contentRecord,contentType);
