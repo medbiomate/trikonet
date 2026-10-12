@@ -39,7 +39,7 @@ let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.repl
 const SITE_ORIGIN='https://www.trikonet.com';
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
-  if (path === '/' || path.startsWith('/admin')) return;
+  if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || legalPageForPath(path)) return;
   // Related links and page metadata are independent; avoid a network waterfall.
   const linksReady = (async () => {
     try {
@@ -52,7 +52,7 @@ async function loadSeoPages() {
   try {
     const destinationSlug=path.startsWith('/category/') ? path.slice('/category/'.length) : path.slice(1);
     if(['/', '/jobs','/job-list','/job-openings','/job-categories','/employers'].includes(path) || destinationSlug.includes('/'))return;
-    const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(destinationSlug)}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`);
+    const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(destinationSlug)}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`, {signal:AbortSignal.timeout(3000)});
     const payload=await response.json();
     if(response.ok && payload.page){
       seoPagePayload=payload;
@@ -537,7 +537,7 @@ async function loadLocalEmployers(){
     data.employerResultTotal=q||location||category||minJobs?data.employers.length:Math.max(Number(data.counts?.employer||0)+localMatched.length,data.employers.length);
   }catch{data.employers=[]}
 }
-async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20', {signal:AbortSignal.timeout(2500)});if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
+async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20', {signal:AbortSignal.timeout(10000)});if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
 function updateLiveJobCountUI(){
   const liveCount = (data.counts && data.counts.job_listing) ? data.counts.job_listing : 13621;
   const formattedCount = Number(liveCount).toLocaleString() + '+';
@@ -678,7 +678,7 @@ async function loadConnectedContent(){
     const postQuery=isArticlePath
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
       : `/api/wp/posts?per_page=${path==='/'?6:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
-    const contentOptions = path === '/' ? {signal:AbortSignal.timeout(2500)} : {};
+    const contentOptions = path === '/' ? {signal:AbortSignal.timeout(10000)} : {};
     const [taxonomyResponse,postsResponse]=await Promise.all([fetchTaxonomies(contentOptions),fetch(postQuery,contentOptions)]);
     if(taxonomyResponse.ok){
       data.taxonomies=await taxonomyResponse.json();
@@ -3635,6 +3635,7 @@ function render() {
 // Counts refresh their own badges; don't delay the main content for them.
 loadCounts().catch(()=>{});
 const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
+let homeContentReady;
 const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : [loadAccount(),loadSeoPages()];
 if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile'].includes(path)) {
   initialLoads.push(import('./candidate-profile-editor.js?v=20261012').then(({ createCandidateProfile }) => {
@@ -3652,7 +3653,7 @@ if (path.startsWith('/job/') || path.startsWith('/employer/')) {
   }));
 }
 if(isCvAppRoute || path.startsWith('/admin')) { /* These screens load their own data. */ }
-else if(path==='/')initialLoads.push(loadTopEmployers(),loadConnectedContent());
+else if(path==='/')homeContentReady=Promise.allSettled([loadTopEmployers(),loadConnectedContent()]);
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
@@ -4351,7 +4352,8 @@ connectToggle?.addEventListener('click',()=>{const open=connectToggle.getAttribu
 document.addEventListener('click',event=>{if(connectToggle&&!connectToggle.parentElement.contains(event.target)){connectToggle.setAttribute('aria-expanded','false');connectToggle.parentElement.classList.remove('open')}});
 function initRecentArticlesAutoSlider() {
   const slider = document.querySelector('#recent-articles');
-  if (!slider) return;
+  if (!slider || slider.dataset.initialized === 'true') return;
+  slider.dataset.initialized = 'true';
   
   const dots = document.querySelectorAll('#recentArticlesDots .recent-dot');
   let autoTimer = null;
@@ -4405,6 +4407,7 @@ function initRecentArticlesAutoSlider() {
     }
   };
 
+  slider.stopAuto = stopAuto;
   startAuto();
 
   slider.addEventListener('scroll', () => {
@@ -5203,3 +5206,29 @@ document.addEventListener('click',async event=>{
 
 // Reveal only after synchronous page setup and visible assets have settled.
 await revealPage();
+
+// Refresh only the data sections. Preserve the hero, search input, navigation
+// and their listeners while optional homepage requests finish in the background.
+if (homeContentReady) {
+  homeContentReady.then(() => {
+    const replacements = {
+      categories: ['.home-categories-section', homeCategories],
+      'top-companies': ['.featured-companies-section', homeTopCompanies],
+      articles: ['.recent-section', articleSection]
+    };
+    const updated = new Map();
+    for (const {type, settings} of homeWidgets()) {
+      const replacement = replacements[type];
+      if (!replacement) continue;
+      const [selector, renderer] = replacement;
+      const sections = updated.get(selector) || [...document.querySelectorAll(`main ${selector}`)];
+      updated.set(selector, sections);
+      const section = sections.shift();
+      if (section) {
+        section.querySelector('#recent-articles')?.stopAuto?.();
+        section.outerHTML = renderer(settings);
+      }
+    }
+    initRecentArticlesAutoSlider();
+  }).catch(error => console.warn('Homepage refresh unavailable:', error));
+}
