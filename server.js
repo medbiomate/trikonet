@@ -1,3 +1,4 @@
+import { injectInitialJob } from './job-ssr.mjs';
 import { loadContentRecord, fetchContentResponse } from './content-record.js';
 import { sendAsset } from './asset-response.mjs';
 import {logoFor,socialHead} from './social-preview.js';
@@ -1289,6 +1290,7 @@ const server = http.createServer(async (req, res) => {
     if (shareHead && target === join(root,'index.html')) {
       fileBody=fileBody.toString().replace(/<title>[\s\S]*?<\/title>/gi,'').replace(/<meta[^>]+(?:name=["'](?:description|twitter:[^"']+)|property=["']og:[^"']+)["'][^>]*>/gi,'').replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi,'').replace('</head>',shareHead+'</head>');
     }
+    if (publicContentRecord && contentType === 'job_listing' && target === join(root,'index.html')) fileBody = injectInitialJob(fileBody.toString(),publicContentRecord,resolvedJobUrl?.publicPath || path);
     if (publicContentRecord && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="public-content-data" type="application/json">${JSON.stringify(publicContentRecord).replace(/</g,'\u003c')}</script></head>`);
     if (resolvedJobUrl && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="job-url-data" type="application/json">${JSON.stringify(resolvedJobUrl).replace(/</g,'\u003c')}</script></head>`);
     if (privatePage && target === join(root,'index.html')) {

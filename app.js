@@ -1,3 +1,4 @@
+import { protectJobNavigation } from './job-navigation.js';
 import { loadContentRecord } from './content-record.js';
 import { renderSiteHeader } from './site-header.js';
 import { renderSiteFooter } from './site-footer.js';
@@ -3599,7 +3600,7 @@ function render() {
     };
 
     // Related jobs pool MUST come from the same category and EXCLUDE the same company!
-    const relatedPool = [...categoryJobs, ...(data.jobs || [])];
+    const relatedPool = [...categoryJobs];
     const seenRelated = new Set();
     const catTokens = currentCategory.split(/[\s,]+/).filter(w => w.length > 2);
     const relatedMatches = relatedPool
@@ -3684,6 +3685,8 @@ await Promise.all(initialLoads);
 // local draft/mock records, but those must never replace database content on
 // the public site.
 document.querySelector('#app').innerHTML=render();
+document.querySelector('#app').removeAttribute('data-server-rendered');
+protectJobNavigation();
 if (path.startsWith('/job/') && document.querySelector('#jobDescriptionCopy') && !queryParams.has('preview') && !queryParams.has('draft')) {
   fetch('/api/job-view', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:path.split('/').filter(Boolean).pop()})}).catch(error => console.warn('Job view tracking unavailable:',error));
 }
@@ -5254,4 +5257,5 @@ if (jobExtrasReady) jobExtrasReady.then(() => {
     if (oldSection && nextSection) oldSection.replaceWith(nextSection);
     else if (nextSection && selector === '.related-list') document.querySelector('.job-description')?.append(nextSection);
   }
+  protectJobNavigation();
 }).catch(error => console.warn('Related job refresh unavailable:', error));
