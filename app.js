@@ -40,6 +40,7 @@ const SITE_ORIGIN='https://www.trikonet.com';
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
   if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || path === '/employers' || legalPageForPath(path)) return;
+  if (document.getElementById('public-content-data')) return;
   // Related links and page metadata are independent; avoid a network waterfall.
   const linksReady = (async () => {
     try {
@@ -682,7 +683,7 @@ async function loadConnectedContent(){
   try{
     const pathParts=path.split('/').filter(Boolean);
     const candidateSlug=pathParts.at(-1)||'';
-    const isArticlePath=pathParts.length===2&&(pathParts[0]==='blog'||Boolean(POST_SLUG_PREFIXES[candidateSlug]));
+    const isArticlePath=pathParts.length===2&&(pathParts[0]==='blog'||BLOG_CATEGORY_PREFIXES.includes(pathParts[0])||Boolean(POST_SLUG_PREFIXES[candidateSlug]));
     const postQuery=isArticlePath
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
       : `/api/wp/posts?per_page=${path==='/'?6:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
