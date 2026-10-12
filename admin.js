@@ -1707,7 +1707,7 @@ export function renderAdmin() {
               <!-- Media / Logo Card -->
               <div class="modern-sidebar-card">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-                  <h4 class="modern-sidebar-card-title" style="margin:0;">Company Logo</h4>
+                  <h4 class="modern-sidebar-card-title" style="margin:0;">Company Logo <span class="req">*</span></h4>
                   <button type="button" id="btn-remove-employer-logo" style="display:none;background:none;border:none;color:#dc2626;font-size:11px;font-weight:500;cursor:pointer;padding:0;">✕ Remove</button>
                 </div>
                 <div class="modern-img-preview-box" id="employer-logo-preview-box">
@@ -1730,7 +1730,7 @@ export function renderAdmin() {
 
               <!-- Taxonomies: Categories -->
               <div class="modern-sidebar-card">
-                <h4 class="modern-sidebar-card-title">Categories</h4>
+                <h4 class="modern-sidebar-card-title">Categories <span class="req">*</span></h4>
                 <input type="text" class="modern-search-sm" placeholder="Filter categories…" data-search-checklist="employer-categories">
                 <div class="modern-taxonomy-checklist tree-checklist" data-list="categories" id="employer-checklist-categories">
                   <!-- Populated dynamically with hierarchy -->
@@ -1751,7 +1751,7 @@ export function renderAdmin() {
 
               <!-- Taxonomies: Locations -->
               <div class="modern-sidebar-card">
-                <h4 class="modern-sidebar-card-title">Locations</h4>
+                <h4 class="modern-sidebar-card-title">Locations <span class="req">*</span></h4>
                 <input type="text" class="modern-search-sm" placeholder="Filter locations…" data-search-checklist="employer-locations">
                 <div class="modern-taxonomy-checklist tree-checklist" data-list="locations" id="employer-checklist-locations">
                   <!-- Populated dynamically with hierarchy -->
@@ -8189,6 +8189,18 @@ export async function initAdmin() {
 
   employerForm.addEventListener('submit', async e => {
     e.preventDefault();
+    const missing = [];
+    if (!document.querySelector('#employer-checklist-categories input:checked')) missing.push('category');
+    if (!document.querySelector('#employer-checklist-locations input:checked')) missing.push('location');
+    const description = document.getElementById('employer-gutenberg-content')?.value || '';
+    if (!description.replace(/<[^>]*>/g,'').replace(/&nbsp;|&#160;/gi,' ').trim()) missing.push('description');
+    if (!document.getElementById('field-employer-logo-val')?.value.trim()) missing.push('logo');
+    if (missing.length) {
+      const message = `Please add the required company ${missing.join(', ')} before saving.`;
+      if (employerStatusState) employerStatusState.textContent = message;
+      showAdminNotice(message);
+      return;
+    }
     await employerRecovery.flush();
     e.preventDefault();
     if (employerStatusState) employerStatusState.textContent = 'Saving…';
