@@ -5605,6 +5605,7 @@ export async function initAdmin() {
   const employerJobCounts = new Map();
   let employerCountRequest = 0;
   async function refreshEmployerJobCounts(employers) {
+    if (!employers.length) return;
     const request = ++employerCountRequest;
     try {
       const response = await fetch(`/api/admin/employer-job-counts?${new URLSearchParams({slugs:employers.map(e=>e.slug).join(',')})}`);
@@ -5681,9 +5682,9 @@ export async function initAdmin() {
             </span>
           </td>
         </tr>
-      `).join('') : '<tr><td colspan="7" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">No matching employers found.</td></tr>';
+      `).join('') : `<tr><td colspan="7" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">${employersLoading ? 'Loading employers…' : employerLoadError ? 'Unable to load employers. Please retry.' : 'No matching employers found.'}</td></tr>`;
     }
-    if (pagedEmployers.length) void refreshEmployerJobCounts(pagedEmployers);
+    if (pagedEmployers.length && document.querySelector('#view-employers')?.classList.contains('active-view')) void refreshEmployerJobCounts(pagedEmployers.filter(e=>!employerJobCounts.has(e.slug)));
     const pager = document.getElementById('admin-employer-pagination');
     if (pager) pager.innerHTML = list.length > employerPageSize ? `<button type="button" class="modern-filter-btn" id="employer-prev-page" ${employerPage===1?'disabled':''}>← Previous</button><strong style="font-size:13px;color:#475569;">Page ${employerPage} of ${pageCount}</strong><button type="button" class="modern-filter-btn" id="employer-next-page" ${employerPage===pageCount?'disabled':''}>Next →</button>` : '';
   }
@@ -6324,50 +6325,8 @@ export async function initAdmin() {
     }
   }
 
-  let employerLoadError = false;
-  async function loadImportedEmployers() {
-    employerLoadError = false;
-    const records = [];
-    try {
-      // Bound response size and retry transient failures without hiding companies.
-      for (let page = 1; page <= 100; page++) {
-        let batch;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          try {
-            const response = await fetch(`/api/wp/employer?per_page=100&page=${page}&_fields=id,slug,title,status,metas,content`, {signal:AbortSignal.timeout(20000)});
-            if (!response.ok) throw new Error(`Companies unavailable (HTTP ${response.status})`);
-            batch = await response.json();
-            if (!Array.isArray(batch)) throw new Error('Invalid company response');
-            break;
-          } catch (error) { if (attempt === 1) throw error; }
-        }
-        records.push(...batch);
-        if (batch.length < 100) return records;
-      }
-      throw new Error('Company list exceeds supported batch limit');
-    } catch (error) {
-      employerLoadError = true;
-      console.error('Imported company loading failed:', error);
-      return records;
-    }
-  }
-
-  // Load all data
-  async function loadData() {
-    const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
-      fetch('/api/local/jobs?admin=1').then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
-      fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
-      loadRemoteJobs(),
-      fetch('/api/local/employers?admin=1').then(r => r.json()).catch(() => []),
-      loadImportedEmployers(),
-      fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))
-    ]);
-
-    localJobs = local;
-
-    localEmployers = employers;
-    remoteEmployers = wpEmployers.map(item => {
+  function updateImportedEmployers(records) {
+    remoteEmployers = records.map(item => {
       const m = item.metas || {};
       return {
         title: item.title?.rendered || '',
@@ -6390,6 +6349,68 @@ export async function initAdmin() {
         local: false
       };
     });
+    renderEmployerRows();
+    populateEmployerDropdown();
+  }
+  let employersLoading = true;
+  let employerLoadError = false;
+  async function loadImportedEmployers() {
+    employerLoadError = false;
+    const records = [];
+    try {
+      // Bound response size and retry transient failures without hiding companies.
+      for (let page = 1; page <= 100; page++) {
+        let batch;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await fetch(`/api/wp/employer?per_page=100&page=${page}&_fields=id,slug,title,status,metas,content`, {signal:AbortSignal.timeout(20000)});
+            if (!response.ok) throw new Error(`Companies unavailable (HTTP ${response.status})`);
+            batch = await response.json();
+            if (!Array.isArray(batch)) throw new Error('Invalid company response');
+            break;
+          } catch (error) { if (attempt === 1) throw error; }
+        }
+        records.push(...batch);
+        updateImportedEmployers(records);
+        if (batch.length < 100) return records;
+      }
+      throw new Error('Company list exceeds supported batch limit');
+    } catch (error) {
+      employerLoadError = true;
+      console.error('Imported company loading failed:', error);
+      return records;
+    }
+  }
+
+  // Load all data
+  async function loadData() {
+    employersLoading = true;
+    void Promise.allSettled([
+      fetch('/api/local/employers?admin=1').then(async response => {
+        if (!response.ok) throw new Error('Saved companies unavailable');
+        localEmployers = await response.json();
+        renderEmployerRows(); populateEmployerDropdown();
+      }),
+      loadImportedEmployers()
+    ]).then(results => {
+      if (results.some(result=>result.status==='rejected')) employerLoadError=true;
+      employersLoading=false;
+      renderEmployerRows(); populateEmployerDropdown();
+    });
+    const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
+      fetch('/api/local/jobs?admin=1').then(r => r.ok ? r.json() : []).then(rows => { localJobs = rows; renderJobRows(false); return rows; }).catch(() => []),
+      fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
+      fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
+      loadRemoteJobs(),
+      Promise.resolve(localEmployers),
+      Promise.resolve(remoteEmployers),
+      fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))
+    ]);
+
+    localJobs = local;
+
+    // Employer requests update independently as each batch arrives.
+
 
     if (Array.isArray(registeredCandidates) && registeredCandidates.length) {
       const mergedMap = new Map();
