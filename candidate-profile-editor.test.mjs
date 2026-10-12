@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { createCandidateProfile } from './candidate-profile-editor.js';
-const original = execFileSync('git', ['show', 'HEAD:app.js'], {cwd: new URL('.', import.meta.url)}).toString();
+const original = execFileSync('git', ['show', '39404a7:app.js'], {cwd: new URL('.', import.meta.url)}).toString();
 const block = original.slice(original.indexOf('const CANDIDATE_QUALIFICATION_LEVELS'), original.indexOf('function memberCollectionKey'));
 const escapeAttr = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 

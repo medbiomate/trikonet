@@ -4436,7 +4436,9 @@ export async function initAdmin() {
   function populateEmployerDropdown() {
     const employerMap = new Map();
     allEmployers().forEach(e => {
-      if (e.title && e.title.trim()) {
+      // Recovery snapshots are drafts, not selectable company identities.
+      if (e.autosaved || String(e.slug || "").startsWith("autosave-")) return;
+      if (e.title && e.title.trim() && !employerMap.has(e.title.trim().toLowerCase())) {
         employerMap.set(e.title.trim().toLowerCase(), {
           title: e.title.trim(),
           slug: e.slug,
@@ -4446,6 +4448,7 @@ export async function initAdmin() {
     });
 
     allJobs().forEach(j => {
+      if (j.autosaved || String(j.employerSlug || '').startsWith('autosave-')) return;
       if (j.company && j.company.trim() && !employerMap.has(j.company.trim().toLowerCase())) {
         employerMap.set(j.company.trim().toLowerCase(), {
           title: j.company.trim(),
@@ -8152,6 +8155,7 @@ export async function initAdmin() {
       employerSaveSucceeded = true;
       updateEmployerPreview();
       renderEmployerRows();
+      populateEmployerDropdown();
 
       // If created as part of the "Add Company" flow from Job Editor, return and auto-select
       const returnCtxStr = sessionStorage.getItem('trikonet_job_return_ctx');
@@ -8164,7 +8168,7 @@ export async function initAdmin() {
             slug: saved.slug || ''
           };
           sessionStorage.setItem('trikonet_job_return_ctx', JSON.stringify(returnCtx));
-          await loadEmployers();
+          // The confirmed saved record is already in localEmployers.
           populateEmployerDropdown();
           location.hash = returnCtx.returnHash || '#job-new';
           return;
