@@ -3525,6 +3525,9 @@ export function renderAdmin() {
                 <option value="Remote UAE">Remote UAE</option>
               </select>
 
+              <select id="filter-candidate-platform" class="modern-select-pill" aria-label="Signed in via">
+                <option value="">All sign-in platforms</option><option value="app">App</option><option value="website">Website</option><option value="both">Both</option><option value="unknown">Unknown</option>
+              </select>
               <button type="button" class="modern-btn-filter" id="btn-filter-candidates">Filter</button>
             </div>
           </div>
@@ -3551,6 +3554,7 @@ export function renderAdmin() {
                 <th scope="col" class="manage-column column-candidate-name sortable desc" style="width:28%;"><span>Candidate</span></th>
                 <th scope="col" class="manage-column column-candidate-title" style="width:17%;"><span>Professional Title</span></th>
                 <th scope="col" class="manage-column column-candidate-category" style="width:13%;"><span>Category</span></th>
+                <th scope="col">Signed in via</th>
                 <th scope="col" class="manage-column column-candidate-location" style="width:12%;"><span>Location</span></th>
                 <th scope="col" class="manage-column column-candidate-exp" style="width:12%;"><span>Experience</span></th>
                 <th scope="col" class="manage-column column-candidate-resumes" style="width:10%;"><span>Resumes created</span></th>
@@ -5584,7 +5588,27 @@ export async function initAdmin() {
     updateEmployerPreview();
   }
 
+  function employerCreatedLabel(value) {
+    if (!value) return 'Creation date not recorded';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Creation date not recorded';
+    const day = date.toLocaleDateString('en-GB', { timeZone:'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric' });
+    const time = date.toLocaleTimeString('en-IN', { timeZone:'Asia/Kolkata', hour:'numeric', minute:'2-digit', hour12:true });
+    return `Created: ${esc(day)} · ${esc(time)} IST`;
+  }
+
   function renderEmployerRows() {
+    let warning = document.getElementById('employer-load-warning');
+    if (!warning && employerRows) {
+      warning = document.createElement('div'); warning.id = 'employer-load-warning'; warning.setAttribute('role','alert');
+      warning.style.cssText = 'padding:12px 20px;color:#92400e;background:#fffbeb';
+      employerRows.closest('table')?.before(warning);
+    }
+    if (warning) {
+      warning.hidden = !employerLoadError;
+      warning.innerHTML = employerLoadError ? 'Some imported companies could not load. The count below is incomplete. <button type="button" id="retry-employer-load">Retry</button>' : '';
+      warning.querySelector('button')?.addEventListener('click', () => { location.reload(); });
+    }
     const q = document.querySelector('#employer-search')?.value.toLowerCase().trim() || '';
     const allEmps = allEmployers();
     const list = allEmps.filter(x => !q || `${x.title} ${(x.categories || []).join(' ')} ${(x.locations || []).join(' ')}`.toLowerCase().includes(q));
@@ -5610,6 +5634,8 @@ export async function initAdmin() {
             <div class="modern-title-line">
               <a href="#employer-editor" data-employer-edit="${esc(x.slug)}" class="row-title">${esc(x.title)}</a>
             </div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px">${x.createdBy?.name ? `Created by: ${esc(x.createdBy.name)}` : 'Creator not recorded'}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:3px">${employerCreatedLabel(x.createdAt)}</div>
             <div class="row-actions">
               <a href="#employer-editor" class="row-action-link edit-link" data-employer-edit="${esc(x.slug)}">Edit</a>
               <a href="/employer/${encodeURIComponent(x.slug)}" target="_blank" rel="noopener" class="row-action-link view-link">View ↗</a>
@@ -6266,6 +6292,34 @@ export async function initAdmin() {
     }
   }
 
+  let employerLoadError = false;
+  async function loadImportedEmployers() {
+    employerLoadError = false;
+    const records = [];
+    try {
+      // Bound response size and retry transient failures without hiding companies.
+      for (let page = 1; page <= 100; page++) {
+        let batch;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await fetch(`/api/wp/employer?per_page=100&page=${page}&_fields=id,slug,title,status,metas,content`, {signal:AbortSignal.timeout(20000)});
+            if (!response.ok) throw new Error(`Companies unavailable (HTTP ${response.status})`);
+            batch = await response.json();
+            if (!Array.isArray(batch)) throw new Error('Invalid company response');
+            break;
+          } catch (error) { if (attempt === 1) throw error; }
+        }
+        records.push(...batch);
+        if (batch.length < 100) return records;
+      }
+      throw new Error('Company list exceeds supported batch limit');
+    } catch (error) {
+      employerLoadError = true;
+      console.error('Imported company loading failed:', error);
+      return records;
+    }
+  }
+
   // Load all data
   async function loadData() {
     const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
@@ -6274,7 +6328,7 @@ export async function initAdmin() {
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
       loadRemoteJobs(),
       fetch('/api/local/employers?admin=1').then(r => r.json()).catch(() => []),
-      fetch('/api/wp/employer?per_page=3000&_fields=id,slug,title,status,metas,content').then(r => r.ok ? r.json() : []).catch(() => []),
+      loadImportedEmployers(),
       fetch('/api/local/candidates').then(r => r.ok ? r.json() : []).catch(() => fetch('/api/admin/candidates').then(r => r.ok ? r.json() : []).catch(() => []))
     ]);
 
@@ -6296,6 +6350,7 @@ export async function initAdmin() {
         description: item.content?.rendered || '',
         logo: m._employer_logo || m._employer_featured_image || '',
         openJobs: Number(m._employer_open_jobs) || 0,
+        createdBy: item.createdBy || null, createdAt: item.createdAt || null,
         categories: publicField(m._employer_category).split(', ').filter(Boolean),
         locations: publicField(m._employer_location).split(', ').filter(Boolean),
         local: false
@@ -13924,12 +13979,15 @@ export async function initAdmin() {
     const q = (searchInput?.value || '').toLowerCase().trim();
     const catVal = document.getElementById('filter-candidate-category')?.value || '';
     const locVal = document.getElementById('filter-candidate-location')?.value || '';
+    const platformVal=document.getElementById('filter-candidate-platform')?.value || '';
+    const platformFor=c=>{const p=c.signInPlatforms || [];return p.includes('app')&&p.includes('website')?'both':p.includes('app')?'app':p.includes('website')?'website':'unknown';};
 
     const filtered = candidates.filter(c => {
       if (candidateStatusFilter === 'active' && c.status !== 'Active') return false;
       if (candidateStatusFilter === 'featured' && !c.featured && c.status !== 'Featured') return false;
       if (candidateStatusFilter === 'pending' && c.status !== 'Pending') return false;
 
+      if(platformVal && platformFor(c)!==platformVal)return false;
       if (catVal && c.category !== catVal) return false;
       if (locVal && !(c.location || '').toLowerCase().includes(locVal.toLowerCase())) return false;
 
@@ -13945,11 +14003,11 @@ export async function initAdmin() {
     }).sort((a, b) => candidateCreatedTime(b) - candidateCreatedTime(a));
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:#94a3b8; font-size:13px;">No candidates found matching the criteria.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:#94a3b8; font-size:13px;">No candidates found matching the criteria.</td></tr>`;
       return;
     }
 
-    const filterKey=JSON.stringify([q,catVal,locVal,candidateStatusFilter]);
+    const filterKey=JSON.stringify([q,catVal,locVal,platformVal,candidateStatusFilter]);
     if(filterKey!==candidateFilterKey){candidatePage=1;candidateFilterKey=filterKey;}
     const pages=Math.max(1,Math.ceil(filtered.length/20));candidatePage=Math.min(candidatePage,pages);
     const footer=document.getElementById('candidate-card-footer');
@@ -14001,6 +14059,7 @@ export async function initAdmin() {
               ${escapeHtml(c.category || 'General')}
             </span>
           </td>
+          <td class="column-candidate-platform">${({app:"App",website:"Website",both:"Both",unknown:"Unknown"})[platformFor(c)]}</td>
           <td class="column-candidate-location">
             <span style="font-size:12px; color:#475569; display:inline-flex; align-items:center; gap:4px;">
               📍 ${escapeHtml(c.location || 'UAE')}
@@ -14055,6 +14114,7 @@ export async function initAdmin() {
   document.getElementById('admin-candidate-search')?.addEventListener('input', renderCandidateRows);
   document.getElementById('btn-filter-candidates')?.addEventListener('click', renderCandidateRows);
   document.getElementById('filter-candidate-category')?.addEventListener('change', renderCandidateRows);
+  document.getElementById('filter-candidate-platform')?.addEventListener('change', renderCandidateRows);
   document.getElementById('filter-candidate-location')?.addEventListener('change', renderCandidateRows);
 
   document.getElementById('cb-select-all-candidates')?.addEventListener('change', e => {

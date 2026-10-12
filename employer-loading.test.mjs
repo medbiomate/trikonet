@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
+const s=readFileSync(new URL('./admin.js',import.meta.url),'utf8');const a=s.indexOf('  async function loadImportedEmployers()'),b=s.indexOf('  // Load all data',a);
+function harness(fetch){const c=vm.createContext({fetch,employerLoadError:false,AbortSignal,console:{error(){}}});vm.runInContext(s.slice(a,b),c);return c;}
+test('loads every batch and stops at final short page',async()=>{let calls=0;const c=harness(async url=>{calls++;return {ok:true,json:async()=>Array.from({length:calls===1?100:3},(_,i)=>({slug:`${calls}-${i}`}))}});assert.equal((await c.loadImportedEmployers()).length,103);assert.equal(calls,2);assert.equal(c.employerLoadError,false);});
+test('failed batch retries and reports incomplete list',async()=>{let calls=0;const c=harness(async()=>{calls++;throw Error('timeout')});assert.equal((await c.loadImportedEmployers()).length,0);assert.equal(calls,2);assert.equal(c.employerLoadError,true);});
