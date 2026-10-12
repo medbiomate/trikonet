@@ -5602,6 +5602,25 @@ export async function initAdmin() {
     return `Created: ${esc(day)} · ${esc(time)} IST`;
   }
 
+  const employerJobCounts = new Map();
+  let employerCountRequest = 0;
+  async function refreshEmployerJobCounts(employers) {
+    const request = ++employerCountRequest;
+    try {
+      const response = await fetch(`/api/admin/employer-job-counts?${new URLSearchParams({slugs:employers.map(e=>e.slug).join(',')})}`);
+      if (!response.ok) throw new Error('Counts unavailable');
+      const counts = await response.json();
+      if (request !== employerCountRequest) return;
+      for (const employer of employers) {
+        const count = counts[employer.slug];
+        if (!Number.isInteger(count) || count < 0) continue;
+        employerJobCounts.set(employer.slug,count);
+        const cell = document.getElementById(`employer-${employer.slug}`)?.querySelector('[data-employer-job-count]');
+        if (cell) cell.textContent = count;
+      }
+    } catch { /* Keep an unknown count instead of inventing zero. */ }
+  }
+
   function renderEmployerRows() {
     let warning = document.getElementById('employer-load-warning');
     if (!warning && employerRows) {
@@ -5654,7 +5673,7 @@ export async function initAdmin() {
               <span>${esc((x.locations || []).join(', ') || '—')}</span>
             </span>
           </td>
-          <td class="column-posts" style="text-align:center;"><span class="modern-tax-count-chip">${Number(x.openJobs ?? allJobs().filter(j => j.employerSlug === x.slug || j.company === x.title).length)}</span></td>
+          <td class="column-posts" style="text-align:center;"><span class="modern-tax-count-chip" data-employer-job-count>${employerJobCounts.get(x.slug) ?? '—'}</span></td>
           <td class="column-status">
             <span class="modern-status-badge ${employerIsActive(x) ? 'status-active' : 'status-draft'}" ${employerIsActive(x) ? '' : 'style="background:#f1f5f9;color:#475569;border-color:#cbd5e1;"'}>
               <span class="status-pulse-dot" ${employerIsActive(x) ? '' : 'style="background:#94a3b8;animation:none;"'}></span>
@@ -5664,6 +5683,7 @@ export async function initAdmin() {
         </tr>
       `).join('') : '<tr><td colspan="7" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">No matching employers found.</td></tr>';
     }
+    if (pagedEmployers.length) void refreshEmployerJobCounts(pagedEmployers);
     const pager = document.getElementById('admin-employer-pagination');
     if (pager) pager.innerHTML = list.length > employerPageSize ? `<button type="button" class="modern-filter-btn" id="employer-prev-page" ${employerPage===1?'disabled':''}>← Previous</button><strong style="font-size:13px;color:#475569;">Page ${employerPage} of ${pageCount}</strong><button type="button" class="modern-filter-btn" id="employer-next-page" ${employerPage===pageCount?'disabled':''}>Next →</button>` : '';
   }
