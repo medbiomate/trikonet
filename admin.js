@@ -5590,7 +5590,7 @@ export async function initAdmin() {
 
   function employerIsActive(employer) {
     if (employer.autosaved || String(employer.slug || '').startsWith('autosave-')) return false;
-    return ['publish', 'published', 'active'].includes(String(employer.status || '').trim().toLowerCase());
+    return ['publish', 'published', 'active', ''].includes(String(employer.status || '').trim().toLowerCase());
   }
 
   function employerCreatedLabel(value) {
