@@ -6244,7 +6244,7 @@ export async function initAdmin() {
   // Request just the selected page. Ignore replies from superseded searches/pages.
   setInterval(() => {
     if (!document.hidden && document.querySelector('#view-jobs')?.classList.contains('active-view') && !jobsLoading && !document.querySelector('input[name="post[]"]:checked') && !document.querySelector('.inline-edit-row')) void loadRemoteJobs(true);
-  }, 5000);
+  }, 30000);
 
   async function loadRemoteJobs(quiet = false) {
     const request = ++jobsRequest;
@@ -6270,24 +6270,31 @@ export async function initAdmin() {
         if (counter) counter.textContent = Number.isFinite(payload.counts?.[status]) ? `(${payload.counts[status].toLocaleString()})` : '(—)';
       }
       pageJobs = payload.jobs.map(job => job.local ? job : wordpressJob(job));
-      const viewsResponse = await fetch(`/api/admin/job-views?${new URLSearchParams({slugs:pageJobs.map(job => job.slug).join(',')})}`, {signal:jobsController.signal,cache:'no-store'});
-      if (!viewsResponse.ok) throw new Error('Unable to load job view counts');
-      const viewCounts = await viewsResponse.json();
-      if (request !== jobsRequest) return [];
-      pageJobs = pageJobs.map(job => ({...job,views:Number(viewCounts[job.slug]) || 0}));
-      try {
-        const presenceResponse = await fetch('/api/admin/job-presence');
-        if (presenceResponse.ok) {
-          const editors = await presenceResponse.json();
-          if (request !== jobsRequest) return [];
-          pageJobs = pageJobs.map(job => ({...job,editingNames:editors.filter(editor => editor.slug === job.slug).map(editor => editor.name)}));
-        }
-      } catch { /* Jobs remain usable when presence is temporarily unavailable. */ }
       jobTotal = Number(payload.total) || 0;
       currentPage = Number(payload.page) || currentPage;
       const freshRemote = pageJobs.filter(job => !job.local);
       const slugs = new Set(freshRemote.map(job => job.slug));
       remoteJobs = [...remoteJobs.filter(job => !slugs.has(job.slug)), ...freshRemote];
+      // Secondary data must never delay usable job rows.
+      jobsLoading = false;
+      renderJobRows(false);
+      const signal = jobsController.signal;
+      void Promise.allSettled([
+        fetch(`/api/admin/job-views?${new URLSearchParams({slugs:pageJobs.map(job => job.slug).join(',')})}`, {signal,cache:'no-store'}).then(async response => {
+          if (!response.ok) return;
+          const counts = await response.json();
+          if (request !== jobsRequest) return;
+          pageJobs = pageJobs.map(job => ({...job, views:Number(counts[job.slug]) || 0}));
+          renderJobRows(false);
+        }),
+        fetch('/api/admin/job-presence', {signal}).then(async response => {
+          if (!response.ok) return;
+          const editors = await response.json();
+          if (request !== jobsRequest) return;
+          pageJobs = pageJobs.map(job => ({...job,editingNames:editors.filter(editor => editor.slug === job.slug).map(editor => editor.name)}));
+          renderJobRows(false);
+        })
+      ]);
       return payload.jobs.filter(job => !job.local);
     } catch (error) {
       if (request === jobsRequest && error.name !== 'AbortError') { console.error(error); jobsLoadError = true; }

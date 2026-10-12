@@ -442,12 +442,22 @@ function mapJob(record){
     local:!!record.local
   };
 }
+let taxonomyRequest;
+function fetchTaxonomies(options) {
+  if (!taxonomyRequest) {
+    taxonomyRequest = fetch('/api/wp/taxonomies', options).then(response => {
+      if (!response.ok) taxonomyRequest = null;
+      return response;
+    }).catch(error => { taxonomyRequest = null; throw error; });
+  }
+  return taxonomyRequest.then(response => response.clone());
+}
 async function loadLocalJobs(){
   try{
     const isCategoryPage = path.startsWith('/category/');
     if (isCategoryPage && (!data.taxonomies?.categories || data.taxonomies.categories.length <= defaultTopCategories.length)) {
       try {
-        const taxRes = await fetch('/api/wp/taxonomies');
+        const taxRes = await fetchTaxonomies();
         if (taxRes.ok) {
           data.taxonomies = await taxRes.json();
           if (Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
@@ -494,7 +504,7 @@ async function loadLocalJobs(){
 async function loadLocalEmployers(){
   try{
     if(!data.taxonomies?.employerCategories||data.taxonomies.employerCategories.length===0){
-      try{const taxRes=await fetch('/api/wp/taxonomies');if(taxRes.ok){data.taxonomies=await taxRes.json();if(Array.isArray(data.taxonomies?.locations))data.taxonomies.locations=sortUaeLocations(data.taxonomies.locations);}}catch{}
+      try{const taxRes=await fetchTaxonomies();if(taxRes.ok){data.taxonomies=await taxRes.json();if(Array.isArray(data.taxonomies?.locations))data.taxonomies.locations=sortUaeLocations(data.taxonomies.locations);}}catch{}
     }
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
     for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
@@ -668,7 +678,7 @@ async function loadConnectedContent(){
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
       : `/api/wp/posts?per_page=${path==='/'?6:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
     const contentOptions = path === '/' ? {signal:AbortSignal.timeout(2500)} : {};
-    const [taxonomyResponse,postsResponse]=await Promise.all([fetch('/api/wp/taxonomies',contentOptions),fetch(postQuery,contentOptions)]);
+    const [taxonomyResponse,postsResponse]=await Promise.all([fetchTaxonomies(contentOptions),fetch(postQuery,contentOptions)]);
     if(taxonomyResponse.ok){
       data.taxonomies=await taxonomyResponse.json();
       if(Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
@@ -3624,7 +3634,7 @@ function render() {
 // Counts refresh their own badges; don't delay the main content for them.
 loadCounts().catch(()=>{});
 const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
-const initialLoads=isCvAppRoute ? [] : [loadAccount(),loadSeoPages()];
+const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : [loadAccount(),loadSeoPages()];
 if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile'].includes(path)) {
   initialLoads.push(import('./candidate-profile-editor.js?v=20261012').then(({ createCandidateProfile }) => {
     ({ candidateProfileWorkspace, initCandidateProfile } = createCandidateProfile({
@@ -3640,7 +3650,7 @@ if (path.startsWith('/job/') || path.startsWith('/employer/')) {
     renderEmployerDetail = module.renderEmployerDetail;
   }));
 }
-if(isCvAppRoute) { /* The library loads its own account data; unrelated content must not block it. */ }
+if(isCvAppRoute || path.startsWith('/admin')) { /* These screens load their own data. */ }
 else if(path==='/')initialLoads.push(loadTopEmployers(),loadConnectedContent());
 else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
@@ -3652,7 +3662,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent(),loadCounts());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261012-employer-status').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261012-fast-admin').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));
