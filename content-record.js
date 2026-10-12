@@ -21,7 +21,12 @@ export async function loadContentRecord(fetcher, base, type, slug) {
     if (r.status === 404) return null;
     throw new Error('Saved content unavailable');
   });
-  const [saved, imported] = await Promise.allSettled([local, remote()]);
+  // Start both reads, but a saved override is authoritative: do not wait for
+  // a slow imported source after the saved record has already arrived.
+  const importedReady = remote().then(value => ({status:'fulfilled',value}), reason => ({status:'rejected',reason}));
+  const saved = await local.then(value => ({status:'fulfilled',value}), reason => ({status:'rejected',reason}));
+  if (saved.status === 'fulfilled' && saved.value) return saved.value;
+  const imported = await importedReady;
   if (saved.status === 'fulfilled' && saved.value) return saved.value;
   if (imported.status === 'fulfilled' && imported.value) return imported.value;
   if (saved.status === 'fulfilled' && imported.status === 'fulfilled') return null;

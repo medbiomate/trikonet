@@ -39,7 +39,7 @@ let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.repl
 const SITE_ORIGIN='https://www.trikonet.com';
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
-  if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || legalPageForPath(path)) return;
+  if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || path === '/employers' || legalPageForPath(path)) return;
   // Related links and page metadata are independent; avoid a network waterfall.
   const linksReady = (async () => {
     try {
@@ -323,7 +323,9 @@ async function loadAccount(){
     if(path.startsWith('/admin') && currentUser){const campaigns=await fetch('/api/email-campaigns');if(campaigns.ok)emailCampaigns=await campaigns.json()}
   }catch{if(currentUser)currentUser.profileLoadError=true;}
 }
-async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{wpRecord=await loadContentRecord(fetch,'',type,slug);if(type==='job_listing'){let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){const [employerResponse,localEmployerResponse]=await Promise.all([fetch(`/api/wp/employer?slug=${encodeURIComponent(employerSlug)}`),fetch(`/api/local/employers/${encodeURIComponent(employerSlug)}`)]);if(localEmployerResponse.ok)wpEmployer=await localEmployerResponse.json();else if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
+let jobExtrasReady;
+async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{const embedded=document.getElementById('public-content-data');
+wpRecord=embedded?JSON.parse(embedded.textContent):await loadContentRecord(fetch,'',type,slug);if(type==='job_listing'){jobExtrasReady=(async()=>{try{let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){const [employerResponse,localEmployerResponse]=await Promise.all([fetch(`/api/wp/employer?slug=${encodeURIComponent(employerSlug)}`),fetch(`/api/local/employers/${encodeURIComponent(employerSlug)}`)]);if(localEmployerResponse.ok)wpEmployer=await localEmployerResponse.json();else if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
 categoryJobs=[];
 const extractJobCats = (rec) => {
   if (!rec) return [];
@@ -354,7 +356,7 @@ if (cats.length) {
     const publishedTime=job=>Date.parse(job.publishedDate || job.datePosted || job.postedDate || job.date || job.createdAt || '') || 0;
     categoryJobs=uniqueJobs([...catResults.flat().map(job=>overrides.get(job.slug)||job),...localRelated]).filter(job=>job && job.slug).sort((a,b)=>publishedTime(b)-publishedTime(a));
   } catch {}
-}}else if(type==='employer'&&wpRecord){if(wpRecord.local){try{const localJobsRes=await fetch('/api/local/jobs');if(localJobsRes.ok){const lJobs=await localJobsRes.json();profileJobs=lJobs.filter(j=>j.employerSlug===wpRecord.slug||j.company===(wpRecord.title?.rendered||wpRecord.title)).map(mapJob)}}catch{}}else if(wpRecord.id){const jobsResponse=await fetch(`/api/wp/job_listing?employer_id=${wpRecord.id}&per_page=100`);if(jobsResponse.ok)profileJobs=(await jobsResponse.json()).map(mapJob);if(!profileJobs.length&&wpRecord.slug){const slugResponse=await fetch(`/api/wp/job_listing?employer_slug=${encodeURIComponent(wpRecord.slug)}&per_page=100`);if(slugResponse.ok)profileJobs=(await slugResponse.json()).map(mapJob)}}}}catch{wpRecord=null}}
+}}catch(error){console.warn('Related job data unavailable:',error);}})();}}catch{wpRecord=null}}
 const fieldValues=value=>value&&typeof value==='object'?Object.values(value).join(', '):'';
 async function loadEmployerJobPage() {
   if (!wpRecord?.slug) return;
@@ -453,6 +455,15 @@ function fetchTaxonomies(options) {
   }
   return taxonomyRequest.then(response => response.clone());
 }
+async function loadDirectoryTaxonomies() {
+  try {
+    const response = await fetchTaxonomies({signal:AbortSignal.timeout(4000)});
+    if (!response.ok) return;
+    data.taxonomies = await response.json();
+    if (Array.isArray(data.taxonomies.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
+    if (Array.isArray(data.taxonomies.employerLocations)) data.taxonomies.employerLocations = sortUaeLocations(data.taxonomies.employerLocations);
+  } catch {}
+}
 async function loadLocalJobs(){
   try{
     const isCategoryPage = path.startsWith('/category/');
@@ -504,9 +515,6 @@ async function loadLocalJobs(){
 }
 async function loadLocalEmployers(){
   try{
-    if(!data.taxonomies?.employerCategories||data.taxonomies.employerCategories.length===0){
-      try{const taxRes=await fetchTaxonomies();if(taxRes.ok){data.taxonomies=await taxRes.json();if(Array.isArray(data.taxonomies?.locations))data.taxonomies.locations=sortUaeLocations(data.taxonomies.locations);}}catch{}
-    }
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
     for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
     const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers'),fetch('/api/local/jobs')]);
@@ -679,7 +687,8 @@ async function loadConnectedContent(){
       ? `/api/wp/posts?slug=${encodeURIComponent(candidateSlug)}&per_page=1`
       : `/api/wp/posts?per_page=${path==='/'?6:path==='/jobs'||path.startsWith('/category/')?3:30}&summary=1`;
     const contentOptions = path === '/' ? {signal:AbortSignal.timeout(10000)} : {};
-    const [taxonomyResponse,postsResponse]=await Promise.all([fetchTaxonomies(contentOptions),fetch(postQuery,contentOptions)]);
+    const embeddedPost=isArticlePath?document.getElementById('public-content-data'):null;
+    const [taxonomyResponse,postsResponse]=await Promise.all([isArticlePath?Promise.resolve({ok:false}):fetchTaxonomies(contentOptions),embeddedPost?Promise.resolve({ok:true,json:async()=>[JSON.parse(embeddedPost.textContent)]}):fetch(postQuery,contentOptions)]);
     if(taxonomyResponse.ok){
       data.taxonomies=await taxonomyResponse.json();
       if(Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
@@ -3654,14 +3663,14 @@ if (path.startsWith('/job/') || path.startsWith('/employer/')) {
 }
 if(isCvAppRoute || path.startsWith('/admin')) { /* These screens load their own data. */ }
 else if(path==='/')homeContentReady=Promise.allSettled([loadTopEmployers(),loadConnectedContent()]);
-else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadConnectedContent());
-else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadCounts(),loadConnectedContent());
+else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadDirectoryTaxonomies());
+else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadDirectoryTaxonomies());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
   if (wpRecord && (wpRecord.autosaved || String(wpRecord.slug || '').startsWith('autosave-') || !['publish','published','active',''].includes(String(wpRecord.status || '').toLowerCase()))) wpRecord = null;
-}),loadLocalJobs());
-else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord().then(loadEmployerJobPage),loadCounts());
-else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent(),loadCounts());
-else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent(),loadCounts());
+}));
+else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord().then(loadEmployerJobPage));
+else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent());
+else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
   initialLoads.push(adminSessionReady, import('./admin.js?v=20261012-legacy-status').then(module => {
@@ -5232,3 +5241,16 @@ if (homeContentReady) {
     initRecentArticlesAutoSlider();
   }).catch(error => console.warn('Homepage refresh unavailable:', error));
 }
+
+// Supplemental sections must not hold the description or Apply controls behind
+// the full-page loader. Replace only these sections after their data arrives.
+if (jobExtrasReady) jobExtrasReady.then(() => {
+  if (!wpRecord) return;
+  const updated = new DOMParser().parseFromString(render(), 'text/html');
+  for (const selector of ['.detail-about-company-card', '.detail-org-jobs-box', '.related-list', '.detail-logo-card']) {
+    const oldSection = document.querySelector(selector);
+    const nextSection = updated.querySelector(selector);
+    if (oldSection && nextSection) oldSection.replaceWith(nextSection);
+    else if (nextSection && selector === '.related-list') document.querySelector('.job-description')?.append(nextSection);
+  }
+}).catch(error => console.warn('Related job refresh unavailable:', error));

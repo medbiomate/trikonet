@@ -24,7 +24,7 @@ test('homepage refresh keeps search and navigation nodes and initializes article
     homeCategories:()=> 'categories',homeTopCompanies:()=> 'companies',articleSection:()=> 'articles',
     document:{querySelectorAll(selector){assert.ok(selector.startsWith('main '));return [sections.get(selector.slice(5))];}},
     initRecentArticlesAutoSlider(){calls.push('slider');}});
-  vm.runInContext(source.slice(source.lastIndexOf('if (homeContentReady) {')),context);
+  vm.runInContext(source.slice(source.lastIndexOf('if (homeContentReady) {'),source.indexOf('// Supplemental sections')),context);
   assert.equal(rendered.length,0);
   release();await context.homeContentReady;await Promise.resolve();
   assert.deepEqual(rendered,['categories','companies','articles']);

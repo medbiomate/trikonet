@@ -53,6 +53,8 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
     assert.equal(clean.status,200);const cleanHtml=await clean.text();
     assert.match(cleanHtml,/canonical.*https:\/\/www.trikonet.com\/jobs\/accountant-dubai-company-18345/);
     assert.match(cleanHtml,/id="job-url-data"/);
+    const embedded = cleanHtml.match(/<script id="public-content-data" type="application\/json">([\s\S]*?)<\/script>/);
+    assert.ok(embedded);assert.equal(JSON.parse(embedded[1]).title,'Accountant');
     assert.equal((await fetch(`${origin}/jobs/missing-999`)).status,404);
     const sitemap=await fetch(`${origin}/sitemap-seo-job-pages.xml`);assert.equal(sitemap.status,200);assert.match(await sitemap.text(),/nurse-jobs-in-dubai/);
   } finally {child.kill();await new Promise(resolve=>api.close(resolve));}

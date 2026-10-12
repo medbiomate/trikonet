@@ -1162,12 +1162,14 @@ const server = http.createServer(async (req, res) => {
   const contentParts = path.split('/').filter(Boolean);
   const contentType = contentParts.length === 2 ? ({job:'job_listing',employer:'employer',blog:'posts',insurance:'posts','career-tips':'posts',health:'posts','part-time-job':'posts',visa:'posts',guides:'posts',interview:'posts','types-of-jobs':'posts',exam:'posts',general:'posts'}[contentParts[0]]) : null;
   let shareHead = '';
+  let publicContentRecord = null;
   if (contentType && !privatePage) {
     try {
       const slug = decodeURIComponent(contentParts[1]);
       let published = false;
       let contentRecord;
-      contentRecord = await loadContentRecord(fetch, seoApiBase, contentType, slug);
+      contentRecord = resolvedJobUrl?.job || await loadContentRecord(fetch, seoApiBase, contentType, slug);
+      publicContentRecord = contentRecord;
       published = Boolean(contentRecord && isPublishedRecord(contentRecord));
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
       if (['job_listing','employer'].includes(contentType)) {
@@ -1180,9 +1182,9 @@ const server = http.createServer(async (req, res) => {
           else if(m._job_employer_posted_by)params.set('id',m._job_employer_posted_by);
           if(params.size) {
             try {
-              const r=await fetch(`${seoApiBase}/api/wp/employer?${params}`,{signal:AbortSignal.timeout(10000)});
+              const r=await fetch(`${seoApiBase}/api/wp/employer?${params}`,{signal:AbortSignal.timeout(1500)});
               let employer=r.ok?(await r.json())[0]:null;
-              if(!employer && employerSlug){const local=await fetch(`${seoApiBase}/api/local/employers/${encodeURIComponent(employerSlug)}`,{signal:AbortSignal.timeout(10000)});if(local.ok)employer=await local.json();}
+              if(!employer && employerSlug){const local=await fetch(`${seoApiBase}/api/local/employers/${encodeURIComponent(employerSlug)}`,{signal:AbortSignal.timeout(1500)});if(local.ok)employer=await local.json();}
               logo=logoFor(employer,'employer');
             }catch(error){console.warn('Share logo unavailable:',error.message);}
           }
@@ -1287,6 +1289,7 @@ const server = http.createServer(async (req, res) => {
     if (shareHead && target === join(root,'index.html')) {
       fileBody=fileBody.toString().replace(/<title>[\s\S]*?<\/title>/gi,'').replace(/<meta[^>]+(?:name=["'](?:description|twitter:[^"']+)|property=["']og:[^"']+)["'][^>]*>/gi,'').replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi,'').replace('</head>',shareHead+'</head>');
     }
+    if (publicContentRecord && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="public-content-data" type="application/json">${JSON.stringify(publicContentRecord).replace(/</g,'\u003c')}</script></head>`);
     if (resolvedJobUrl && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="job-url-data" type="application/json">${JSON.stringify(resolvedJobUrl).replace(/</g,'\u003c')}</script></head>`);
     if (privatePage && target === join(root,'index.html')) {
       fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
