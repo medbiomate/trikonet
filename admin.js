@@ -5588,6 +5588,11 @@ export async function initAdmin() {
     updateEmployerPreview();
   }
 
+  function employerIsActive(employer) {
+    if (employer.autosaved || String(employer.slug || '').startsWith('autosave-')) return false;
+    return ['publish', 'published', 'active'].includes(String(employer.status || '').trim().toLowerCase());
+  }
+
   function employerCreatedLabel(value) {
     if (!value) return 'Creation date not recorded';
     const date = new Date(value);
@@ -5651,9 +5656,9 @@ export async function initAdmin() {
           </td>
           <td class="column-posts" style="text-align:center;"><span class="modern-tax-count-chip">${Number(x.openJobs ?? allJobs().filter(j => j.employerSlug === x.slug || j.company === x.title).length)}</span></td>
           <td class="column-status">
-            <span class="modern-status-badge status-active">
-              <span class="status-pulse-dot"></span>
-              <span>Active</span>
+            <span class="modern-status-badge ${employerIsActive(x) ? 'status-active' : 'status-draft'}" ${employerIsActive(x) ? '' : 'style="background:#f1f5f9;color:#475569;border-color:#cbd5e1;"'}>
+              <span class="status-pulse-dot" ${employerIsActive(x) ? '' : 'style="background:#94a3b8;animation:none;"'}></span>
+              <span>${employerIsActive(x) ? 'Active' : 'Not active'}</span>
             </span>
           </td>
         </tr>
@@ -6340,6 +6345,8 @@ export async function initAdmin() {
       return {
         title: item.title?.rendered || '',
         slug: item.slug,
+        status: item.status || '',
+        autosaved: !!item.autosaved,
         email: m._employer_email || '',
         phone: m._employer_phone || '',
         website: m._employer_website || '',
