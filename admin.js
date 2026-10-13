@@ -3846,6 +3846,7 @@ export async function initAdmin() {
   let jobsController;
   let jobsLoading = true;
   let jobsRefreshing = false;
+  let displayedJobsPage = 0;
   let jobsLoadError = false;
   let currentStatus = 'all';
   let currentPage = 1;
@@ -5037,6 +5038,15 @@ export async function initAdmin() {
     if (itemsCountEl) itemsCountEl.textContent = `${totalItems.toLocaleString()} items`;
     const curPageEl = document.querySelector('#current-page-selector');
     if (curPageEl) curPageEl.value = currentPage;
+    let pagingStatus = document.getElementById('jobs-paging-status');
+    if (!pagingStatus && curPageEl) {
+      pagingStatus = document.createElement('span');
+      pagingStatus.id = 'jobs-paging-status';
+      pagingStatus.setAttribute('role','status');
+      pagingStatus.style.cssText = 'margin-right:12px;color:#2563eb;font-weight:600;font-size:13px';
+      curPageEl.closest('.tablenav-pages')?.prepend(pagingStatus);
+    }
+    if (pagingStatus) pagingStatus.textContent = jobsRefreshing ? `Loading page ${currentPage}…` : '';
     const totalPagesEl = document.querySelector('#admin-total-pages');
     if (totalPagesEl) totalPagesEl.textContent = totalPages;
 
@@ -6296,7 +6306,7 @@ export async function initAdmin() {
     const controller = jobsController;
     const requestTimeout = setTimeout(() => controller.abort(new Error('Jobs request timed out')), 20000);
     jobsRefreshing = true;
-    jobsLoading = !quiet && !pageJobs.length;
+    jobsLoading = !quiet && (!pageJobs.length || displayedJobsPage !== currentPage);
     jobsLoadError = false;
     if (!quiet) renderJobRows(false);
     const params = new URLSearchParams({
@@ -6307,6 +6317,7 @@ export async function initAdmin() {
     });
     const cached = jobPageCache.read(params.toString());
     if (cached) {
+      displayedJobsPage = currentPage;
       pageJobs = cached.jobs.map(job => job.local ? job : wordpressJob(job));
       jobTotal = Number(cached.total) || 0;
       jobsLoading = false;
@@ -6331,6 +6342,7 @@ export async function initAdmin() {
       }
       jobTotal = Number(payload.total) || 0;
       currentPage = Number(payload.page) || currentPage;
+      displayedJobsPage = currentPage;
       const freshRemote = pageJobs.filter(job => !job.local);
       const slugs = new Set(freshRemote.map(job => job.slug));
       remoteJobs = [...remoteJobs.filter(job => !slugs.has(job.slug)), ...freshRemote];
