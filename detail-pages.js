@@ -417,7 +417,7 @@ export function renderJobDetail(record, employer, path, orgJobs = [], relatedJob
   const employerPath = resolveEmployerProfile(employer, record.employerUrl || m._job_employer_url, company);
   const desc = record.description || '';
   const hasHtml = /<[a-z][\s\S]*>/i.test(desc);
-  const content = record.content?.rendered || (record.local ? (hasHtml ? desc : (desc ? desc.split(/\n\s*\n/).map(p => `<p>${esc(p).replaceAll('\n', '<br>')}</p>`).join('') : '<p>Job description is not available.</p>')) : '<p>Job description is not available.</p>');
+  const content = record.local ? (hasHtml ? desc : (desc ? desc.split(/\n\s*\n/).map(p => `<p>${esc(p).replaceAll('\n', '<br>')}</p>`).join('') : '<p>Job description is not available.</p>')) : (record.content?.rendered || '<p>Job description is not available.</p>');
   const experience = record.experience || m['custom-text-27987527'] || '';
   const qualification = record.qualification || m['custom-text-28953441'] || '';
   const shareUrl = encodeURIComponent(`https://www.trikonet.com${publicJobPath(record)}`);

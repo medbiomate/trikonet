@@ -428,7 +428,7 @@ function mapJob(record){
   const cleanExcerpt=rawExcerpt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);
   return {
     ...record,
-    description:record.description||record.content?.rendered||'',
+    description:record.local ? (record.description ?? '') : (record.content?.rendered || record.description || ''),
     id:record.id,
     title:record.title?.rendered||record.title||'',
     company:formatCompanyName(decodeHtml(m._job_employer_name||record.company||'')),
@@ -3659,7 +3659,7 @@ if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sig
 // Detail renderers are only needed on job and employer pages. Fetch them
 // alongside page data instead of blocking every page's module startup.
 if (path.startsWith('/job/') || path.startsWith('/employer/')) {
-  initialLoads.push(import('./detail-pages.js?v=20261009-info-first').then(module => {
+  initialLoads.push(import('./detail-pages.js?v=20261013-saved-description').then(module => {
     renderJobDetail = module.renderJobDetail;
     renderEmployerDetail = module.renderEmployerDetail;
   }));
@@ -3676,7 +3676,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261013-job-cache').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261013-saved-description').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));
