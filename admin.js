@@ -5101,7 +5101,7 @@ export async function initAdmin() {
           </span>
         </td>
       </tr>
-    `).join('') : `<tr><td colspan="9" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">${jobsLoading ? 'Loading jobs…' : jobsLoadError ? 'Jobs could not be loaded. Refresh to retry.' : 'No matching jobs found.'}</td></tr>`;
+    `).join('') : `<tr><td colspan="9" style="text-align:center;padding:35px 20px;color:#64748b;font-size:14px;">${jobsLoading ? 'Loading jobs…' : jobsLoadError ? 'Jobs could not be loaded. <button type="button" id="retry-jobs-load">Retry</button>' : 'No matching jobs found.'}</td></tr>`;
     }
   }
 
@@ -6282,6 +6282,9 @@ export async function initAdmin() {
     if (!document.hidden && document.querySelector('#view-jobs')?.classList.contains('active-view') && !jobsLoading && !document.querySelector('input[name="post[]"]:checked') && !document.querySelector('.inline-edit-row')) void loadRemoteJobs(true);
   }, 30000);
 
+  jobRows.addEventListener('click', event => {
+    if (event.target.closest('#retry-jobs-load')) void loadRemoteJobs();
+  });
   const jobPageCache = createJobPageCache(localStorage, recoveryAccount);
   jobForm.addEventListener('input', () => jobPageCache.clear());
 
@@ -6289,6 +6292,8 @@ export async function initAdmin() {
     const request = ++jobsRequest;
     jobsController?.abort();
     jobsController = new AbortController();
+    const controller = jobsController;
+    const requestTimeout = setTimeout(() => controller.abort(new Error('Jobs request timed out')), 20000);
     jobsLoading = !quiet;
     jobsLoadError = false;
     if (!quiet) renderJobRows(false);
@@ -6352,6 +6357,7 @@ export async function initAdmin() {
       if (request === jobsRequest && error.name !== 'AbortError') { console.error(error); jobsLoadError = !cached; }
       return [];
     } finally {
+      clearTimeout(requestTimeout);
       if (request === jobsRequest) { jobsLoading = false; renderJobRows(false); }
     }
   }
