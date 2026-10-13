@@ -1,3 +1,4 @@
+import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
 import { createFormRecovery } from './admin-recovery.js?v=5';
@@ -6281,6 +6282,9 @@ export async function initAdmin() {
     if (!document.hidden && document.querySelector('#view-jobs')?.classList.contains('active-view') && !jobsLoading && !document.querySelector('input[name="post[]"]:checked') && !document.querySelector('.inline-edit-row')) void loadRemoteJobs(true);
   }, 30000);
 
+  const jobPageCache = createJobPageCache(localStorage, recoveryAccount);
+  jobForm.addEventListener('input', () => jobPageCache.clear());
+
   async function loadRemoteJobs(quiet = false) {
     const request = ++jobsRequest;
     jobsController?.abort();
@@ -6294,12 +6298,20 @@ export async function initAdmin() {
       job_type: document.querySelector('#filter-by-type')?.value || '',
       category: document.querySelector('#filter-by-category')?.value || ''
     });
+    const cached = quiet ? null : jobPageCache.read(params.toString());
+    if (cached) {
+      pageJobs = cached.jobs.map(job => job.local ? job : wordpressJob(job));
+      jobTotal = Number(cached.total) || 0;
+      jobsLoading = false;
+      renderJobRows(false);
+    }
     try {
       const response = await fetch(`/api/admin/jobs?${params}`, { signal: jobsController.signal });
       if (!response.ok) throw new Error(`Unable to load jobs (HTTP ${response.status})`);
       const payload = await response.json();
       if (request !== jobsRequest) return [];
       if (!Array.isArray(payload.jobs)) throw new Error('Invalid jobs response');
+      jobPageCache.write(params.toString(),payload);
       for (const status of ['all','publish','draft','pending','expired','mine']) {
         const counter = document.getElementById(`count-${status}`);
         if (counter) counter.textContent = Number.isFinite(payload.counts?.[status]) ? `(${payload.counts[status].toLocaleString()})` : '(—)';
@@ -6337,7 +6349,7 @@ export async function initAdmin() {
       ]);
       return payload.jobs.filter(job => !job.local);
     } catch (error) {
-      if (request === jobsRequest && error.name !== 'AbortError') { console.error(error); jobsLoadError = true; }
+      if (request === jobsRequest && error.name !== 'AbortError') { console.error(error); jobsLoadError = !cached; }
       return [];
     } finally {
       if (request === jobsRequest) { jobsLoading = false; renderJobRows(false); }
@@ -7165,6 +7177,7 @@ export async function initAdmin() {
       jobSaveSucceeded = true;
       jobRecovery.clear();
       jobRecovery.saved(saved);
+      jobPageCache.clear();
       updateJobPreview();
       renderJobRows();
     } catch (error) {
