@@ -1,5 +1,5 @@
 const prefix = 'trikonet-job-pages-v1:';
-const ttl = 15 * 60 * 1000;
+const ttl = 24 * 60 * 60 * 1000;
 export function createJobPageCache(storage, account) {
   const scope = prefix + encodeURIComponent(account) + ':';
   const keys = () => Array.from({length:storage.length},(_,i)=>storage.key(i)).filter(k=>k?.startsWith(scope));

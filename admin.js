@@ -6294,7 +6294,7 @@ export async function initAdmin() {
     jobsController = new AbortController();
     const controller = jobsController;
     const requestTimeout = setTimeout(() => controller.abort(new Error('Jobs request timed out')), 20000);
-    jobsLoading = !quiet;
+    jobsLoading = !quiet && !pageJobs.length;
     jobsLoadError = false;
     if (!quiet) renderJobRows(false);
     const params = new URLSearchParams({
@@ -6303,7 +6303,7 @@ export async function initAdmin() {
       job_type: document.querySelector('#filter-by-type')?.value || '',
       category: document.querySelector('#filter-by-category')?.value || ''
     });
-    const cached = quiet ? null : jobPageCache.read(params.toString());
+    const cached = jobPageCache.read(params.toString());
     if (cached) {
       pageJobs = cached.jobs.map(job => job.local ? job : wordpressJob(job));
       jobTotal = Number(cached.total) || 0;
