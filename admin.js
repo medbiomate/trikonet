@@ -3845,10 +3845,11 @@ export async function initAdmin() {
   let jobsRequest = 0;
   let jobsController;
   let jobsLoading = true;
+  let jobsRefreshing = false;
   let jobsLoadError = false;
   let currentStatus = 'all';
   let currentPage = 1;
-  const pageSize = 100;
+  const pageSize = 50;
   let employerPage = 1;
   const employerPageSize = 50;
   let taxonomies = { types: [], categories: [], locations: [], tags: [], postCategories: [] };
@@ -5040,7 +5041,7 @@ export async function initAdmin() {
     if (totalPagesEl) totalPagesEl.textContent = totalPages;
 
     const chip = document.querySelector('#admin-items-count-chip');
-    if (chip) chip.textContent = jobsLoading ? `Loading… ${totalItems.toLocaleString()} listings` : `${totalItems.toLocaleString()} listings`;
+    if (chip) chip.textContent = (jobsLoading || jobsRefreshing) ? `Loading… ${totalItems.toLocaleString()} listings` : `${totalItems.toLocaleString()} listings`;
     const jobNotice = document.querySelector('#admin-job-load-notice');
     if (jobNotice) {
       jobNotice.hidden = !jobsLoadError;
@@ -6294,6 +6295,7 @@ export async function initAdmin() {
     jobsController = new AbortController();
     const controller = jobsController;
     const requestTimeout = setTimeout(() => controller.abort(new Error('Jobs request timed out')), 20000);
+    jobsRefreshing = true;
     jobsLoading = !quiet && !pageJobs.length;
     jobsLoadError = false;
     if (!quiet) renderJobRows(false);
@@ -6358,6 +6360,7 @@ export async function initAdmin() {
       return [];
     } finally {
       clearTimeout(requestTimeout);
+      if (request === jobsRequest) jobsRefreshing = false;
       if (request === jobsRequest) { jobsLoading = false; renderJobRows(false); }
     }
   }

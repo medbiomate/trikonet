@@ -24,4 +24,4 @@ export function showLoadingRecovery(error) {
 const timeout = setTimeout(() => {
   if (document.documentElement.classList.contains('page-loading')) showLoadingRecovery(new Error('Page loading timed out'));
 }, 12000);
-import('./app.js?v=20261013-persistent-jobs').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261013-jobs-50').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
