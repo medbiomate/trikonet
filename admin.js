@@ -4683,6 +4683,12 @@ export async function initAdmin() {
   });
 
   // Job Editor -> Add Company Redirect & State Preservation
+  function currentJobDescription() {
+    const code = document.getElementById('job-gutenberg-content');
+    const visual = document.getElementById('job-rich-content');
+    return document.getElementById('job-btn-code')?.classList.contains('active')
+      ? (code?.value || '') : (visual?.innerHTML ?? code?.value ?? '');
+  }
   function collectCurrentJobFormData() {
     const data = {};
     if (jobForm) {
@@ -4697,7 +4703,7 @@ export async function initAdmin() {
       }
     }
     data.title = document.getElementById('job-gutenberg-title')?.value || data.title || '';
-    data.description = document.getElementById('job-rich-content')?.innerHTML || document.getElementById('job-gutenberg-content')?.value || data.description || '';
+    data.description = currentJobDescription();
     data.slug = document.getElementById('field-slug')?.value || data.slug || '';
     data.status = document.getElementById('field-status')?.value || data.status || 'draft';
     data.company = document.getElementById('field-employer-company-value')?.value || data.company || '';
@@ -6078,7 +6084,15 @@ export async function initAdmin() {
   }
 
   async function editReportedJob(slug, keepRoute = false) {
-    let job = allJobs().find(j => j.slug === slug);
+    let job;
+    try {
+      const response = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}?admin=1`, {cache:'no-store'});
+      if (response.ok) job = await response.json();
+      else if (response.status !== 404) throw new Error('Saved job unavailable');
+    } catch {
+      showAdminNotice('Unable to load the latest saved job. Please retry.', 'error');
+      return;
+    }
     if (!job) {
       try {
         const res = await fetch(`/api/wp/job_listing?slug=${encodeURIComponent(slug)}`);
@@ -6921,11 +6935,7 @@ export async function initAdmin() {
     const editBtn = e.target.closest('[data-job-edit]');
     if (editBtn) {
       e.preventDefault();
-      const job = allJobs().find(j => j.slug === editBtn.dataset.jobEdit);
-      if (job) {
-        fillJob(job);
-        location.hash = 'job-editor';
-      }
+      await editReportedJob(editBtn.dataset.jobEdit);
       return;
     }
     const qeBtn = e.target.closest('[data-job-quick-edit]');
@@ -7055,7 +7065,7 @@ export async function initAdmin() {
     if (e.submitter?.id === 'publish-job-btn') job.status = 'publish';
     job.id = jobForm.elements.id?.value || '';
     job.originalSlug = jobForm.originalSlug.value;
-    job.description = document.getElementById('job-rich-content')?.innerHTML?.trim() || job.description?.trim() || '';
+    job.description = currentJobDescription().trim();
     const destinationFields={'External URL':'applyUrl','By Email':'applyEmail','WhatsApp':'applyWhatsApp','Walk-in':'walkInDetails'};
     const destination=destinationFields[job.applyType];
     if(destination && !String(job[destination]||'').trim()){
