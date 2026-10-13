@@ -3847,7 +3847,7 @@ export async function initAdmin() {
   let jobsLoadError = false;
   let currentStatus = 'all';
   let currentPage = 1;
-  const pageSize = 20;
+  const pageSize = 100;
   let employerPage = 1;
   const employerPageSize = 50;
   let taxonomies = { types: [], categories: [], locations: [], tags: [], postCategories: [] };
@@ -6291,6 +6291,11 @@ export async function initAdmin() {
         if (counter) counter.textContent = Number.isFinite(payload.counts?.[status]) ? `(${payload.counts[status].toLocaleString()})` : '(—)';
       }
       pageJobs = payload.jobs.map(job => job.local ? job : wordpressJob(job));
+      // Retain only locally saved jobs needed for the loaded page and editor.
+      for (const job of pageJobs.filter(job => job.local)) {
+        localJobs = localJobs.filter(item => item.slug !== job.slug);
+        localJobs.push(job);
+      }
       jobTotal = Number(payload.total) || 0;
       currentPage = Number(payload.page) || currentPage;
       const freshRemote = pageJobs.filter(job => !job.local);
@@ -6398,7 +6403,7 @@ export async function initAdmin() {
       renderEmployerRows(); populateEmployerDropdown();
     });
     const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
-      fetch('/api/local/jobs?admin=1').then(r => r.ok ? r.json() : []).then(rows => { localJobs = rows; renderJobRows(false); return rows; }).catch(() => []),
+      Promise.resolve(localJobs),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
       loadRemoteJobs(),
