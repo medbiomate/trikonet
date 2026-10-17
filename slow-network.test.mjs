@@ -10,7 +10,7 @@ test('initial page shows an embedded logo without placeholder search or video',(
 test('slow download keeps shell and does not reload or replace it',()=>{
  let timer,replaced=false;const status={textContent:''};
  const app={hasAttribute:()=>true,querySelector:()=>null,replaceChildren:()=>{replaced=true;},removeAttribute(){}};
- const source=fs.readFileSync(new URL('./bootstrap.js',import.meta.url),'utf8').replace('export function','function').replace(/import\('\.\/app\.js[^\n]+/,'');
+ const source=fs.readFileSync(new URL('./bootstrap.js',import.meta.url),'utf8').replace(/^import .*;$/m,'').replace('initJobNavigation();','').replace('export function','function').replace(/import\('\.\/app\.js[^\n]+/,'');
  const ctx=vm.createContext({console:{warn(){}},setTimeout:fn=>{timer=fn;},clearTimeout(){},document:{getElementById:id=>id==='app'?app:id==='initial-loading-status'?status:null,documentElement:{classList:{remove(){}}},createElement:()=>{throw Error('Must retain page');}}});
  vm.runInContext(source,ctx);timer();assert.match(status.textContent,/connection/);ctx.showLoadingRecovery(Error('offline'));assert.equal(replaced,false);
 });

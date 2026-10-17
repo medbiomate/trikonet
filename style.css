@@ -386,11 +386,16 @@ body::-webkit-scrollbar,
   transition:all .2s ease;
   position:relative;
 }
+@media (hover:hover) and (pointer:fine){
 .nurse-job-card:hover{
   border-color:var(--red,#b00008);
   box-shadow:0 8px 24px rgba(176,0,8,.06);
   transform:translateY(-2px);
 }
+}
+.nurse-job-card{cursor:pointer;touch-action:manipulation}
+.nurse-job-title-link,.nurse-view-job-btn{touch-action:manipulation}
+.job-navigation-pending{opacity:.65;cursor:progress}
 .nurse-card-top{
   display:flex;
   align-items:flex-start;

@@ -1,8 +1,9 @@
+import {initDisplayAds} from './display-ads.js?v=20261018-stable-layout';
 import { protectJobNavigation } from './job-navigation.js';
 import { loadContentRecord } from './content-record.js';
 import { renderSiteHeader } from './site-header.js';
 import { renderSiteFooter } from './site-footer.js';
-import { revealPage } from './page-ready.js?v=2';
+import { revealPage } from './page-ready.js?v=20261018-ready';
 import { initGoogleSignIn } from './google-sign-in.js';
 import { publicJobPath } from './job-urls.js';
 import {publicJobPage} from './public-job-page.js';
@@ -311,7 +312,7 @@ async function loadAccount(){
     const response=await fetch('/api/auth/me', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});
     if(!response.ok)return;
     currentUser=(await response.json()).user;
-    if(currentUser){
+    if(currentUser && !['/','/jobs','/job-list','/job-openings','/nurse-jobs-in-uae'].includes(path) && !/^\/(?:job|category|job-location)\//.test(path)){
       const profileResponse=await fetch('/api/candidate/profile', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});
       if(profileResponse.ok){
         const saved=await profileResponse.json();
@@ -492,7 +493,7 @@ async function loadLocalJobs(){
     const searchTerm=queryParams.get('q')||(path==='/nurse-jobs-in-uae'?'nurse':'');
     const localParams=new URLSearchParams({summary:'1'});
     if(searchTerm)localParams.set('q',searchTerm);
-    const fetchPromises = [Promise.resolve(null),fetch(`/api/local/jobs?${localParams}`),fetch('/api/local/employers')];
+    const fetchPromises = [Promise.resolve(null),fetch(`/api/local/jobs?${localParams}`),Promise.resolve(null)];
     const results = await Promise.all(fetchPromises);
 
     const local = (results[1] && results[1].ok) ? await results[1].json() : [];
@@ -3694,7 +3695,8 @@ protectJobNavigation();
 if (path.startsWith('/job/') && document.querySelector('#jobDescriptionCopy') && !queryParams.has('preview') && !queryParams.has('draft')) {
   fetch('/api/job-view', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:path.split('/').filter(Boolean).pop()})}).catch(error => console.warn('Job view tracking unavailable:',error));
 }
-import('./display-ads.js?v=21').then(({initDisplayAds}) => initDisplayAds()).catch(error => console.warn('Display ad setup failed:', error));
+// Reserve ad positions before revealing links, so a late import cannot move a card under a click.
+try { initDisplayAds(); } catch (error) { console.warn('Display ad setup failed:', error); }
 const adminEditType = path.startsWith('/job/') ? 'job' : path.startsWith('/employer/') ? 'employer' : document.querySelector('.blog-post-page') ? 'post' : null;
 adminSessionReady.then(() => initPublicAdminBar(adminEditType && !document.title.startsWith('404') ? { type: adminEditType, slug: path.split('/').filter(Boolean).pop() } : null));
 import('./page-stamp.js?v=2').then(({addPageStamp}) => addPageStamp({

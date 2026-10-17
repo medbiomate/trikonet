@@ -22,7 +22,7 @@ window.TRIKONET_CONFIG = window.TRIKONET_CONFIG || {
     const publicRead = method === 'GET' && typeof resource === 'string' && !init.signal &&
       /\/api\/(?:wp\/|job-category-links(?:\?|$))/.test(url);
     const options = { ...init };
-    if (method === 'GET' && !options.signal) options.signal = AbortSignal.timeout(/\/api\/(?:wp\/|local\/|employer-jobs\/|seo-job-pages\/)/.test(url || '') ? 30000 : 10000);
+    if (method === 'GET' && !options.signal) options.signal = AbortSignal.timeout(/\/api\/(?:wp\/|local\/|employer-jobs\/|seo-job-pages\/)/.test(url || '') ? 8000 : 8000);
     if (!publicRead) return originalFetch(resource, options);
     const key = JSON.stringify([url, options.credentials, options.cache, Array.from(new Headers(options.headers).entries())]);
     let pending = pendingReads.get(key);

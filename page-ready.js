@@ -15,4 +15,5 @@ export async function revealPage() {
   document.documentElement.classList.remove('page-loading');
   document.getElementById('page-preloader')?.remove();
   window.clearTimeout(window.trikonetLoadingTimer);
+  window.dispatchEvent?.(new Event('trikonet:ready'));
 }
