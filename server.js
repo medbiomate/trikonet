@@ -1,3 +1,4 @@
+import {initialPage} from './initial-page.mjs';
 import { injectInitialJob } from './job-ssr.mjs';
 import { loadContentRecord, fetchContentResponse } from './content-record.js';
 import { sendAsset } from './asset-response.mjs';
@@ -1230,7 +1231,7 @@ const server = http.createServer(async (req, res) => {
         html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page)+'</head>');
         const content=renderSeoLanding(payload,pageNumber,payload.links || []);
         const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
-        if(start>=0&&end>start)html=html.slice(0,start)+`<style>#app[data-seo-pending]{visibility:hidden}#seo-loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff;color:#64748b;font:14px system-ui;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none!important}</style></noscript><div id="seo-loading" role="status" aria-label="Loading"></div><div id="app" data-seo-pending>${content}</div>`+html.slice(end);
+        if(start>=0&&end>start)html=html.slice(0,start)+`<style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none;background:#fff;color:#64748b;font:14px system-ui;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none!important}</style></noscript><div id="seo-loading" role="status" aria-label="Loading"></div><div id="app" data-seo-pending>${content}</div>`+html.slice(end);
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':payload.page.indexingStatus==='Noindex'?'noindex,follow':'index,follow'});
         return res.end(html);
       }
@@ -1274,7 +1275,7 @@ const server = http.createServer(async (req, res) => {
           // Preserve crawlable category links without flashing this partial
           // server-rendered page before the complete jobs UI is ready.
           const pending=path!=='/job-categories';
-          const loading=pending?`<style>#app[data-seo-pending]{visibility:hidden}#seo-loading{position:fixed;inset:0;display:grid;place-items:center;background:#fff;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none!important}</style></noscript><div id="seo-loading" role="status" aria-label="Loading jobs"></div>`:'';
+          const loading=pending?`<style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none;background:#fff;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none!important}</style></noscript><div id="seo-loading" role="status" aria-label="Loading jobs"></div>`:'';
           html=html.slice(0,start)+`${loading}<div id="app"${pending?' data-seo-pending':''}>${markup}</div><script id="category-directory-data" type="application/json">${JSON.stringify(links).replace(/</g,'\\u003c')}</script>`+html.slice(end);
         }
         if(path==='/job-categories')html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>Job Categories in UAE | Trikonet</title>').replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/job-categories">');
@@ -1293,6 +1294,7 @@ const server = http.createServer(async (req, res) => {
     if (publicContentRecord && contentType === 'job_listing' && target === join(root,'index.html')) fileBody = injectInitialJob(fileBody.toString(),publicContentRecord,resolvedJobUrl?.publicPath || path);
     if (publicContentRecord && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="public-content-data" type="application/json">${JSON.stringify(publicContentRecord).replace(/</g,'\u003c')}</script></head>`);
     if (resolvedJobUrl && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="job-url-data" type="application/json">${JSON.stringify(resolvedJobUrl).replace(/</g,'\u003c')}</script></head>`);
+    if (target === join(root,'index.html')) fileBody = fileBody.toString().replace('<div id="app"></div>', `<div id="app">${initialPage(path)}</div>`);
     if (privatePage && target === join(root,'index.html')) {
       fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
     }

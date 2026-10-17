@@ -4,8 +4,8 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 import {injectInitialJob} from './job-ssr.mjs';
 const html=fs.readFileSync(new URL('./index.html',import.meta.url),'utf8');
-test('initial page shows an embedded logo without placeholder search or video',()=>{
- assert.match(html,/id="page-preloader"/);assert.match(html,/data:image\/webp;base64,/);assert.ok(!html.includes('initial-job-search'));assert.ok(!html.includes('<video'));
+test('initial HTML has no blocking preloader or embedded logo payload',()=>{
+ assert.ok(!html.includes('id="page-preloader"'));assert.ok(!html.includes('data:image/webp;base64,'));assert.ok(!html.includes("classList.add('page-loading')"));
 });
 test('slow download keeps shell and does not reload or replace it',()=>{
  let timer,replaced=false;const status={textContent:''};
