@@ -3676,7 +3676,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261013-page-loading').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261017-candidate-delete').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));
@@ -5188,7 +5188,15 @@ document.querySelectorAll('[data-password-reset]').forEach(link => link.addEvent
 }));
 
 // Refresh account identity from the database on return and while signed in.
-async function refreshAccountIdentity(){if(!currentUser||document.visibilityState!=='visible')return;try{const response=await fetch('/api/auth/me', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(!response.ok)return;const {user}=await response.json();if(!user)return;const changed=currentUser.name!==user.name||currentUser.email!==user.email;Object.assign(currentUser,user);if(changed){const response=await fetch('/api/candidate/profile', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(response.ok)currentUser.profile=(await response.json()).profile;document.querySelectorAll('.nav-account-summary strong,.mobile-account-summary strong').forEach(el=>el.textContent=user.name);document.querySelectorAll('.nav-profile-initial').forEach(el=>el.textContent=user.name?.charAt(0)||'U');document.querySelectorAll('.candidate-profile-hero h1').forEach(el=>{if(el.firstChild?.nodeType===3)el.firstChild.textContent=user.name+' '});}}catch{}}
+function clearRevokedCandidateCache(){
+  const owner=String(currentUser?.id||currentUser?.email||'');
+  for(const key of Object.keys(localStorage)){
+    if((owner&&key.endsWith(`_${owner}`)&&/^trikonet_(saved_jobs|applied_jobs|followed_companies|follow_employer)_/.test(key))||['cvBuilderPluginState','cvBuilderPluginState-template-styles-v1','trikonet-candidate-profile-v1','trikonet-saved','trikonet-applications-v1'].includes(key))localStorage.removeItem(key);
+  }
+  currentUser=null;
+  location.replace('/login');
+}
+async function refreshAccountIdentity(){if(!currentUser||document.visibilityState!=='visible')return;try{const response=await fetch('/api/auth/me', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(response.status===401){clearRevokedCandidateCache();return;}if(!response.ok)return;const {user}=await response.json();if(!user)return;const changed=currentUser.name!==user.name||currentUser.email!==user.email;Object.assign(currentUser,user);if(changed){const response=await fetch('/api/candidate/profile', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(response.ok)currentUser.profile=(await response.json()).profile;document.querySelectorAll('.nav-account-summary strong,.mobile-account-summary strong').forEach(el=>el.textContent=user.name);document.querySelectorAll('.nav-profile-initial').forEach(el=>el.textContent=user.name?.charAt(0)||'U');document.querySelectorAll('.candidate-profile-hero h1').forEach(el=>{if(el.firstChild?.nodeType===3)el.firstChild.textContent=user.name+' '});}}catch{}}
 window.addEventListener('focus',refreshAccountIdentity);setInterval(refreshAccountIdentity,15000);
 // The email belongs to the same account; updating it requires verification.
 document.addEventListener('click',async event=>{

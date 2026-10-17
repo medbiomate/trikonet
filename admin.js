@@ -3539,7 +3539,7 @@ export function renderAdmin() {
                 <option value="-1">Bulk actions</option>
                 <option value="feature">Mark Featured</option>
                 <option value="activate">Set Active</option>
-                <option value="trash">Move to Trash</option>
+                <option value="trash">Delete permanently</option>
               </select>
               <button type="button" class="modern-btn-apply" id="btn-apply-candidates-bulk">Apply</button>
             </div>
@@ -13898,11 +13898,7 @@ export async function initAdmin() {
       e.preventDefault();
       const id = String(candDel.dataset.candidateDelete);
       const c = candidates.find(x => String(x.id) === id);
-      if (c && confirm(`Delete candidate profile “${c.name}”?`)) {
-        candidates = candidates.filter(x => String(x.id) !== id);
-        saveCandidates();
-        renderCandidateRows();
-      }
+      if (c) await permanentlyDeleteCandidates([id]);
       return;
     }
   });
@@ -14036,6 +14032,30 @@ export async function initAdmin() {
       localStorage.setItem('trikonet_candidates_cms', JSON.stringify(candidates));
     } catch {}
     updateCandidateCountBadges();
+  }
+
+  let candidateDeletionBusy=false;
+  async function permanentlyDeleteCandidates(ids) {
+    if(candidateDeletionBusy)return;
+    const confirmation=prompt(`Permanently delete ${ids.length} candidate account(s)? This removes profiles, resumes, applications, saved jobs, history and access on the website and mobile app. This cannot be undone. Type DELETE to confirm.`);
+    if(confirmation!=='DELETE')return;
+    candidateDeletionBusy=true;
+    const buttons=[...document.querySelectorAll('[data-candidate-delete],#btn-apply-candidates-bulk')];
+    buttons.forEach(button=>button.disabled=true);
+    try {
+      const response=await fetch('/api/admin/candidate-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,confirmation})});
+      const result=await response.json();
+      if(!response.ok)throw Error(result.error||'Deletion failed. Please try again.');
+      const deleted=new Set(result.deleted.map(String));
+      candidates=candidates.filter(candidate=>!deleted.has(String(candidate.id)));
+      candidateSavedIds=candidateSavedIds.filter(id=>!deleted.has(id));
+      saveCandidates(false);
+      document.querySelectorAll('.candidate-profile-dialog').forEach(dialog=>dialog.remove());
+      document.getElementById('admin-candidate-form')?.reset();
+      renderCandidateRows();
+      showAdminNotice('Candidate accounts and their associated data were permanently deleted. Website and mobile sessions have been revoked.');
+    } catch(error){showAdminNotice(error.message||'Unable to delete candidate.','error');}
+    finally{candidateDeletionBusy=false;buttons.forEach(button=>button.disabled=false);}
   }
 
   function candidateCreatedTime(candidate) {
@@ -14252,7 +14272,7 @@ export async function initAdmin() {
     });
   });
 
-  document.getElementById('btn-apply-candidates-bulk')?.addEventListener('click', () => {
+  document.getElementById('btn-apply-candidates-bulk')?.addEventListener('click', async () => {
     const action = document.getElementById('bulk-action-candidates-selector')?.value;
     const selected = Array.from(document.querySelectorAll('#admin-candidate-rows input[type="checkbox"]:checked')).map(cb => String(cb.value));
     if (!selected.length) {
@@ -14260,10 +14280,7 @@ export async function initAdmin() {
       return;
     }
     if (action === 'trash') {
-      if (!confirm(`Delete ${selected.length} selected candidate(s)?`)) return;
-      candidates = candidates.filter(c => !selected.includes(String(c.id)));
-      saveCandidates();
-      renderCandidateRows();
+      await permanentlyDeleteCandidates(selected);
     } else if (action === 'feature') {
       candidates.forEach(c => {
         if (selected.includes(String(c.id))) c.featured = true;
