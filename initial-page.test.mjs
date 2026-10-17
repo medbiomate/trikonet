@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialPage} from './initial-page.mjs';
-for(const path of ['/','/jobs','/login'])test(`initial ${path} has native links and a working GET search`,()=>{
- const html=initialPage(path);assert.match(html,/action="\/jobs" method="get"/);assert.match(html,/name="q"/);assert.match(html,/href="\/employers"/);assert.ok(!html.includes('inert'));assert.ok(!html.includes('page-preloader'));
+test('homepage sends actual shared hero with native search and no temporary screen',()=>{
+ const html=initialPage('/');assert.match(html,/hero-minimal-title/);assert.match(html,/action="\/jobs" method="GET"/);assert.match(html,/hero-team.webp/);assert.ok(!html.includes('data-loading-shell'));assert.ok(!html.includes('on its way'));
 });
+test('other routes never receive a substitute search screen',()=>{for(const path of ['/jobs','/login','/employers'])assert.equal(initialPage(path),'');});
