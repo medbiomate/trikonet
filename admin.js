@@ -1,3 +1,4 @@
+import {mountCandidateAppFields,readCandidateAppFields} from './candidate-app-fields.js?v=1';
 import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
@@ -14105,6 +14106,7 @@ export async function initAdmin() {
     document.getElementById('candidate-job-title').value = c.jobTitle || '';
     document.getElementById('candidate-email').value = c.email || '';
     document.getElementById('candidate-phone').value = c.phone || '';
+    for(const [id,value] of [['candidate-category',c.category],['candidate-location',c.location]]){const select=document.getElementById(id);if(select&&value&&!Array.from(select.options).some(option=>option.value===value)){const option=document.createElement('option');option.value=value;option.textContent=value;select.append(option)}}
     if (c.category) document.getElementById('candidate-category').value = c.category;
     if (c.location) document.getElementById('candidate-location').value = c.location;
     document.getElementById('candidate-experience').value = c.experience || '';
@@ -14112,6 +14114,8 @@ export async function initAdmin() {
     document.getElementById('candidate-status').value = c.status || 'Active';
     document.getElementById('candidate-featured').checked = !!c.featured;
     document.getElementById('candidate-bio').value = c.bio || '';
+    mountCandidateAppFields(form,c.appProfile||{});
+    const emailField=document.getElementById('candidate-email');if(emailField)emailField.readOnly=Boolean(c.userId);
   }
 
   function renderCandidateRows() {
@@ -14299,7 +14303,7 @@ export async function initAdmin() {
     }
   });
 
-  document.getElementById('admin-candidate-form')?.addEventListener('submit', e => {
+  document.getElementById('admin-candidate-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
     const id = document.getElementById('candidate-id').value;
@@ -14321,6 +14325,7 @@ export async function initAdmin() {
     if (id) {
       const existing = candidates.find(c => String(c.id) === String(id));
       if (existing) {
+        existing.appProfile=readCandidateAppFields(form);
         existing.name = name;
         existing.slug = slug;
         existing.jobTitle = jobTitle;
@@ -14336,6 +14341,7 @@ export async function initAdmin() {
       }
     } else {
       const newCand = {
+        appProfile:readCandidateAppFields(form),
         id: Date.now(),
         name,
         slug,
@@ -14355,9 +14361,14 @@ export async function initAdmin() {
       candidates.unshift(newCand);
     }
 
-    saveCandidates();
-    form.reset();
-    location.hash = 'candidates';
+    const submit=form.querySelector('[type=submit]');if(submit)submit.disabled=true;
+    try{
+      const record=candidates.find(c=>String(c.id)===String(id))||candidates[0];
+      const response=await fetch('/api/admin/candidate-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:[record]})});
+      if(!response.ok)throw new Error((await response.json()).error||'Could not save candidate');
+      saveCandidates(false);form.reset();location.hash='candidates';await refreshCandidateAccounts();showAdminNotice('Candidate profile saved.','success');
+    }catch(error){showAdminNotice(error.message||'Could not save candidate','error')}finally{if(submit)submit.disabled=false;}
+
   });
 
 
