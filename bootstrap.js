@@ -2,7 +2,7 @@
 export function showLoadingRecovery(error) {
   console.warn('Trikonet page initialization interrupted:', error);
   const app = document.getElementById('app');
-  const serverJob = app?.hasAttribute('data-server-rendered') || app?.querySelector('[data-loading-shell]');
+  const serverJob = app?.hasAttribute('data-server-rendered');
   if (!serverJob && app) {
     const main = document.createElement('main');
     main.style.cssText = 'max-width:720px;margin:80px auto;padding:24px;font-family:system-ui,sans-serif';
@@ -24,6 +24,6 @@ export function showLoadingRecovery(error) {
 // A slow transfer is not a failed module. Keep the useful page and let loading continue.
 const timeout = setTimeout(() => {
   const status = document.getElementById('initial-loading-status');
-  if (status) status.textContent = 'Your connection is taking a little longer. You can still search or browse jobs.';
+  if (status) status.textContent = 'Your connection is taking a little longer. Trikonet will open when loading finishes.';
 }, 12000);
-import('./app.js?v=20261017-slow-network').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261017-logo-preloader').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));

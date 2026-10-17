@@ -4,12 +4,12 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 import {injectInitialJob} from './job-ssr.mjs';
 const html=fs.readFileSync(new URL('./index.html',import.meta.url),'utf8');
-test('initial page has native navigation and search without a loader video',()=>{
- assert.match(html,/<form action="\/jobs" method="get"/);assert.match(html,/name="q"/);assert.ok(!html.includes('<video'));assert.ok(!html.includes("setAttribute('inert'"));
+test('initial page shows an embedded logo without placeholder search or video',()=>{
+ assert.match(html,/id="page-preloader"/);assert.match(html,/data:image\/webp;base64,/);assert.ok(!html.includes('initial-job-search'));assert.ok(!html.includes('<video'));
 });
 test('slow download keeps shell and does not reload or replace it',()=>{
  let timer,replaced=false;const status={textContent:''};
- const app={hasAttribute:()=>false,querySelector:()=>({}),replaceChildren:()=>{replaced=true;},removeAttribute(){}};
+ const app={hasAttribute:()=>true,querySelector:()=>null,replaceChildren:()=>{replaced=true;},removeAttribute(){}};
  const source=fs.readFileSync(new URL('./bootstrap.js',import.meta.url),'utf8').replace('export function','function').replace(/import\('\.\/app\.js[^\n]+/,'');
  const ctx=vm.createContext({console:{warn(){}},setTimeout:fn=>{timer=fn;},clearTimeout(){},document:{getElementById:id=>id==='app'?app:id==='initial-loading-status'?status:null,documentElement:{classList:{remove(){}}},createElement:()=>{throw Error('Must retain page');}}});
  vm.runInContext(source,ctx);timer();assert.match(status.textContent,/connection/);ctx.showLoadingRecovery(Error('offline'));assert.equal(replaced,false);
