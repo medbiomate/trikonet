@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { brotliCompress, gzip, constants } from 'node:zlib';
 const brotli = promisify(brotliCompress), gzipAsync = promisify(gzip);
 const variants = new Map();
+const pendingVariants = new Map();
 let cachedBytes = 0;
 const MAX_CACHE_BYTES = 16 * 1024 * 1024;
 
@@ -34,18 +35,26 @@ export async function sendAsset(req, res, body, contentType, { html = false, ver
     const key = `${digest}:${encoding}`;
     payload = variants.get(key);
     if (!payload) {
-      payload = encoding === 'br'
-        ? await brotli(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 4 } })
-        : await gzipAsync(bytes);
-      if (payload.length <= MAX_CACHE_BYTES) {
-        while (cachedBytes + payload.length > MAX_CACHE_BYTES && variants.size) {
-          const oldest = variants.keys().next().value;
-          cachedBytes -= variants.get(oldest).length;
-          variants.delete(oldest);
-        }
-        variants.set(key, payload);
-        cachedBytes += payload.length;
+      let pending = pendingVariants.get(key);
+      if (!pending) {
+        pending = (async () => {
+          const compressed = encoding === 'br'
+            ? await brotli(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 4 } })
+            : await gzipAsync(bytes);
+          if (compressed.length <= MAX_CACHE_BYTES) {
+            while (cachedBytes + compressed.length > MAX_CACHE_BYTES && variants.size) {
+              const oldest = variants.keys().next().value;
+              cachedBytes -= variants.get(oldest).length;
+              variants.delete(oldest);
+            }
+            variants.set(key, compressed);
+            cachedBytes += compressed.length;
+          }
+          return compressed;
+        })().finally(() => pendingVariants.delete(key));
+        pendingVariants.set(key, pending);
       }
+      payload = await pending;
     }
     headers['Content-Encoding'] = encoding;
   }
