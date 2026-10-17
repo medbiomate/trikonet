@@ -6465,26 +6465,6 @@ export async function initAdmin() {
     // Employer requests update independently as each batch arrives.
 
 
-    if (Array.isArray(registeredCandidates) && registeredCandidates.length) {
-      const mergedMap = new Map();
-      registeredCandidates.forEach(account => {
-        const key = String(account.id || account.email);
-        mergedMap.set(key, account);
-      });
-      candidates.forEach(c => {
-        const key = String(c.id || c.email);
-        if (mergedMap.has(key)) {
-          mergedMap.set(key, { ...c, ...mergedMap.get(key) });
-        } else {
-          mergedMap.set(key, c);
-        }
-      });
-      candidates = Array.from(mergedMap.values());
-      candidateSavedIds=candidates.map(c=>String(c.id));
-      saveCandidates(false);
-      renderCandidateRows();
-    }
-
     let cachedTax = null;
     const cachedTaxStr = localStorage.getItem('wp_admin_taxonomies');
     if (cachedTaxStr) {
@@ -14004,20 +13984,10 @@ export async function initAdmin() {
     }
   ];
 
-  const candidateDataVersion = 'live-candidate-accounts-v2';
-  let candidates = (() => {
-    try {
-      if (localStorage.getItem('trikonet_candidates_version') !== candidateDataVersion) {
-        localStorage.setItem('trikonet_candidates_cms', '[]');
-        localStorage.setItem('trikonet_candidates_version', candidateDataVersion);
-        return [];
-      }
-      const stored = localStorage.getItem('trikonet_candidates_cms');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  })();
+  // Render only the current server snapshot, never cached account rows.
+  let candidates = [];
+  let candidatesLoaded = false;
+  let candidateLoadError = false;
 
   let candidateStatusFilter = 'all';
   let candidatePage=1,candidateFilterKey='',candidateSavedIds=[];
@@ -14069,9 +14039,9 @@ export async function initAdmin() {
       const response=await fetch('/api/admin/candidates',{cache:'no-store'});
       if(!response.ok)throw new Error('Unable to refresh candidates');
       const live=await response.json();if(!Array.isArray(live))throw new Error('Invalid candidate response');
-      candidates=live;saveCandidates();renderCandidateRows();
+      candidates=live;candidateSavedIds=live.map(c=>String(c.id));candidatesLoaded=true;candidateLoadError=false;candidatePage=1;saveCandidates(false);renderCandidateRows();
       const status=document.getElementById('candidate-refresh-status');if(status)status.textContent='Updated just now · Newest first';
-    }catch{const status=document.getElementById('candidate-refresh-status');if(status)status.textContent='Could not refresh. Try again.';}
+    }catch{candidateLoadError=true;renderCandidateRows();const status=document.getElementById('candidate-refresh-status');if(status)status.textContent='Could not refresh. Try again.';}
     finally{candidateRefreshing=false;if(button){button.disabled=false;button.textContent='Refresh';}}
   }
   function candidateRefreshToolbar(){
@@ -14150,6 +14120,10 @@ export async function initAdmin() {
 
     candidateRefreshToolbar();
     updateCandidateCountBadges();
+    if (!candidatesLoaded) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px" role="status">${candidateLoadError ? 'Could not load latest candidates. Click Refresh to retry.' : 'Loading latest candidates…'}</td></tr>`;
+      return;
+    }
 
     const searchInput = document.getElementById('admin-candidate-search');
     const q = (searchInput?.value || '').toLowerCase().trim();

@@ -24,4 +24,4 @@ export function showLoadingRecovery(error) {
 const timeout = setTimeout(() => {
   if (document.documentElement.classList.contains('page-loading')) showLoadingRecovery(new Error('Page loading timed out'));
 }, 12000);
-import('./app.js?v=20261017-directory-speed').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261017-fresh-candidates').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
