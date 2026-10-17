@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <link rel="modulepreload" href="/app.js?v=20261017-fresh-candidates-r2">
+  <link rel="modulepreload" href="/app.js?v=20261017-slow-network">
   <script>document.documentElement.classList.add('page-loading');</script>
   <style>
-    html.page-loading { overflow: hidden; }
-    .page-loading #app { visibility: hidden !important; }
-    #page-preloader { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; background: #fff; }
+    html.page-loading { overflow: auto; }
+    .page-loading #app { visibility: visible; }
+    #page-preloader { display: none; }
     .preloader-brand { display: flex; flex-direction: column; align-items: center; gap: 22px; font: 500 14px/1.5 system-ui,sans-serif; color: #64748b; }
     .loading-scene-video { display: block; width: min(560px,90vw); height: auto; aspect-ratio: 640 / 326; object-fit: contain; background: #fff; filter: brightness(1.01); }
     .preloader-static-logo { display: none; width: 160px; height: 54px; object-fit: contain; }
@@ -50,7 +50,7 @@
   <link rel="stylesheet" href="/article-slider.css?v=3.0">
   <script>
     if ((pathname => pathname.startsWith('/admin'))(location.pathname)) {
-      document.write('<link rel="stylesheet" href="/admin.css?v=20261017-candidate-full-profile">');
+      document.write('<link rel="stylesheet" href="/admin.css?v=20261010-application-methods">');
     }
   </script>
   <link rel="stylesheet" href="/navigation.css?v=10.0">
@@ -585,16 +585,20 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, #app::-webkit-scrollbar, *::-w
   .home-custom-hero-image { display:block; width:min(720px,80%); max-height:460px; object-fit:contain; margin:30px auto 0; }
 }
 </style><body>
-<div id="page-preloader" role="status" aria-live="polite" aria-label="Loading Trikonet">
-  <div class="preloader-brand"><video class="loading-scene-video" autoplay muted loop playsinline preload="auto" aria-hidden="true"><source src="/assets/loading-scene-mobile.mp4" media="(max-width: 768px)" type="video/mp4"><source src="/assets/loading-scene-smooth.mp4" type="video/mp4"></video><img class="preloader-static-logo" src="/assets/logo-black.webp" width="160" height="54" alt="Trikonet"></div>
-</div>
-<div id="app"></div><style></style>
-<script>
-  if (document.documentElement.classList.contains('page-loading')) {
-    document.getElementById('app').setAttribute('inert', '');
-    document.getElementById('app').setAttribute('aria-busy', 'true');
-
-  }
-</script>
-<script src="/config.js?v=20261013-page-loading"></script><script type="module" src="/bootstrap.js?v=20261017-fresh-candidates-r2"></script></body>
+<div id="app"><div data-loading-shell style="visibility:visible">
+  <header style="padding:20px max(20px,5vw);border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font:16px system-ui">
+    <a href="/" aria-label="Trikonet home"><img src="/assets/logo-black.webp" width="140" height="47" alt="Trikonet"></a>
+    <nav aria-label="Main navigation" style="display:flex;align-items:center;gap:20px"><a href="/jobs">Find jobs</a><a href="/employers">Companies</a><a href="/login">Sign in</a></nav>
+  </header>
+  <main style="max-width:900px;margin:60px auto;padding:24px;font:18px/1.6 system-ui;color:#202124">
+    <h1 style="font-size:clamp(30px,6vw,52px);line-height:1.15">Find your next opportunity in the UAE</h1>
+    <form action="/jobs" method="get" role="search" style="display:flex;gap:12px;flex-wrap:wrap">
+      <label for="initial-job-search" style="width:100%">Job title or keyword</label>
+      <input id="initial-job-search" name="q" type="search" placeholder="Search jobs" style="flex:1;min-width:180px;padding:14px;border:1px solid #ccc;border-radius:8px;font:inherit">
+      <button type="submit" style="padding:14px 24px;background:#e5252a;color:white;border:0;border-radius:8px;font:inherit">Search jobs</button>
+    </form>
+    <p id="initial-loading-status" role="status" style="color:#64748b">Loading the latest content… You can search or browse while it loads.</p>
+  </main>
+</div></div><style></style>
+<script src="/config.js?v=20261017-slow-network"></script><script type="module" src="/bootstrap.js?v=20261017-slow-network"></script></body>
 </html>

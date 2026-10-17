@@ -18,6 +18,6 @@ export function renderInitialJob(record, path) {
 export function injectInitialJob(html, record, path) {
   return html.replace("document.documentElement.classList.add('page-loading');", '')
     .replace(/<div id="page-preloader"[\s\S]*?(?=<div id="app">)/, '')
-    .replace('<div id="app"></div>', `<div id="app" data-server-rendered="job">${renderInitialJob(record,path)}</div>`)
+    .replace(/<div id="app">[\s\S]*?<\/div>(?=<style>)/, `<div id="app" data-server-rendered="job">${renderInitialJob(record,path)}</div>`)
     .replace('</head>', '<style>#app[data-server-rendered="job"] #jobDescriptionCopy{white-space:pre-line}</style></head>');
 }

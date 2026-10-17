@@ -2,7 +2,7 @@
 export function showLoadingRecovery(error) {
   console.warn('Trikonet page initialization interrupted:', error);
   const app = document.getElementById('app');
-  const serverJob = app?.hasAttribute('data-server-rendered');
+  const serverJob = app?.hasAttribute('data-server-rendered') || app?.querySelector('[data-loading-shell]');
   if (!serverJob && app) {
     const main = document.createElement('main');
     main.style.cssText = 'max-width:720px;margin:80px auto;padding:24px;font-family:system-ui,sans-serif';
@@ -21,7 +21,9 @@ export function showLoadingRecovery(error) {
   document.documentElement.classList.remove('page-loading');
   document.getElementById('page-preloader')?.remove();document.getElementById('seo-loading')?.remove();
 }
+// A slow transfer is not a failed module. Keep the useful page and let loading continue.
 const timeout = setTimeout(() => {
-  if (document.documentElement.classList.contains('page-loading')) showLoadingRecovery(new Error('Page loading timed out'));
+  const status = document.getElementById('initial-loading-status');
+  if (status) status.textContent = 'Your connection is taking a little longer. You can still search or browse jobs.';
 }, 12000);
-import('./app.js?v=20261017-fresh-candidates-r2').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261017-slow-network').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
