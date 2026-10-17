@@ -1,4 +1,4 @@
-import {initJobNavigation} from './job-navigation.js?v=20261018-first-click';
+import {initJobNavigation} from './job-navigation.js?v=20261018-category-recovery';
 initJobNavigation();
 // A failed module or stalled request must never leave the full-page loader open.
 export function showLoadingRecovery(error) {
@@ -29,4 +29,4 @@ const timeout = setTimeout(() => {
   if (status) status.textContent = 'Your connection is taking a little longer. Trikonet will open when loading finishes.';
   showLoadingRecovery(new Error('Loading timed out'));
 }, 12000);
-import('./app.js?v=20261018-first-click').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261018-category-recovery').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));

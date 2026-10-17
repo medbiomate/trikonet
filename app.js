@@ -469,6 +469,7 @@ async function loadDirectoryTaxonomies() {
   } catch {}
 }
 async function loadLocalJobs(){
+  data.jobsLoadError = false;
   try{
     const isCategoryPage = path.startsWith('/category/');
     if (isCategoryPage && (!data.taxonomies?.categories || data.taxonomies.categories.length <= defaultTopCategories.length)) {
@@ -493,7 +494,7 @@ async function loadLocalJobs(){
     const searchTerm=queryParams.get('q')||(path==='/nurse-jobs-in-uae'?'nurse':'');
     const localParams=new URLSearchParams({summary:'1'});
     if(searchTerm)localParams.set('q',searchTerm);
-    const fetchPromises = [Promise.resolve(null),fetch(`/api/local/jobs?${localParams}`),Promise.resolve(null)];
+    const fetchPromises = [Promise.resolve(null),fetch(`/api/local/jobs?${localParams}`).catch(() => null),Promise.resolve(null)];
     const results = await Promise.all(fetchPromises);
 
     const local = (results[1] && results[1].ok) ? await results[1].json() : [];
@@ -513,12 +514,17 @@ async function loadLocalJobs(){
     const localEmployers=results[2]?.ok?await results[2].json():[];
     const pageJobs=await publicJobPage(localUnique,currentPage,pageLimit,async(page,size,excluded)=>{
       const params=new URLSearchParams(filters);params.set('page',page);params.set('per_page',size);params.set('exclude_slugs',excluded.join(','));
-      const response=await fetch(`/api/wp/job_listing?${params}`);
-      if(!response.ok)throw Error('Jobs unavailable');
-      return response.json();
+      let response;
+      for (let attempt=0; attempt<2; attempt++) {
+        try {
+          response=await fetch(`/api/wp/job_listing?${params}`, {signal:AbortSignal.timeout(12000)});
+          if(response.ok) return await response.json();
+        } catch (error) { if(attempt===1) throw error; }
+      }
+      throw Error('Jobs unavailable');
     },local.map(job=>job.slug));
     data.jobs=pageJobs.map(mapJob).map(job=>{const employer=localEmployers.find(e=>e.slug===job.employerSlug||e.title===job.company);return {...job,logo:job.logo||employer?.logo||''};});
-  }catch{data.jobs=[]}
+  }catch(error){data.jobs=[];data.jobsLoadError=true;console.warn('Job listing unavailable:',error.message);}
 }
 async function loadLocalEmployers(){
   try{
@@ -1826,8 +1832,8 @@ function categoryPage(destination = null, allJobs = false) {
   const decode=value=>{const node=document.createElement('textarea');node.innerHTML=String(value || '');return node.value;};
   const list = destination ? destination.jobs.map(record=>{const job=mapJob(record);return {...job,title:decode(job.title),company:decode(job.company),excerpt:decode(job.excerpt)};}) : data.jobs.slice(0, pageLimit);
   const total = destination ? destination.total : allJobs ? (data.counts?.job_listing ?? list.length) : (data.counts?.category || cat?.count || list.length);
-  const start = total ? (currentPage - 1) * pageLimit + 1 : 0;
-  const end = Math.min(start + list.length - 1, total);
+  const start = list.length ? (currentPage - 1) * pageLimit + 1 : 0;
+  const end = list.length ? Math.min(start + list.length - 1, total) : 0;
 
   const qQuery = queryParams.get('q') || '';
   const selectedLoc = destination?.page.location || queryParams.get('location') || '';
@@ -2037,9 +2043,9 @@ function categoryPage(destination = null, allJobs = false) {
             </article>
           `).join('') : `
             <div class="nurse-empty-state">
-              <h3>No jobs found matching your criteria</h3>
-              <p>Try resetting filters or searching for different keywords within ${escapeAttr(categoryName)}.</p>
-              <a href="/category/${categoryCleanSlug}" class="primary" style="display:inline-block;margin-top:12px;padding:10px 20px;border-radius:8px;">Reset Filters</a>
+              <h3>${data.jobsLoadError ? 'Jobs could not load. Please retry.' : 'No jobs found matching your criteria'}</h3>
+              <p>${data.jobsLoadError ? 'The connection was interrupted. This does not mean there are no vacancies.' : `Try resetting filters or searching for different keywords within ${escapeAttr(categoryName)}.`}</p>
+              <a href="${data.jobsLoadError ? escapeAttr(location.pathname + location.search) : `/category/${categoryCleanSlug}`}" class="primary" style="display:inline-block;margin-top:12px;padding:10px 20px;border-radius:8px;">${data.jobsLoadError ? 'Retry loading jobs' : 'Reset Filters'}</a>
             </div>
           `}
         </div>
