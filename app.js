@@ -1,5 +1,5 @@
 import {renderHomeHero} from './home-hero.js';
-import {initDisplayAds} from './display-ads.js?v=20261018-stable-layout';
+import {initDisplayAds} from './display-ads.js?v=20261018-fixed-slots';
 import { protectJobNavigation } from './job-navigation.js';
 import { loadContentRecord } from './content-record.js';
 import { renderSiteHeader } from './site-header.js';
@@ -531,10 +531,10 @@ async function loadLocalEmployers(){
   try{
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
     for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
-    const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers'),fetch('/api/local/jobs')]);
+    const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers').catch(()=>null),fetch('/api/local/jobs?summary=1').catch(()=>null)]);
     const wp=wpResponse.ok?await wpResponse.json():[];
-    const local=localResponse.ok?await localResponse.json():[];
-    const localJobs=localJobsResponse.ok?await localJobsResponse.json():[];
+    const local=localResponse?.ok?await localResponse.json():[];
+    const localJobs=localJobsResponse?.ok?await localJobsResponse.json():[];
     const normalizedKey=value=>String(value||'').trim().toLowerCase();
     const localJobCounts=localJobs.reduce((counts,job)=>{
       if((job.status||'publish')!=='publish'||job.filled===true)return counts;
@@ -3584,7 +3584,7 @@ if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sig
 // Detail renderers are only needed on job and employer pages. Fetch them
 // alongside page data instead of blocking every page's module startup.
 if (path.startsWith('/job/') || path.startsWith('/employer/')) {
-  initialLoads.push(import('./detail-pages.js?v=20261013-job-load-recovery').then(module => {
+  initialLoads.push(import('./detail-pages.js?v=20261018-company-links').then(module => {
     renderJobDetail = module.renderJobDetail;
     renderEmployerDetail = module.renderEmployerDetail;
   }));

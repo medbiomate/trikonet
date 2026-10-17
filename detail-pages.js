@@ -1,3 +1,4 @@
+import {employerProfileHref} from './employer-link.js';
 import { publicJobPath } from './job-urls.js';
 import { formatCompanyName } from './company-name.js';
 function applicationAction(record,m){
@@ -213,29 +214,7 @@ function formatSocialLinks(socials) {
 }
 
 function resolveEmployerProfile(record, jobEmployerUrl = '', company = '') {
-  if (record?.slug) return `/employer/${record.slug}`;
-  if (record?.local && record?.slug) return `/employer/${record.slug}`;
-  if (jobEmployerUrl) {
-    try {
-      const p = new URL(jobEmployerUrl).pathname;
-      if (p && p !== '/' && p !== '#') return p;
-    } catch {
-      if (typeof jobEmployerUrl === 'string' && jobEmployerUrl.startsWith('/')) return jobEmployerUrl;
-    }
-  }
-  if (record?.link) {
-    try {
-      const p = new URL(record.link).pathname;
-      if (p && p !== '/' && p !== '#') return p;
-    } catch {
-      if (typeof record.link === 'string' && record.link.startsWith('/')) return record.link;
-    }
-  }
-  if (company) {
-    const slug = company.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    if (slug) return `/employer/${slug}`;
-  }
-  return '/employers';
+  return employerProfileHref({employerSlug:record?.slug, employerUrl:jobEmployerUrl||record?.link, company});
 }
 
 function renderAboutCompanySection(employer, company, logo, location, jobEmployerUrl = '', website = '', category = '') {

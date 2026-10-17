@@ -10,8 +10,8 @@ export function initDisplayAds() {
   const jobs = document.querySelector('.jobs-layout, .nurse-results-layout');
   if (jobs) { initJobListingAds(jobs); return; }
   initJobDetailAd();
-  initAdditionalFeedAd();
-  initOtherJobsAd();
+  // Keep company content and actions together, without an extra inserted ad.
+  // The bottom slot is the only supplemental job-detail placement.
   initJobBottomAd();
   initEmployerJobsAds();
 }
@@ -21,16 +21,15 @@ function initJobListingAds(jobs) {
   const feed = jobs.querySelector('.job-grid, .nurse-job-list');
   if (!feed || !feed.children.length) return;
   const cards = Array.from(feed.children);
-  for (let spot = 0; spot < 3; spot++) {
+  for (const [spot, cardIndex] of [4, 9].entries()) {
+    if (!cards[cardIndex]) continue;
     const placement = document.createElement('aside');
     placement.className = 'site-ad';
     placement.dataset.trikonetJobListAd = String(spot + 1);
     placement.setAttribute('aria-label', 'Advertisement');
     placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;grid-column:1 / -1;clear:both;';
     placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
-    if (spot === 2) feed.after(placement);
-    else if (spot === 0) cards[0].after(placement);
-    else cards[Math.max(0, Math.ceil(cards.length * (spot + 1) / 3) - 1)].after(placement);
+    cards[cardIndex].after(placement);
     initializeAd(placement.querySelector('ins'), true);
   }
 }

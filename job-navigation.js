@@ -22,7 +22,7 @@ export function initJobNavigation(root = document, navigate = href => location.a
     if (!destination || destination.hasAttribute('download') || (destination.target && destination.target !== '_self')) return;
     let url;
     try { url = new URL(destination.getAttribute('href'), location.origin); } catch { return; }
-    if (url.origin !== location.origin || !/^\/(?:job\/|jobs\/)[^/]+\/?$/.test(url.pathname)) return;
+    if (url.origin !== location.origin || !/^\/(?:job\/|jobs\/|employer\/)[^/]+\/?$/.test(url.pathname)) return;
     if (card && String(globalThis.getSelection?.() || '').trim()) return;
     event.preventDefault();
     event.stopImmediatePropagation();

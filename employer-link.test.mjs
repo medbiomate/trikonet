@@ -7,3 +7,5 @@ test('uses saved profile URL or slug before company name fallback', () => {
   assert.equal(employerProfileHref({employerUrl:'https://trikonet.com/employer/actual-profile/'}),'/employer/actual-profile/');
   assert.equal(employerProfileHref({employerUrl:'javascript:alert(1)',company:'NMC Healthcare'}),'/employer/nmc-healthcare');
 });
+
+test('resolved employer identity overrides stale URL metadata',()=>{assert.equal(employerProfileHref({employerSlug:'dr-scent',employerUrl:'/employer/wrong'}),'/employer/dr-scent');});

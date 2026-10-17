@@ -16,9 +16,11 @@ test('a plain first click navigates once before a downstream click interceptor',
 test('clicking the job card background opens the job on the first click',()=>{
  const f=fixture({card:true});try{f.root.click(f.event);assert.equal(f.calls.length,1);}finally{f.restore();}
 });
-for(const options of [{href:'https://other.com/jobs/sample'},{href:'/employer/company'},{target:'_blank'},{card:true,interactive:true}])test(`preserves unrelated controls ${JSON.stringify(options)}`,()=>{
+for(const options of [{href:'https://other.com/jobs/sample'},{target:'_blank'},{card:true,interactive:true}])test(`preserves unrelated controls ${JSON.stringify(options)}`,()=>{
  const f=fixture(options);try{f.root.click(f.event);assert.equal(f.calls.length,0);assert.ok(!f.event.prevented);}finally{f.restore();}
 });
 for(const override of [{ctrlKey:true},{metaKey:true},{shiftKey:true},{altKey:true},{button:1},{defaultPrevented:true}])test(`browser controls modified clicks ${JSON.stringify(override)}`,()=>{
  const f=fixture();try{f.root.click({...f.event,...override});assert.equal(f.calls.length,0);}finally{f.restore();}
 });
+
+test('company profile click navigates before ad click handlers',()=>{const f=fixture({href:'/employer/dr-scent'});try{f.root.click(f.event);assert.deepEqual(f.calls,['https://trikonet.com/employer/dr-scent']);}finally{f.restore();}});
