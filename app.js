@@ -489,7 +489,10 @@ async function loadLocalJobs(){
       const val=queryParams.get(key);
       if(val&&val!=='Country or City'&&val!=='All Categories')filters.set(key,val);
     }
-    const fetchPromises = [Promise.resolve(null),fetch('/api/local/jobs'),fetch('/api/local/employers')];
+    const searchTerm=queryParams.get('q')||(path==='/nurse-jobs-in-uae'?'nurse':'');
+    const localParams=new URLSearchParams({summary:'1'});
+    if(searchTerm)localParams.set('q',searchTerm);
+    const fetchPromises = [Promise.resolve(null),fetch(`/api/local/jobs?${localParams}`),fetch('/api/local/employers')];
     const results = await Promise.all(fetchPromises);
 
     const local = (results[1] && results[1].ok) ? await results[1].json() : [];
@@ -498,7 +501,7 @@ async function loadLocalJobs(){
     const normalizedQuery=String(qTerm||'').trim().toLowerCase();
     const queryWords=[...new Set(normalizedQuery.split(/\s+/).filter(Boolean))];
     const localSearchText=job=>[
-      job.title,job.company,job.description,job.content?.rendered||job.content,job.excerpt?.rendered||job.excerpt,
+      job.title,job.company,job.searchText,job.description,job.content?.rendered||job.content,job.excerpt?.rendered||job.excerpt,
       ...(job.categories||[]),...(job.locations||[]),...(job.types||[]),...(job.tags||[]),...(job.skills||[]),
       ...Object.values(job.metas||{}).flatMap(value=>typeof value==='object'&&value?Object.values(value):[value])
     ].filter(Boolean).join(' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').toLowerCase();
