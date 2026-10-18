@@ -3934,8 +3934,8 @@ function addStructuredData(){
   else if(path==='/contact')pageType='ContactPage';
   else if((path==='/jobs'||path==='/job-list'||path==='/job-openings')&&queryParams.toString())pageType='SearchResultsPage';
   else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/employers'||path==='/blog'||/^\/(category|location|designation)\//.test(path))pageType='CollectionPage';
-  else if(path.startsWith('/employer/')||path.startsWith('/author/')||path.startsWith('/profile/'))pageType='ProfilePage';
-  graph.push({'@type':pageType,'@id':pageId,url:currentUrl,name:pageName,isPartOf:{'@id':siteId},about:{'@id':orgId}});
+  else if(path.startsWith('/employer/')||path.startsWith('/author/'))pageType='ProfilePage';
+  graph.push({'@type':pageType,'@id':pageId,url:currentUrl,name:pageName,isPartOf:{'@id':siteId},about:{'@id':orgId},...(pageType==='ProfilePage'?{mainEntity:{'@id':`${currentUrl}${path.startsWith('/employer/')?'#profile':'#person'}`}}:{})});
   const parts=location.pathname.split('/').filter(Boolean);
   if(parts.length){
     const items=[{'@type':'ListItem',position:1,name:'Trikonet',item:`${origin}/`}];
