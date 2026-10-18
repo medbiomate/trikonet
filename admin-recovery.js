@@ -3,7 +3,7 @@ export function createFormRecovery(form, type, account) {
   let key, dirty = false, restoring = false, timer, pending, draftId, sourceSlug = '';
   // Never reuse another tab's new-job recovery identity (including duplicated tabs).
   const newDraftScope = crypto.randomUUID();
-  let generation = 0, paused = false;
+  let generation = 0, paused = false, autosaveController;
   let editingSlug = '';
   let jobId = '';
   function setJobId(id) {
@@ -41,9 +41,11 @@ export function createFormRecovery(form, type, account) {
     const snapshotKey = key, snapshotId = draftId, snapshotSlug = sourceSlug, snapshotGeneration = generation;
     const data = record();
     if (!data.title.trim() && !data.description.trim()) return;
+    autosaveController = new AbortController();
+    const timeout=setTimeout(()=>autosaveController?.abort(),8000);
     pending = (async () => {
       try {
-        const response = await fetch('/api/admin/autosave', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type,draftId:snapshotId,sourceSlug:snapshotSlug,record:{...data,id:jobId || snapshotId}}) });
+        const response = await fetch('/api/admin/autosave', { method: 'POST', signal:autosaveController.signal, credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type,draftId:snapshotId,sourceSlug:snapshotSlug,record:{...data,id:jobId || snapshotId}}) });
         if (!response.ok) throw new Error('Draft sync failed');
         const saved = await response.json();
         if (generation === snapshotGeneration && key === snapshotKey && !saved.skipped) {
@@ -54,7 +56,7 @@ export function createFormRecovery(form, type, account) {
           if (type === 'job' && form.elements.originalSlug) form.elements.originalSlug.value = saved.slug;
         }
       } catch { if (key === snapshotKey) notice.textContent = 'Draft saved on this device — waiting to sync. Not published.'; }
-      finally { pending = null; }
+      finally { clearTimeout(timeout);pending = null; }
     })();
     return pending;
   }
@@ -120,6 +122,7 @@ export function createFormRecovery(form, type, account) {
       notice.append(restore);
     },
     saved(job) { if (type === 'job') { setJobId(job.id); sourceSlug = job.slug; } },
+    async preparePublish() { paused=true;generation++;clearTimeout(timer);autosaveController?.abort();if(pending)await pending; },
     pause() { paused = true; clearTimeout(timer); },
     resume() { paused = false; if (dirty) save(); },
     async flush() { clearTimeout(timer); if (pending) await pending; await sync(); },

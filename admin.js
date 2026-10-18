@@ -3,7 +3,7 @@ import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-r
 import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
-import { createFormRecovery } from './admin-recovery.js?v=20261018-release-14';
+import { createFormRecovery } from './admin-recovery.js?v=20261018-publish-timeout-29';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -7150,8 +7150,9 @@ export async function initAdmin() {
     const submitButtons = [document.getElementById('publish-job-btn'), document.getElementById('save-draft-btn')].filter(Boolean);
     submitButtons.forEach(button => { button.disabled = true; });
     try {
-    await jobRecovery.flush();
-    jobRecovery.pause();
+    jobStatusState.textContent = 'Saving job…';
+    showJobPublishFeedback('Saving job…','saving');
+    await jobRecovery.preparePublish();
     e.preventDefault();
     jobStatusState.textContent = 'Saving…';
     const fd = new FormData(jobForm);
@@ -7244,6 +7245,7 @@ export async function initAdmin() {
     try {
       const response = await fetch('/api/local/jobs', {
         method: 'POST',
+        signal:AbortSignal.timeout(30000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(job)
       });
@@ -7264,7 +7266,7 @@ export async function initAdmin() {
       updateJobPreview();
       renderJobRows();
     } catch (error) {
-      const message = error?.message || 'Could not save the job.';
+      const message = error?.name==='TimeoutError'||error?.name==='AbortError'?'The server is taking too long. Your content is still here. Check All Jobs before retrying to avoid duplicates.':error?.message || 'Could not save the job.';
       jobStatusState.textContent = message;
       showAdminNotice(message, 'error');
     } finally {
