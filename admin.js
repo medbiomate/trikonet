@@ -3803,11 +3803,13 @@ export async function initAdmin() {
   const categorySearch=document.querySelector('#view-job-editor [data-search-checklist="categories"]');categorySearch?.before(categorySelection);
   function refreshSelectedJobCategories(){
     categorySelection.replaceChildren();
+    const heading=document.createElement('strong');heading.textContent='Selected categories';categorySelection.append(heading);
     const checked=[...document.querySelectorAll('#checklist-categories input[name="categories"]:checked')];
     if(!checked.length){const empty=document.createElement('small');empty.textContent='No categories selected';categorySelection.append(empty);return;}
     checked.forEach(box=>{const chip=document.createElement('button');chip.type='button';chip.textContent=box.value.replace(/&amp;/g,'&')+' ×';chip.setAttribute('aria-label',`Remove category ${box.value}`);chip.onclick=()=>{box.checked=false;box.dispatchEvent(new Event('change',{bubbles:true}));};categorySelection.append(chip);});
   }
   document.getElementById('checklist-categories')?.addEventListener('change',refreshSelectedJobCategories);
+  document.addEventListener('change',event=>{if(event.target.matches('#checklist-categories input[type=checkbox]'))refreshSelectedJobCategories();},true);
   const categoryList=document.getElementById('checklist-categories');
   if(categoryList)new MutationObserver(refreshSelectedJobCategories).observe(categoryList,{childList:true,subtree:true});
   refreshSelectedJobCategories();
