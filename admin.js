@@ -4906,6 +4906,34 @@ export async function initAdmin() {
     }
   }
 
+  const importHost=document.createElement('div');
+  importHost.className='job-link-import';
+  importHost.innerHTML='<label for="job-import-url">Import from a job link</label><div><input id="job-import-url" type="url" placeholder="https://company.com/careers/job"><button type="button" id="job-import-button">Import details</button></div><p id="job-import-status" role="status">Paste a link to a single job. Review the extracted details before publishing.</p>';
+  document.querySelector('#view-job-editor .modern-editor-container')?.prepend(importHost);
+  document.getElementById('job-import-button')?.addEventListener('click',async()=>{
+    const input=document.getElementById('job-import-url'),button=document.getElementById('job-import-button'),status=document.getElementById('job-import-status');
+    if(!input.value||!input.reportValidity())return;
+    const hasContent=Boolean(document.getElementById('job-gutenberg-title')?.value?.trim()||(document.getElementById('job-gutenberg-content')?.value||document.getElementById('job-rich-content')?.textContent||'').trim());
+    if(hasContent&&!confirm('Replace this job’s current details with the imported information?'))return;
+    button.disabled=true;status.textContent='Reading job details…';
+    try{
+      const response=await fetch('/api/admin/import-job-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:input.value})});
+      const raw=await response.text();let result;try{result=JSON.parse(raw);}catch{throw Error('Import service is unavailable. Restart the local server and try again.');}if(!response.ok)throw Error(result.error||'Import failed');
+      const identity={id:jobForm.elements.namedItem('id')?.value||'',slug:jobForm.elements.namedItem('slug')?.value||'',status:'draft'};
+      const originalSlug=jobForm.elements.namedItem('originalSlug')?.value||'';
+      fillJob({...result.job,...identity});jobForm.elements.namedItem('originalSlug').value=originalSlug;
+      const normalize=value=>String(value||'').toLowerCase().replace(/&amp;/g,'&').replace(/\bjobs?\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+      const category=normalize(result.job.category),title=normalize(result.job.title);
+      const boxes=[...document.querySelectorAll('#view-job-editor input[name="categories"]')];
+      const matches=boxes.map(box=>({box,name:normalize(box.value)})).filter(item=>item.name&&(item.name===category||item.name===title||title.includes(item.name)));
+      const selected=matches.sort((a,b)=>b.name.length-a.name.length)[0];
+      if(selected){selected.box.checked=true;selected.box.dispatchEvent(new Event('change',{bubbles:true}));}
+
+      jobForm.dispatchEvent(new Event('input',{bubbles:true}));
+      status.textContent='Details imported. '+(selected?'Category matched. ':'Choose the closest category. ')+(result.job.minSalary?'':'Salary was not disclosed. ')+'Review missing fields before publishing.';
+    }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+  });
+
   function fillJob(job = {}) {
     queueMicrotask(() => jobRecovery.open(job.slug || '', job.id || ''));
     jobForm.reset();
