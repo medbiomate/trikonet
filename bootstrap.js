@@ -3,6 +3,7 @@ initJobNavigation();
 // A failed module or stalled request must never leave the full-page loader open.
 export function showLoadingRecovery(error) {
   console.warn('Trikonet page initialization interrupted:', error);
+  globalThis.window?.dispatchEvent?.(new Event('trikonet:failed'));
   const app = document.getElementById('app');
   const serverJob = app?.hasAttribute('data-server-rendered') || app?.querySelector('[data-loading-shell]');
   if (!serverJob && app) {
