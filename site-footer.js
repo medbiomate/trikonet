@@ -122,6 +122,7 @@ function footerQuickBar() {
         <a href="/privacy-policy">Privacy Policy</a>
         <span class="footer-quick-sep">|</span>
         <a href="/terms">Terms of Service</a>
+        <a href="/employer-terms">Employer Terms</a>
       </div>
     </div>
   </div>`;

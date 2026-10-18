@@ -4,6 +4,24 @@ const email = '<a href="mailto:info@trikonet.com">info@trikonet.com</a>';
 const section = (title, ...paragraphs) => ({ title, paragraphs });
 
 export const legalPages = {
+  '/employer-terms': {
+    title: 'Employer Terms',
+    updated: '18 October 2026',
+    description: 'Terms for employers and authorized recruiters submitting company profiles, logos and job vacancies to Trikonet.',
+    sections: [
+      section('Scope and acceptance', 'These Employer Terms apply to employers and recruiters who expressly accept them when submitting or managing content on Trikonet, operated by Second Tales Solutions LLP. They supplement our <a href="/terms">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>. Merely visiting this page does not constitute acceptance. These terms do not retroactively establish permission for earlier submissions.'),
+      section('Authority to represent an employer', 'You must be authorized to act for the employer or organization you identify. Provide accurate company and contact information, maintain account security, and do not impersonate another organization. Trikonet may request evidence of your identity, business relationship or authority before publishing or retaining content.'),
+      section('Ownership and content permissions', 'You retain ownership of the material you submit. You confirm that you own or have sufficient permission to submit job descriptions, company names, logos, photographs and other materials, and to grant the licence below. Do not upload material taken from another website or job platform unless its terms or the rights holder permit this use.'),
+      section('Licence to display submitted content', 'For content you submit under these terms, you grant Trikonet a non-exclusive, worldwide, royalty-free licence to host, store, reproduce, display and distribute that content through the Trikonet website and mobile applications for job discovery, employer profiles and related services. Trikonet may resize, compress, crop or format logos and content for presentation without materially misrepresenting your organization. Necessary hosting and technical providers may process the content on our behalf. This licence does not transfer ownership or authorize unrelated merchandise or advertising endorsements.'),
+      section('Job listing requirements', 'Publish genuine, current vacancies with accurate role requirements, location, compensation information where supplied, and application instructions. Do not publish fraudulent, discriminatory or unlawful offers, misrepresent employment terms, or request fees or sensitive financial credentials from applicants. Remove or update vacancies that are filled or withdrawn. You are responsible for applicable employment and recruitment requirements and any licences required for your own services.'),
+      section('Applicant information', 'Use applicant information only for legitimate recruitment purposes consistent with the applicant’s expectations, applicable law and any required consent. Protect resumes and contact details, restrict access, and do not sell applicant data or send unrelated marketing. Employer application sites and communications may have their own privacy notices; provide them where required.'),
+      section('Review, corrections and removal', 'Trikonet may review, decline, correct formatting, restrict or remove content that is inaccurate, unauthorized, expired or contrary to these terms. Publication does not imply endorsement, verification of every claim, or a guarantee of applicants or hiring results. Contact <a href="mailto:info@trikonet.com">info@trikonet.com</a> to correct content, withdraw display permission or report unauthorized use. Identify the content URL and your relationship to the rights holder. Withdrawal ends future display following processing; limited backups and records may be retained as required for security, disputes or legal obligations.'),
+      section('Acceptance records and changes', 'Where acceptance is collected, Trikonet may keep the employer account identifier, acceptance time and applicable terms version as evidence. Updated terms will state their revision date. Material changes to permission scope require appropriate notice and renewed acceptance where required; a new page alone does not prove prior employer consent.'),
+      section('Contact', 'For employer submissions, content rights and permission enquiries, contact <a href="mailto:info@trikonet.com">info@trikonet.com</a>. Include your company name, relevant listing or profile URL, and a description of the request.')
+    ]
+  },
+
+
   '/privacy-policy': {
     title: 'Privacy Policy',
     description: 'How Trikonet handles account, career profile, resume, advertising and job-search information.',
@@ -46,7 +64,7 @@ export function legalPageForPath(path) {
 }
 
 export function renderLegalContent(page) {
-  return `<main class="legal-main"><p class="legal-eyebrow">TRIKONET · WEBSITE & APP</p><h1>${page.title}</h1><p class="legal-date">Last updated: 11 October 2026</p><p class="legal-intro">${page.description}</p><nav class="legal-toc" aria-label="On this page"><strong>On this page</strong>${page.sections.map((s, i) => `<a href="#legal-section-${i + 1}">${s.title}</a>`).join('')}</nav><article>${page.sections.map((s, i) => `<section id="legal-section-${i + 1}"><h2>${s.title}</h2>${s.paragraphs.map(p => `<p>${p}</p>`).join('')}</section>`).join('')}</article><aside class="legal-contact"><h2>Need help?</h2><p>Email ${email} with questions about your account or these policies.</p></aside></main>`;
+  return `<main class="legal-main"><p class="legal-eyebrow">TRIKONET · WEBSITE & APP</p><h1>${page.title}</h1><p class="legal-date">Last updated: ${page.updated || '11 October 2026'}</p><p class="legal-intro">${page.description}</p><nav class="legal-toc" aria-label="On this page"><strong>On this page</strong>${page.sections.map((s, i) => `<a href="#legal-section-${i + 1}">${s.title}</a>`).join('')}</nav><article>${page.sections.map((s, i) => `<section id="legal-section-${i + 1}"><h2>${s.title}</h2>${s.paragraphs.map(p => `<p>${p}</p>`).join('')}</section>`).join('')}</article><aside class="legal-contact"><h2>Need help?</h2><p>Email ${email} with questions about your account or these policies.</p></aside></main>`;
 }
 
 export const legalStyles = `
