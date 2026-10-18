@@ -39,7 +39,7 @@ export async function initGoogleSignIn() {
           if (!response.ok) throw new Error(result.error || 'Google sign-in failed. Please try again.');
           const requested = new URLSearchParams(location.search).get('redirect');
           const target = requested ? new URL(requested, location.origin) : null;
-          location.href = target?.origin === location.origin ? target.href : '/';
+          location.href = '/profile';
         } catch (error) {
           message(error.message || 'Connection error. Please try again.', true);
           submitting = false;

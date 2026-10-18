@@ -5,7 +5,7 @@ import { loadContentRecord } from './content-record.js';
 import { renderSiteHeader } from './site-header.js';
 import { renderSiteFooter } from './site-footer.js';
 import { revealPage } from './page-ready.js?v=20261018-ready';
-import { initGoogleSignIn } from './google-sign-in.js';
+import { initGoogleSignIn } from './google-sign-in.js?v=20261018-profile-welcome-30';
 import { publicJobPath } from './job-urls.js';
 import {publicJobPage} from './public-job-page.js';
 import { uniqueJobs } from './job-list-identity.js';
@@ -3547,7 +3547,7 @@ const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resum
 let homeContentReady;
 const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : [loadAccount(),loadSeoPages()];
 if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile'].includes(path)) {
-  initialLoads.push(import('./website-profile.js?v=20261018-release-14').then(({ createCandidateProfile }) => {
+  initialLoads.push(import('./website-profile.js?v=20261018-profile-welcome-30').then(({ createCandidateProfile }) => {
     ({ candidateProfileWorkspace, initCandidateProfile } = createCandidateProfile({
       getCurrentUser: () => currentUser, escapeAttr, calculateCandidateCompletion
     }));
@@ -4126,7 +4126,7 @@ async function submitAuth(form,endpoint){
       message.textContent=endpoint.includes('register')?'Account created successfully! Redirecting…':'Welcome back! Redirecting…';
     }
     const requestedRedirect=new URLSearchParams(location.search).get('redirect');
-    const safeRedirect=requestedRedirect&&requestedRedirect.startsWith('/')&&!requestedRedirect.startsWith('//')?requestedRedirect:'/';
+    const safeRedirect='/profile';
     setTimeout(()=>{location.href=safeRedirect},500);
   }catch(err){
     if(message){
