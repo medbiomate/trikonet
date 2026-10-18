@@ -4541,6 +4541,25 @@ export async function initAdmin() {
     }
   }
 
+  let employerAddressRequest=0;
+  async function applySavedEmployerAddress(company,slug){
+    const request=++employerAddressRequest;
+    const fields=['streetAddress','addressLocality','addressRegion','addressCountry','postalCode','address'];
+    const before=Object.fromEntries(fields.map(key=>[key,jobForm.elements.namedItem(key)?.value||'']));
+    try{
+      const response=await fetch(`/api/admin/employer-job-address?${new URLSearchParams({company,slug})}`,{cache:'no-store'});
+      if(!response.ok)return;const result=await response.json();
+      if(request!==employerAddressRequest||document.getElementById('field-employer-company-value')?.value!==company||!result.address)return;
+      // Do not overwrite source/imported addresses or manual changes made while loading.
+      let filled=false;
+      for(const key of fields){const field=jobForm.elements.namedItem(key);const value=result.address[key];if(!field||!value||field.value!==before[key])continue;if(field.value&&field.dataset.employerAddressAuto!=='true'&&!(key==='addressCountry'&&field.value==='AE'))continue;
+        if(field.tagName==='SELECT'&&!Array.from(field.options).some(option=>option.value===value))field.add(new Option(value,value));
+        field.value=value;field.dataset.employerAddressAuto='true';field.dispatchEvent(new Event('change',{bubbles:true}));filled=true;
+      }
+      if(filled)showAdminNotice('Company address loaded from '+result.source+'. You can edit it for this job.');
+    }catch{}
+  }
+  jobForm.addEventListener('input',event=>{if(event.target.dataset)delete event.target.dataset.employerAddressAuto;});
   function selectEmployerOption(title, logoUrl = '', slug = '', triggerPreview = true) {
     const hiddenVal = document.getElementById('field-employer-company-value');
     const select = document.getElementById('field-employer-author');
@@ -4600,7 +4619,7 @@ export async function initAdmin() {
     }
 
     renderEmployerComboboxItems('');
-    if (triggerPreview) updateJobPreview();
+    if (triggerPreview) {updateJobPreview();if(title)void applySavedEmployerAddress(title,slug);else employerAddressRequest++;}
   }
 
   // Setup Combobox Events
