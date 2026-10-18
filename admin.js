@@ -1,4 +1,4 @@
-import {matchImportedEmployer} from './job-import-matching.js?v=20261018-21';
+import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
 import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
 import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
@@ -3799,6 +3799,18 @@ export async function initAdmin() {
   const jobForm = document.querySelector('#admin-job-form');
   const jobRows = document.querySelector('#admin-job-rows');
   const jobStatusState = document.querySelector('#admin-save-state');
+  const categorySelection=document.createElement('div');categorySelection.className='job-selected-categories';categorySelection.setAttribute('aria-label','Selected job categories');
+  const categorySearch=document.querySelector('#view-job-editor [data-search-checklist="categories"]');categorySearch?.before(categorySelection);
+  function refreshSelectedJobCategories(){
+    categorySelection.replaceChildren();
+    const checked=[...document.querySelectorAll('#checklist-categories input[name="categories"]:checked')];
+    if(!checked.length){const empty=document.createElement('small');empty.textContent='No categories selected';categorySelection.append(empty);return;}
+    checked.forEach(box=>{const chip=document.createElement('button');chip.type='button';chip.textContent=box.value.replace(/&amp;/g,'&')+' ×';chip.setAttribute('aria-label',`Remove category ${box.value}`);chip.onclick=()=>{box.checked=false;box.dispatchEvent(new Event('change',{bubbles:true}));};categorySelection.append(chip);});
+  }
+  document.getElementById('checklist-categories')?.addEventListener('change',refreshSelectedJobCategories);
+  const categoryList=document.getElementById('checklist-categories');
+  if(categoryList)new MutationObserver(refreshSelectedJobCategories).observe(categoryList,{childList:true,subtree:true});
+  refreshSelectedJobCategories();
   const publishFeedback=document.createElement('div');
   publishFeedback.className='job-publish-feedback';publishFeedback.hidden=true;
   publishFeedback.setAttribute('role','status');publishFeedback.setAttribute('aria-live','polite');
@@ -4928,17 +4940,24 @@ export async function initAdmin() {
   const importHost=document.createElement('div');
   importHost.className='job-link-import';
   importHost.innerHTML='<label for="job-import-url">Import from a job link</label><div><input id="job-import-url" type="url" placeholder="https://company.com/careers/job"><button type="button" id="job-import-button">Import details</button></div><p id="job-import-status" role="status">Paste a link to a single job. Review the extracted details before publishing.</p>';
+  const pasteOption=document.createElement('details');pasteOption.className='job-import-paste';
+  pasteOption.innerHTML='<summary>LinkedIn blocked? Paste job text</summary><p>Copy the job title as the first line, followed by the full description. Employer selection remains manual.</p><textarea id="job-import-text" rows="7" placeholder="Job title\nPaste the job description, requirements and salary here…" aria-label="Job text to import"></textarea>';
+  importHost.append(pasteOption);
   document.querySelector('#view-job-editor .modern-editor-container')?.prepend(importHost);
   document.getElementById('job-import-button')?.addEventListener('click',async()=>{
     const input=document.getElementById('job-import-url'),button=document.getElementById('job-import-button'),status=document.getElementById('job-import-status');
-    if(!input.value||!input.reportValidity())return;
+    const pastedText=document.getElementById('job-import-text')?.value.trim()||'';
+    if(!pastedText&&(!input.value||!input.reportValidity()))return;
+    if(input.value&&!input.reportValidity())return;
     const hasContent=Boolean(document.getElementById('job-gutenberg-title')?.value?.trim()||(document.getElementById('job-gutenberg-content')?.value||document.getElementById('job-rich-content')?.textContent||'').trim());
     if(hasContent&&!confirm('Replace this job’s current details with the imported information?'))return;
-    button.disabled=true;status.textContent='Reading job details…';
+    button.disabled=true;status.textContent=pastedText?'Reading pasted job details…':'Reading job details…';
     try{
-      const response=await fetch('/api/admin/import-job-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:input.value})});
+      const response=await fetch('/api/admin/import-job-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:input.value,text:pastedText})});
       const raw=await response.text();let result;try{result=JSON.parse(raw);}catch{throw Error('Import service is unavailable. Restart the local server and try again.');}if(!response.ok)throw Error(result.error||'Import failed');
-      const employer=matchImportedEmployer(result.job.company,allEmployers());
+      const importedCompany=result.job.company;
+      const employer=matchImportedEmployer(importedCompany,allEmployers());
+      if(!employer)Object.assign(result.job,{company:'',employerSlug:'',logo:''});
       if(employer)Object.assign(result.job,{company:employer.title,employerSlug:employer.slug,employerUrl:`/employer/${employer.slug}`,logo:employer.logo||''});
       result.job.experience ||= 'Relevant experience required';
       const identity={id:jobForm.elements.namedItem('id')?.value||'',slug:jobForm.elements.namedItem('slug')?.value||'',status:'draft'};
@@ -4953,7 +4972,7 @@ export async function initAdmin() {
       if(selected){selected.box.checked=true;selected.box.dispatchEvent(new Event('change',{bubbles:true}));}
 
       jobForm.dispatchEvent(new Event('input',{bubbles:true}));
-      status.textContent='Details imported. '+(selected?'Category matched. ':'Choose the closest category. ')+(result.job.minSalary?'':'Salary was not disclosed. ')+'Review missing fields before publishing.';
+      status.textContent='Details imported. '+(employer?'Existing employer selected. ':`Select an existing employer for ${importedCompany||'this job'}. `)+(selected?'Category matched. ':'Choose the closest category. ')+(result.job.minSalary?'':'Salary was not disclosed. ')+'Review missing fields before publishing.';
     }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
   });
 
@@ -5041,6 +5060,7 @@ export async function initAdmin() {
     const urgentToggle = document.getElementById('field-urgent');
     if (urgentToggle) urgentToggle.checked = !!job.urgent;
 
+    queueMicrotask(refreshSelectedJobCategories);
     // Checkboxes in Gutenberg sidebar
     ['types', 'categories', 'locations', 'tags'].forEach(taxKey => {
       const vals = Array.isArray(job[taxKey]) ? job[taxKey] : [];
