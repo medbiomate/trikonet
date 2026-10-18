@@ -10,7 +10,7 @@ import {logoFor,socialHead} from './social-preview.js';
 import { isPrivatePage, isPublishedRecord, isPublicAppRoute, canonicalPageUrl } from './indexing-policy.js';
 import http from 'node:http';
 import { readFile, stat, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
@@ -159,8 +159,8 @@ function dataUrlBytes(value) {
   return Math.max(0, Math.floor(match[1].length * 3 / 4) - (match[1].endsWith('==') ? 2 : match[1].endsWith('=') ? 1 : 0));
 }
 
-const legacyRedirects = JSON.parse(await readFile(join(root,'legacy-redirects.json'),'utf8'));
-const migrationTaxonomies = await loadData('taxonomies.json') || {};
+const legacyRedirects = JSON.parse(readFileSync(join(root,'legacy-redirects.json'),'utf8'));
+const migrationTaxonomies = (()=>{try{return JSON.parse(readFileSync(join(dataDir,'taxonomies.json'),'utf8'));}catch{return {};}})();
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
