@@ -28,6 +28,7 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
     if(req.url.startsWith('/api/local/jobs/'))return res.end(JSON.stringify(job));
 
     if(req.url==='/sitemap-seo-job-pages.xml'){res.setHeader('Content-Type','application/xml');return res.end('<urlset><url><loc>https://www.trikonet.com/nurse-jobs-in-dubai</loc></url></urlset>');}
+    if(req.url.includes('/missing-page')){res.writeHead(404);return res.end('{}');}
     if(req.url.includes('/draft-page')){res.writeHead(404);return res.end(JSON.stringify({seoPage:true}));}
     if(req.url.includes('/unavailable-page')){res.writeHead(503);return res.end(JSON.stringify({error:'Unavailable'}));}
     if(req.url.includes('/noindex-page'))return res.end(JSON.stringify({page:{...page,slug:'noindex-page',indexingStatus:'Noindex'},jobs:[],total:0,links:[]}));
@@ -46,7 +47,7 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
     const noindex=await fetch(`${origin}/noindex-page`);assert.equal(noindex.status,200);assert.equal(noindex.headers.get('x-robots-tag'),'noindex,follow');
     assert.match(await noindex.text(),/name="robots" content="noindex,follow"/);
     const draft=await fetch(`${origin}/draft-page`);assert.equal(draft.status,404);assert.equal(draft.headers.get('x-robots-tag'),'noindex');
-    const unavailable=await fetch(`${origin}/unavailable-page`);assert.equal(unavailable.status,503);assert.equal(unavailable.headers.get('x-robots-tag'),'noindex');
+    const unavailable=await fetch(`${origin}/unavailable-page`);assert.equal(unavailable.status,503);assert.equal(unavailable.headers.get('retry-after'),'120');assert.equal(unavailable.headers.get('x-robots-tag'),null);
     const migrated=await fetch(`${origin}/job/old-accountant`,{redirect:'manual'});
     assert.equal(migrated.status,301);assert.equal(migrated.headers.get('location'),'/jobs/accountant-dubai-company-18345');
     const clean=await fetch(`${origin}/jobs/accountant-dubai-company-18345`);
@@ -56,6 +57,17 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
     const embedded = cleanHtml.match(/<script id="public-content-data" type="application\/json">([\s\S]*?)<\/script>/);
     assert.ok(embedded);assert.equal(JSON.parse(embedded[1]).title,'Accountant');
     assert.equal((await fetch(`${origin}/jobs/missing-999`)).status,404);
+    assert.equal((await fetch(`${origin}/missing-page`)).status,404);
+    const legacyMap=await fetch(`${origin}/sitemap_index.xml`,{redirect:'manual'});
+    assert.equal(legacyMap.status,301);assert.equal(legacyMap.headers.get('location'),'/sitemap.xml');
+    const home=await fetch(`${origin}/`);const homeHtml=await home.text();
+    assert.match(homeHtml,/media="print" onload="this.media='all'" href="\/detail.css/);
+    assert.match(homeHtml,/hero-team-640.webp/);
+    assert.equal((await fetch(`${origin}/unknown/nested/path`)).status,404);
+    const employers=await fetch(`${origin}/employers?page=2&utm_source=test`);
+    assert.match(await employers.text(),/rel="canonical" href="https:\/\/www.trikonet.com\/employers\?page=2"/);
+    const alias=await fetch(`${origin}/job-list?q=nurse`,{redirect:'manual'});
+    assert.equal(alias.status,301);assert.equal(alias.headers.get('location'),'/jobs?q=nurse');
     const sitemap=await fetch(`${origin}/sitemap-seo-job-pages.xml`);assert.equal(sitemap.status,200);assert.match(await sitemap.text(),/nurse-jobs-in-dubai/);
   } finally {child.kill();await new Promise(resolve=>api.close(resolve));}
 });

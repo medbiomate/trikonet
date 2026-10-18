@@ -1,10 +1,11 @@
+import { reconcileJobSitemap, cleanSitemapIndex } from './sitemap-policy.js';
 import {injectInitialJobs} from './job-list-ssr.mjs';
 import {initialPage} from './initial-page.mjs';
 import { injectInitialJob } from './job-ssr.mjs';
 import { loadContentRecord, fetchContentResponse } from './content-record.js';
 import { sendAsset } from './asset-response.mjs';
 import {logoFor,socialHead} from './social-preview.js';
-import { isPrivatePage, isPublishedRecord } from './indexing-policy.js';
+import { isPrivatePage, isPublishedRecord, isPublicAppRoute, canonicalPageUrl } from './indexing-policy.js';
 import http from 'node:http';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -158,7 +159,16 @@ function dataUrlBytes(value) {
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  let path = decodeURIComponent(requestUrl.pathname);
+  let path;
+  try { path = decodeURIComponent(requestUrl.pathname); }
+  catch { res.writeHead(400, {'Content-Type':'text/plain'}); return res.end('Invalid URL'); }
+  if (path.length > 1 && path.endsWith('/') && !extname(path)) {
+    res.writeHead(301, {Location:requestUrl.pathname.replace(/\/+$/, '') + requestUrl.search});
+    return res.end();
+  }
+  if (['/job-list','/job-openings'].includes(path)) {
+    res.writeHead(301, {Location:'/jobs' + requestUrl.search}); return res.end();
+  }
   let resolvedJobUrl = null;
   // One production address; preserve the complete path and query string.
   // Do not redirect API, development or local requests.
@@ -1195,21 +1205,15 @@ const server = http.createServer(async (req, res) => {
         shareHead=socialHead(contentRecord,contentType,resolvedJobUrl?.publicPath || path,logo);
       }
 
-    } catch { res.writeHead(503, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
+    } catch { res.writeHead(503, {'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
   }
 
   if (['/sitemap-jobs.xml','/job_listing-sitemap.xml'].includes(path)) {
     try {
       const response = await fetchContentResponse(fetch, `${seoApiBase}/api/local/jobs`);
       if (!response.ok) throw new Error('Jobs unavailable');
-      const jobs = (await response.json()).filter(isPublishedRecord);
-      let xml = await readFile(join(root,path.slice(1)),'utf8');
-      const escapeXml = value => String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      for (const job of jobs) {
-        const canonical = `https://www.trikonet.com${job.publicPath || `/job/${job.slug}`}`;
-        for (const alias of job.urlAliases || []) xml = xml.split(`https://www.trikonet.com${alias}`).join(escapeXml(canonical));
-        if (!xml.includes(escapeXml(canonical))) xml = xml.replace('</urlset>', `<url><loc>${escapeXml(canonical)}</loc></url></urlset>`);
-      }
+      const jobs = await response.json();
+      const xml = reconcileJobSitemap(await readFile(join(root,path.slice(1)),'utf8'), jobs);
       res.writeHead(200,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'no-store'}); return res.end(xml);
     } catch { res.writeHead(503); return res.end('Sitemap temporarily unavailable'); }
   }
@@ -1229,18 +1233,18 @@ const server = http.createServer(async (req, res) => {
       const payload=await response.json();
       if(response.ok){
         let html=await readFile(join(root,'index.html'),'utf8');
-        html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page)+'</head>');
+        html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page,pageNumber)+'</head>');
         const content=renderSeoLanding(payload,pageNumber,payload.links || []);
         const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);
         if(start>=0&&end>start)html=html.slice(0,start)+`<style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none;background:#fff;color:#64748b;font:14px system-ui;z-index:10}</style><noscript><style>#app[data-seo-pending]{visibility:visible}#seo-loading{display:none!important}</style></noscript><div id="seo-loading" role="status" aria-label="Loading"></div><div id="app" data-seo-pending>${content}</div>`+html.slice(end);
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':payload.page.indexingStatus==='Noindex'?'noindex,follow':'index,follow'});
         return res.end(html);
       }
-      if(payload.seoPage){res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex'});return res.end('<h1>Page Not Found</h1>');}
-      if(response.status>=500){res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
-    }catch{res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
+      if(response.status===404){res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex'});return res.end('<h1>Page Not Found</h1>');}
+      if(response.status>=500){res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
+    }catch{res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
   }
-  if (path === '/sitmap.xml') {
+  if (['/sitmap.xml','/sitemap_index.xml','/wp-sitemap.xml'].includes(path)) {
     res.writeHead(301, { Location: '/sitemap.xml', 'Cache-Control': 'no-store' });
     return res.end();
   }
@@ -1256,7 +1260,11 @@ const server = http.createServer(async (req, res) => {
       target = join(target, 'index.html');
     }
   } catch {
-    // SPA fallback: Route all paths without extensions to index.html
+    // A successful SPA shell for an unknown URL is a soft 404.
+    if (!extname(path) && !contentType && !privatePage && !isPublicAppRoute(path)) {
+      res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
+      return res.end('<h1>Page Not Found</h1><p>This page is no longer available.</p><a href="/jobs">Browse current jobs</a>');
+    }
     if (!extname(path)) {
       target = join(root, 'index.html');
     }
@@ -1264,6 +1272,11 @@ const server = http.createServer(async (req, res) => {
 
   try {
     let fileBody = await readFile(target);
+    if (path === '/sitemap.xml') fileBody = cleanSitemapIndex(fileBody.toString());
+    if (path === '/' && target === join(root,'index.html')) {
+      const secondary = ['detail.css','employer-pagination.css','detail-exact.css','mobile-detail.css','article-slider.css','blog-post.css','description-typography.css'];
+      fileBody = fileBody.toString().replace(/<link rel="stylesheet" href="\/([^"?]+)([^"]*)">/g, (tag,name) => secondary.includes(name) ? tag.replace('rel="stylesheet"', 'rel="stylesheet" media="print" onload="this.media=\'all\'"') + `<noscript>${tag}</noscript>` : tag);
+    }
     if(target===join(root,'index.html') && path==='/job-categories'){
       try {
         const links=await getCategorySnapshot();
@@ -1303,6 +1316,10 @@ const server = http.createServer(async (req, res) => {
         .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${JOBS_SEO_DESCRIPTION}">`)
         .replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/jobs">');
     }
+    if (!shareHead && target === join(root,'index.html') && !privatePage) {
+      fileBody=fileBody.toString().replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi, '')
+        .replace('</head>', `<link rel="canonical" href="${canonicalPageUrl(path,requestUrl.searchParams).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"></head>`);
+    }
     if (shareHead && target === join(root,'index.html')) {
       fileBody=fileBody.toString().replace(/<title>[\s\S]*?<\/title>/gi,'').replace(/<meta[^>]+(?:name=["'](?:description|twitter:[^"']+)|property=["']og:[^"']+)["'][^>]*>/gi,'').replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi,'').replace('</head>',shareHead+'</head>');
     }
@@ -1315,6 +1332,7 @@ const server = http.createServer(async (req, res) => {
     }
     await sendAsset(req, res, fileBody, types[extname(target)] || 'application/octet-stream', {
       html: target === join(root, 'index.html'),
+      immutable: requestUrl.searchParams.has('v'),
       versioned: requestUrl.searchParams.has('v') || ['.png','.jpg','.jpeg','.webp','.gif','.avif','.svg','.mp4','.woff','.woff2'].includes(extname(target))
     });
   } catch {

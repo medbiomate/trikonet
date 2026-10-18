@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <link rel="modulepreload" href="/app.js?v=20261018-focused-profile-31">
+  <link rel="modulepreload" href="/app.js?v=20261019-seo-speed-20261018-focused-profile-31">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="preconnect" href="https://api.trikonet.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,7 +10,9 @@
   <script>
     if (location.pathname === '/' || location.pathname === '/index.html') {
       const preload = document.createElement('link');
-      preload.rel = 'preload'; preload.as = 'image'; preload.href = '/assets/hero-team.webp';
+      preload.rel = 'preload'; preload.as = 'image'; preload.href = '/assets/hero-team-1116.webp';
+      preload.imageSrcset = '/assets/hero-team-640.webp 640w, /assets/hero-team-1116.webp 1116w';
+      preload.imageSizes = '(max-width: 700px) 100vw, 720px';
       preload.fetchPriority = 'high'; document.head.append(preload);
     }
   </script>

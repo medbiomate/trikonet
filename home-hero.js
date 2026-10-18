@@ -81,7 +81,7 @@ export function renderHomeHero(s={}, {data, queryParams, customSelect}){
       </div>
 
       <div class="hero-minimal-image-wrap">
-        <img class="hero-minimal-image" src="/assets/hero-team.webp" fetchpriority="high" decoding="async" alt="Trikonet UAE Professionals Team" width="1116" height="542">
+        <img class="hero-minimal-image" src="/assets/hero-team-1116.webp" srcset="/assets/hero-team-640.webp 640w, /assets/hero-team-1116.webp 1116w" sizes="(max-width: 700px) 100vw, 720px" fetchpriority="high" decoding="async" alt="Trikonet UAE Professionals Team" width="1116" height="542">
       </div>
     </div>
   </section>`;

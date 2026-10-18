@@ -3887,7 +3887,7 @@ function applySavedSeoMeta(){
     description.content=JOBS_SEO_DESCRIPTION;
     let canonical=document.querySelector('link[rel="canonical"]');
     if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical);}
-    canonical.href=`${SITE_ORIGIN}/jobs`;
+    canonical.href=`${SITE_ORIGIN}/jobs${Number(queryParams.get('page'))>1?`?page=${Math.floor(Number(queryParams.get('page')))}`:''}`;
     return;
   }
   if(seoPagePayload){
@@ -3896,7 +3896,7 @@ function applySavedSeoMeta(){
     for(const [name,value] of [['description',page.metaDescription || ''],['robots',page.indexingStatus==='Noindex'?'noindex,follow':'index,follow']]){
       let meta=document.querySelector(`meta[name="${name}"]`);if(!meta){meta=document.createElement('meta');meta.name=name;document.head.append(meta);}meta.content=value;
     }
-    let canonical=document.querySelector('link[rel="canonical"]');if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical);}canonical.href=`${SITE_ORIGIN}/${page.slug}`;
+    let canonical=document.querySelector('link[rel="canonical"]');if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical);}canonical.href=`${SITE_ORIGIN}/${page.slug}${Number(queryParams.get('page'))>1?`?page=${Math.floor(Number(queryParams.get('page')))}`:''}`;
     return;
   }
   try{

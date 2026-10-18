@@ -7,7 +7,7 @@ const pendingVariants = new Map();
 let cachedBytes = 0;
 const MAX_CACHE_BYTES = 16 * 1024 * 1024;
 
-export async function sendAsset(req, res, body, contentType, { html = false, versioned = false } = {}) {
+export async function sendAsset(req, res, body, contentType, { html = false, versioned = false, immutable = false } = {}) {
   const bytes = Buffer.isBuffer(body) ? body : Buffer.from(body);
   const digest = createHash('sha256').update(bytes).digest('base64url');
   const compressible = /^(text\/|application\/(javascript|json|xml))/.test(contentType) && bytes.length > 1024;
@@ -21,7 +21,7 @@ export async function sendAsset(req, res, body, contentType, { html = false, ver
   const etag = `"${digest}-${encoding || 'identity'}"`;
   const headers = {
     'Content-Type': contentType,
-    'Cache-Control': html ? 'no-cache' : versioned ? 'public, max-age=86400' : 'public, max-age=0, must-revalidate',
+    'Cache-Control': html ? 'no-cache' : immutable ? 'public, max-age=31536000, immutable' : versioned ? 'public, max-age=86400' : 'public, max-age=0, must-revalidate',
     'ETag': etag,
     'Vary': 'Accept-Encoding',
     'X-Content-Type-Options': 'nosniff'
