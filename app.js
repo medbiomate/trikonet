@@ -1,3 +1,4 @@
+import {isClosedJob} from './job-availability.js';
 import {renderHomeHero} from './home-hero.js';
 import {initDisplayAds} from './display-ads.js?v=20261018-fixed-slots';
 import { protectJobNavigation } from './job-navigation.js';
@@ -416,11 +417,7 @@ export function resolveJobDeadline(record) {
     const formatted = formatJobDate(explicit);
     if (formatted) return formatted;
   }
-  const base = resolveJobDate(record) || record.publishedDate || record.date || new Date();
-  let d = new Date(base);
-  if (isNaN(d.getTime())) d = new Date();
-  d.setDate(d.getDate() + 365);
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return '';
 }
 function mapJob(record){
   const m=record.metas||{};
@@ -3942,13 +3939,13 @@ function addStructuredData(){
     parts.forEach((part,index)=>items.push({'@type':'ListItem',position:index+2,name:decodeURIComponent(part).replace(/-/g,' ').replace(/\b\w/g,char=>char.toUpperCase()),item:`${origin}/${parts.slice(0,index+1).join('/')}`}));
     graph.push({'@type':'BreadcrumbList','@id':`${currentUrl}#breadcrumb`,itemListElement:items});
   }
-  if(path.startsWith('/job/')){
+  if(path.startsWith('/job/')&&!isClosedJob(wpRecord||data.jobs.find(job=>path.endsWith(`/${job.slug}`))||{})){
     const source=wpRecord||data.jobs.find(job=>path.endsWith(`/${job.slug}`))||{};
     const m=source.metas||{},job=mapJob(source),description=cleanSchemaText(source.content?.rendered||source.content||document.querySelector('.wordpress-content')?.innerHTML||'');
     const address={ '@type':'PostalAddress',streetAddress:source.streetAddress||m._job_street_address||source.address||undefined,addressLocality:source.addressLocality||m._job_address_locality||job.location||undefined,addressRegion:source.addressRegion||m._job_address_region||undefined,addressCountry:'AE' };
     Object.keys(address).forEach(key=>address[key]===undefined&&delete address[key]);
     const typeMap={'Full Time':'FULL_TIME','Part Time':'PART_TIME','Freelance':'CONTRACTOR','Contract':'CONTRACTOR','Internship':'INTERN','Temporary':'TEMPORARY'};
-    const posting={'@type':'JobPosting','@id':`${currentUrl}#job`,title:job.title||pageName,description:source.description||description||job.title,identifier:{'@type':'PropertyValue',name:job.company||'Trikonet',value:String(source.urlJobId||source.id||source.slug||job.slug||'')},datePosted:isoSchemaDate(source.datePosted||source.postedDate||source.date||source.createdAt||job.date),validThrough:isoSchemaDate(source.deadline||source.expiryDate||m._job_application_deadline_date||job.deadline),employmentType:source.employmentType||m._job_employment_type||typeMap[job.type]||job.type||undefined,hiringOrganization:{'@type':'Organization',name:job.company||'Trikonet',sameAs:m._job_employer_url||job.employerUrl||undefined,logo:job.logo?new URL(job.logo,origin).href:undefined},jobLocation:{'@type':'Place',address},url:currentUrl};
+    const posting={'@type':'JobPosting','@id':`${currentUrl}#job`,title:job.title||pageName,description:source.description||description||job.title,identifier:{'@type':'PropertyValue',name:job.company||'Trikonet',value:String(source.urlJobId||source.id||source.slug||job.slug||'')},datePosted:isoSchemaDate(source.datePosted||source.postedDate||source.date||source.createdAt||job.date),validThrough:isoSchemaDate(source.deadline||source.expiryDate||m._job_application_deadline_date||m._job_expiry_date||job.deadline),employmentType:source.employmentType||m._job_employment_type||typeMap[job.type]||job.type||undefined,hiringOrganization:{'@type':'Organization',name:job.company||'Trikonet',sameAs:m._job_employer_url||job.employerUrl||undefined,logo:job.logo?new URL(job.logo,origin).href:undefined},jobLocation:{'@type':'Place',address},url:currentUrl};
     Object.keys(posting).forEach(key=>posting[key]===undefined&&delete posting[key]);graph.push(posting);
   }
   if(path==='/jobs'||path==='/job-list'||path==='/job-openings')graph.push({'@type':'ItemList','@id':`${currentUrl}#jobs`,name:'Job listings',numberOfItems:data.jobs.length,itemListElement:data.jobs.map((job,index)=>({'@type':'ListItem',position:index+1,url:`${origin}${publicJobPath(job)}`,name:job.title}))});

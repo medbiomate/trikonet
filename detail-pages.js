@@ -1,13 +1,17 @@
+import {isClosedJob} from './job-availability.js';
 import {employerProfileHref} from './employer-link.js';
 import { publicJobPath } from './job-urls.js';
 import { formatCompanyName } from './company-name.js';
 function applicationAction(record,m){
-  const method=record.applyType||m._job_apply_type||'External URL';
+  if(isClosedJob(record))return '<p class="application-unavailable" role="status">Applications closed. This vacancy is no longer accepting applications.</p>';
+  const rawMethod=record.applyType||m._job_apply_type||'External URL';
+  const method=({external:'External URL',with_email:'By Email'})[rawMethod]||rawMethod;
   if(method==='Walk-in')return `<div class="walk-in-details"><strong>Walk-in Interview</strong><p>${esc(record.walkInDetails||m._job_walk_in_details||'Contact the employer for interview details.').replaceAll('\n','<br>')}</p></div>`;
   let href=record.applyUrl||m._job_apply_url||'#',label='Apply Now';
   if(method==='By Email'){href='mailto:'+(record.applyEmail||m._job_apply_email||'');label='Apply by Email';}
   if(method==='WhatsApp'){href='https://wa.me/'+String(record.applyWhatsApp||m._job_apply_whatsapp||'').replace(/\D/g,'');label='Apply on WhatsApp';}
-  if(!/^(https?:\/\/|mailto:|#)/i.test(href))href='#';
+  const usable=method==='By Email'?/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(href):method==='WhatsApp'?/^https:\/\/wa.me\/\d{7,15}$/.test(href):/^https?:\/\/[^\s/]+/i.test(href);
+  if(!usable)return '<p class="application-unavailable" role="status">Application details are unavailable. Please verify this vacancy on the employer’s official careers website.</p>';
   return `<a class="primary apply" href="${esc(href)}" target="_blank" rel="noopener noreferrer nofollow">${label}</a>`;
 }
 const bateelJobs = [
@@ -138,11 +142,7 @@ export const resolveJobDeadline = record => {
     const formatted = formatJobDate(explicit);
     if (formatted) return formatted;
   }
-  const base = resolveJobDate(record) || record.publishedDate || record.date || new Date();
-  let d = new Date(base);
-  if (isNaN(d.getTime())) d = new Date();
-  d.setDate(d.getDate() + 365);
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return '';
 };
 
 const dateLabel = formatJobDate;

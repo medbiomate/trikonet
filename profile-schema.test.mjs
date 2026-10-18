@@ -8,7 +8,7 @@ for(const kind of ['employer','author'])test(`${kind} profile links its required
  let output;
  const path=`/${kind}/amina-healthcare`;
  const document={querySelector:()=>({textContent:'Amina Healthcare Group'}),querySelectorAll:()=>[],createElement:()=>({}),head:{append(script){output=JSON.parse(script.textContent);}}};
- vm.runInNewContext(code,{path,document,SITE_ORIGIN:'https://www.trikonet.com',resolvedJobUrl:null,location:{pathname:path},LOGO_VERSION:'1',queryParams:new URLSearchParams(),data:{posts:[],employers:[]},wpRecord:{title:'Amina Healthcare Group'},cleanSchemaText:value=>String(value||''),isoSchemaDate:()=>''});
+ vm.runInNewContext(code,{isClosedJob:()=>false,path,document,SITE_ORIGIN:'https://www.trikonet.com',resolvedJobUrl:null,location:{pathname:path},LOGO_VERSION:'1',queryParams:new URLSearchParams(),data:{posts:[],employers:[]},wpRecord:{title:'Amina Healthcare Group'},cleanSchemaText:value=>String(value||''),isoSchemaDate:()=>''});
  const profile=output['@graph'].find(item=>item['@type']==='ProfilePage');
  assert.ok(profile?.mainEntity?.['@id']);
  const entity=output['@graph'].find(item=>item['@id']===profile.mainEntity['@id']);
