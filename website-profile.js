@@ -42,14 +42,22 @@ export function createCandidateProfile({getCurrentUser,escapeAttr,calculateCandi
   if(user.profileLoadError)return '<main class="web-profile"><p role="alert">Unable to load your profile. Please refresh to try again.</p></main>';
   const p={...profile,name:profile.name||user.name,email:user.email};const score=calculateCandidateCompletion(p);
   const nextSection=websiteProfileSections.find(section=>section.keys.some(key=>!filled(p[key])))||websiteProfileSections[0];
-  return `<main class="web-profile"><section class="profile-welcome"><div class="profile-welcome-copy"><span>YOUR TRIKONET WORKSPACE</span><h1>Welcome, ${escape((p.name||'there').split(' ')[0])}.</h1><p>Your next opportunity starts with your story. Keep your profile ready for the right role.</p><div class="profile-welcome-actions"><button type="button" data-profile-edit="${nextSection.id}">${score<100?'Continue your profile':'Update your profile'} <span>↗</span></button><a href="/jobs">Explore jobs →</a></div></div><div class="profile-welcome-meter"><strong>${score}<small>%</small></strong><span>Profile complete</span><progress max="100" value="${score}" aria-label="Profile completion"></progress><p>${score<100?'A few more details can improve your job matches.':'Your profile is ready for new opportunities.'}</p></div></section><div class="profile-quick-actions"><a href="#web-profile-contact">${icon('user')}<span><strong>My profile</strong><small>Your experience, skills & details</small></span><b>↓</b></a><a href="/resume-library">${icon('book')}<span><strong>Build your CV</strong><small>Turn your profile into a resume</small></span><b>↗</b></a><a href="/saved-jobs">${icon('briefcase')}<span><strong>Saved opportunities</strong><small>Pick up where you left off</small></span><b>↗</b></a></div><div class="profile-details-heading"><h2>Your career profile</h2><span>Edit any section to keep it current</span></div>
+  return `<main class="web-profile web-profile-focused"><div class="profile-details-heading"><h1>My profile</h1><span>Keep your details up to date</span></div>
   <div class="web-profile-layout"><aside class="web-profile-sidebar"><section class="web-profile-identity"><label class="web-profile-avatar" title="Change profile photo">${p.photo||user.avatar?`<img src="${escape(p.photo||user.avatar)}" alt="Profile photo">`:`<span>${escape((p.name||'U').split(/\s+/).slice(0,2).map(w=>w[0]).join(''))}</span>`}<input id="web-profile-photo" type="file" accept="image/*"><span class="web-profile-camera">+</span></label><h2>${escape(p.name)}</h2><p>${escape(p.role||p.currentDesignation||'Your next opportunity starts here')}</p><small>${escape(p.currentLocation||'Add your location')}</small></section>
   <section class="web-profile-progress"><div><strong>Profile completeness</strong><span>${score}%</span></div><progress max="100" value="${score}" aria-label="Profile completeness"></progress><p>Complete your details for better job matches.</p></section>
-  <nav class="web-profile-nav" aria-label="Profile sections">${websiteProfileSections.map(section=>`<a href="#web-profile-${section.id}">${icon(section.icon)}<span>${section.title}</span><small>${section.keys.some(key=>filled(p[key]))?'✓':'+'}</small></a>`).join('')}</nav></aside>
+  <nav class="web-profile-nav" aria-label="Profile sections">${websiteProfileSections.map(section=>`<a href="#web-profile-${section.id}" data-profile-section="${section.id}">${icon(section.icon)}<span>${section.title}</span><small>${section.keys.some(key=>filled(p[key]))?'✓':'+'}</small></a>`).join('')}</nav></aside>
   <div class="web-profile-main">${websiteProfileSections.map(section=>`<section class="web-profile-card" id="web-profile-${section.id}"><header><div class="web-profile-card-title">${icon(section.icon)}<h2>${section.title}</h2></div><button type="button" data-profile-edit="${section.id}" aria-label="Edit ${section.title}">Edit <span aria-hidden="true">↗</span></button></header>${details(section,p)}</section>`).join('')}</div></div><div id="web-profile-status" role="status" aria-live="polite"></div></main>`;
  }
  function initCandidateProfile(){
   const root=document.querySelector('.web-profile');if(!root)return;
+  const activateSection=id=>{
+    const valid=websiteProfileSections.some(section=>section.id===id)?id:'contact';
+    root.querySelectorAll('.web-profile-card').forEach(card=>{card.hidden=card.id!==`web-profile-${valid}`;});
+    root.querySelectorAll('[data-profile-section]').forEach(link=>{const active=link.dataset.profileSection===valid;link.classList.toggle('is-active',active);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
+  };
+  activateSection(location.hash.replace('#web-profile-',''));
+  root.querySelectorAll('[data-profile-section]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();activateSection(link.dataset.profileSection);history.replaceState(null,'',`#web-profile-${link.dataset.profileSection}`);}));
+
   const notify=text=>{const node=document.getElementById('web-profile-status');if(node){node.textContent=text;setTimeout(()=>{node.textContent='';},4000);}};
   const rerender=()=>{root.outerHTML=candidateProfileWorkspace(getCurrentUser().profile||{});initCandidateProfile();};
   root.addEventListener('click',event=>{
@@ -72,7 +80,7 @@ export function createCandidateProfile({getCurrentUser,escapeAttr,calculateCandi
      const response=await fetch('/api/candidate/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...draft,profileUpdatedAt:Date.now()})});
      const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to save profile');
      const user=getCurrentUser();user.profile=data.profile;user.name=data.profile.name||user.name;user.completionPercentage=data.completionPercentage;
-     dialog.close();rerender();document.getElementById(`web-profile-${section.id}`)?.scrollIntoView({block:'nearest'});document.querySelector(`[data-profile-edit="${section.id}"]`)?.focus();
+     dialog.close();history.replaceState(null,'',`#web-profile-${section.id}`);rerender();document.getElementById(`web-profile-${section.id}`)?.scrollIntoView({block:'nearest'});document.querySelector(`[data-profile-edit="${section.id}"]`)?.focus();
      document.getElementById('web-profile-status').textContent='Profile updated';
     }catch(error){dialog.querySelector('.web-profile-edit-error').textContent=error.message;}
     finally{save.disabled=false;save.textContent='Save changes';}
