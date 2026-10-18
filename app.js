@@ -471,6 +471,8 @@ async function loadDirectoryTaxonomies() {
 }
 async function loadLocalJobs(){
   data.jobsLoadError = false;
+  const embedded=document.getElementById('initial-job-list');
+  if(embedded){try{data.jobs=JSON.parse(embedded.textContent).map(mapJob);return;}catch{}}
   try{
     const isCategoryPage = path.startsWith('/category/');
     if (isCategoryPage && (!data.taxonomies?.categories || data.taxonomies.categories.length <= defaultTopCategories.length)) {
@@ -492,39 +494,9 @@ async function loadLocalJobs(){
       const val=queryParams.get(key);
       if(val&&val!=='Country or City'&&val!=='All Categories')filters.set(key,val);
     }
-    const searchTerm=queryParams.get('q')||(path==='/nurse-jobs-in-uae'?'nurse':'');
-    const localParams=new URLSearchParams({summary:'1'});
-    if(searchTerm)localParams.set('q',searchTerm);
-    const fetchPromises = [Promise.resolve(null),fetch(`/api/local/jobs?${localParams}`).catch(() => null),Promise.resolve(null)];
-    const results = await Promise.all(fetchPromises);
-
-    const local = (results[1] && results[1].ok) ? await results[1].json() : [];
-    const qTerm=queryParams.get('q')||(path==='/nurse-jobs-in-uae'?'nurse':'');
-    const targetCat = isCategoryPage && catObj ? (queryParams.get('category') || catObj.name) : queryParams.get('category');
-    const normalizedQuery=String(qTerm||'').trim().toLowerCase();
-    const queryWords=[...new Set(normalizedQuery.split(/\s+/).filter(Boolean))];
-    const localSearchText=job=>[
-      job.title,job.company,job.searchText,job.description,job.content?.rendered||job.content,job.excerpt?.rendered||job.excerpt,
-      ...(job.categories||[]),...(job.locations||[]),...(job.types||[]),...(job.tags||[]),...(job.skills||[]),
-      ...Object.values(job.metas||{}).flatMap(value=>typeof value==='object'&&value?Object.values(value):[value])
-    ].filter(Boolean).join(' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').toLowerCase();
-    const localSearchScore=job=>{const title=String(job.title||'').toLowerCase(),company=String(job.company||job.metas?._job_employer_name||'').toLowerCase(),text=localSearchText(job);if(title===normalizedQuery)return 100;if(title.startsWith(normalizedQuery))return 90;if(title.includes(normalizedQuery))return 80;if(company===normalizedQuery)return 75;if(company.includes(normalizedQuery))return 65;return text.includes(normalizedQuery)?40:20};
-    const localFiltered=local.filter(job=>(!normalizedQuery||queryWords.every(word=>localSearchText(job).includes(word)))&&(!queryParams.get('location')||queryParams.get('location')==='Country or City'||(job.locations||[]).includes(queryParams.get('location')))&&(!targetCat||targetCat==='All Categories'||(job.categories||[]).some(c=>c.toLowerCase().includes(targetCat.toLowerCase())))&&(!queryParams.get('job_type')||(job.types||[]).includes(queryParams.get('job_type')))).sort((a,b)=>localSearchScore(b)-localSearchScore(a));
-    const publicationTime=job=>Date.parse(job.publishedDate||job.postedDate||job.datePosted||job.date||job.createdAt||'')||0;
-    const localUnique=uniqueJobs(localFiltered).sort((a,b)=>localSearchScore(b)-localSearchScore(a)||publicationTime(b)-publicationTime(a)||(Date.parse(b.updatedAt)||0)-(Date.parse(a.updatedAt)||0));
-    const localEmployers=results[2]?.ok?await results[2].json():[];
-    const pageJobs=await publicJobPage(localUnique,currentPage,pageLimit,async(page,size,excluded)=>{
-      const params=new URLSearchParams(filters);params.set('page',page);params.set('per_page',size);params.set('exclude_slugs',excluded.join(','));
-      let response;
-      for (let attempt=0; attempt<2; attempt++) {
-        try {
-          response=await fetch(`/api/wp/job_listing?${params}`, {signal:AbortSignal.timeout(12000)});
-          if(response.ok) return await response.json();
-        } catch (error) { if(attempt===1) throw error; }
-      }
-      throw Error('Jobs unavailable');
-    },local.map(job=>job.slug));
-    data.jobs=pageJobs.map(mapJob).map(job=>{const employer=localEmployers.find(e=>e.slug===job.employerSlug||e.title===job.company);return {...job,logo:job.logo||employer?.logo||''};});
+    const response=await fetch(`/api/public/jobs?${filters}`, {signal:AbortSignal.timeout(12000)});
+    if(!response.ok)throw Error('Jobs unavailable');
+    data.jobs=(await response.json()).map(mapJob);
   }catch(error){data.jobs=[];data.jobsLoadError=true;console.warn('Job listing unavailable:',error.message);}
 }
 async function loadLocalEmployers(){

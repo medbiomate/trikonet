@@ -1,3 +1,4 @@
+import {injectInitialJobs} from './job-list-ssr.mjs';
 import {initialPage} from './initial-page.mjs';
 import { injectInitialJob } from './job-ssr.mjs';
 import { loadContentRecord, fetchContentResponse } from './content-record.js';
@@ -1263,7 +1264,7 @@ const server = http.createServer(async (req, res) => {
 
   try {
     let fileBody = await readFile(target);
-    if(target===join(root,'index.html') && (path==='/jobs' || path==='/job-categories' || path.startsWith('/category/'))){
+    if(target===join(root,'index.html') && path==='/job-categories'){
       try {
         const links=await getCategorySnapshot();
         const current=links.find(p=>p.href===path || (path.startsWith('/category/') && p.categorySlug===path.slice('/category/'.length)));
@@ -1281,6 +1282,20 @@ const server = http.createServer(async (req, res) => {
         if(path==='/job-categories')html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>Job Categories in UAE | Trikonet</title>').replace(/<link rel="canonical"[^>]*>/,'<link rel="canonical" href="https://www.trikonet.com/job-categories">');
         fileBody=html;
       }catch(error){console.warn('Category SSR unavailable:',error.message);}
+    }
+    if(target===join(root,'index.html') && (['/jobs','/job-list','/job-openings','/nurse-jobs-in-uae'].includes(path)||path.startsWith('/category/')||path.startsWith('/job-location/'))){
+      const params=new URLSearchParams(requestUrl.searchParams);params.set('per_page','10');
+      const links=categorySnapshot;
+      const category=params.get('category') || links.find(item=>item.href===path||item.categorySlug===path.slice('/category/'.length))?.category || (path.startsWith('/category/')?path.slice('/category/'.length).replace(/-/g,' '):'');
+      if(category)params.set('category',category);
+      if(path==='/nurse-jobs-in-uae'&&!params.get('q'))params.set('q','nurse');
+      if(path.startsWith('/job-location/'))params.set('location',path.slice('/job-location/'.length).replace(/-/g,' '));
+      try {
+        const response=await fetch(`${process.env.TRIKONET_API_BASE||'https://api.trikonet.com'}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)});
+        if(!response.ok)throw Error('Job listings unavailable');
+        const jobs=await response.json();
+        fileBody=injectInitialJobs(fileBody.toString(),jobs,{path,category,query:params.get('q')||''});
+      }catch(error){console.warn('Initial job list unavailable:',error.message);}
     }
     if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
       fileBody=fileBody.toString()
