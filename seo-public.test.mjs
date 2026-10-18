@@ -20,6 +20,8 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
   const api=http.createServer((req,res)=>{
     res.setHeader('Content-Type','application/json');
     const job={id:18345,slug:'accountant-dubai-company-18345',publicPath:'/jobs/accountant-dubai-company-18345',title:'Accountant',status:'publish',company:'Company',createdAt:'2026-10-02T00:00:00Z'};
+    if(req.url.startsWith('/api/wp/employer')){if(req.url.includes('q=api-failure')){res.writeHead(503);return res.end('{}');}return res.end('[]');}
+    if(req.url.startsWith('/api/public/jobs'))return res.end('[]');
     if(req.url.startsWith('/api/job-url')) {
       const requested=new URL(req.url,'http://test').searchParams.get('path');
       if(requested.includes('missing')){res.writeHead(404);return res.end('{}');}
@@ -58,14 +60,18 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
     assert.ok(embedded);assert.equal(JSON.parse(embedded[1]).title,'Accountant');
     assert.equal((await fetch(`${origin}/jobs/missing-999`)).status,404);
     assert.equal((await fetch(`${origin}/missing-page`)).status,404);
+    assert.equal((await fetch(`${origin}/employers?q=api-failure`)).status,503);
+    const filtered=await fetch(`${origin}/employers?q=Hospital`);assert.equal(filtered.status,200);assert.equal(filtered.headers.get('x-robots-tag'),'noindex,follow');assert.match(await filtered.text(),/No employers match these filters/);
+    assert.equal((await fetch(`${origin}/jobs?page=9999`)).status,404);
+    const migratedCategory=await fetch(`${origin}/job-category/mathematics-teacher-jobs`,{redirect:'manual'});assert.equal(migratedCategory.status,301);assert.equal(migratedCategory.headers.get('location'),'/category/mathematics-teacher-jobs');
     const legacyMap=await fetch(`${origin}/sitemap_index.xml`,{redirect:'manual'});
     assert.equal(legacyMap.status,301);assert.equal(legacyMap.headers.get('location'),'/sitemap.xml');
     const home=await fetch(`${origin}/`);const homeHtml=await home.text();
     assert.match(homeHtml,/media="print" onload="this.media='all'" href="\/detail.css/);
     assert.match(homeHtml,/hero-team-640.webp/);
     assert.equal((await fetch(`${origin}/unknown/nested/path`)).status,404);
-    const employers=await fetch(`${origin}/employers?page=2&utm_source=test`);
-    assert.match(await employers.text(),/rel="canonical" href="https:\/\/www.trikonet.com\/employers\?page=2"/);
+    const employers=await fetch(`${origin}/employers?utm_source=test`);
+    assert.match(await employers.text(),/rel="canonical" href="https:\/\/www.trikonet.com\/employers"/);
     const alias=await fetch(`${origin}/job-list?q=nurse`,{redirect:'manual'});
     assert.equal(alias.status,301);assert.equal(alias.headers.get('location'),'/jobs?q=nurse');
     const sitemap=await fetch(`${origin}/sitemap-seo-job-pages.xml`);assert.equal(sitemap.status,200);assert.match(await sitemap.text(),/nurse-jobs-in-dubai/);

@@ -1,5 +1,5 @@
 export function isPrivatePage(path, params = new URLSearchParams()) {
-  return /^\/(?:admin[^/]*|trikonet-admin-access|login|signin|sign-in|sign-up|login-register|register|signup|logout|profile|dashboard|account|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job)(?:\/|$)/i.test(path)
+  return /^\/(?:admin[^/]*|trikonet-admin-access|login|signin|sign-in|sign-up|login-register|register|signup|logout|profile|dashboard|account|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|candidate|wp-admin|candidate-alerts|shortlist-candidates|meetings-employer)(?:\/|$)/i.test(path)
     || params.has('preview') || params.has('draft');
 }
 export function isPublishedRecord(record) {

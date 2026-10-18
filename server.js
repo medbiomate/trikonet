@@ -1,3 +1,5 @@
+import { injectInitialEmployers } from './employer-list-ssr.js';
+import { legacyDestination, isFilteredListing } from './legacy-routes.js';
 import { reconcileJobSitemap, cleanSitemapIndex } from './sitemap-policy.js';
 import {injectInitialJobs} from './job-list-ssr.mjs';
 import {initialPage} from './initial-page.mjs';
@@ -157,6 +159,9 @@ function dataUrlBytes(value) {
   return Math.max(0, Math.floor(match[1].length * 3 / 4) - (match[1].endsWith('==') ? 2 : match[1].endsWith('=') ? 1 : 0));
 }
 
+const legacyRedirects = JSON.parse(await readFile(join(root,'legacy-redirects.json'),'utf8'));
+const migrationTaxonomies = await loadData('taxonomies.json') || {};
+
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   let path;
@@ -169,6 +174,8 @@ const server = http.createServer(async (req, res) => {
   if (['/job-list','/job-openings'].includes(path)) {
     res.writeHead(301, {Location:'/jobs' + requestUrl.search}); return res.end();
   }
+  const destination = legacyDestination(path,requestUrl.searchParams,migrationTaxonomies,legacyRedirects);
+  if(destination) { res.writeHead(301,{Location:destination,'Cache-Control':'no-cache'}); return res.end(); }
   let resolvedJobUrl = null;
   // One production address; preserve the complete path and query string.
   // Do not redirect API, development or local requests.
@@ -1171,6 +1178,8 @@ const server = http.createServer(async (req, res) => {
   }
   const seoApiBase = process.env.TRIKONET_API_BASE || 'https://api.trikonet.com';
   const privatePage = isPrivatePage(path, requestUrl.searchParams);
+  const filteredListing = isFilteredListing(path,requestUrl.searchParams);
+  if(filteredListing)res.setHeader('X-Robots-Tag','noindex,follow');
   if (privatePage || path.startsWith('/api/')) res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   const contentParts = path.split('/').filter(Boolean);
   const contentType = contentParts.length === 2 ? ({job:'job_listing',employer:'employer',blog:'posts',insurance:'posts','career-tips':'posts',health:'posts','part-time-job':'posts',visa:'posts',guides:'posts',interview:'posts','types-of-jobs':'posts',exam:'posts',general:'posts'}[contentParts[0]]) : null;
@@ -1228,10 +1237,13 @@ const server = http.createServer(async (req, res) => {
   if (!isResumeAppRoute && /^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|job-categories|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
     try {
       const slug=path.replace(/^\/|\/$/g,'');
-      const pageNumber=Math.max(1,Number(requestUrl.searchParams.get('page'))||1);
+      const pageNumber=Math.max(1,Math.floor(Number(requestUrl.searchParams.get('page'))||1));
       const response=await fetch(`${seoApiBase}/api/seo-job-pages/${encodeURIComponent(slug)}?page=${pageNumber}`,{signal:AbortSignal.timeout(15000)});
       const payload=await response.json();
       if(response.ok){
+        if(pageNumber>1 && (!payload.jobs?.length || (pageNumber-1)*10>=payload.total)){
+          res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow'});return res.end('<h1>Page Not Found</h1>');
+        }
         let html=await readFile(join(root,'index.html'),'utf8');
         html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page,pageNumber)+'</head>');
         const content=renderSeoLanding(payload,pageNumber,payload.links || []);
@@ -1307,8 +1319,27 @@ const server = http.createServer(async (req, res) => {
         const response=await fetch(`${process.env.TRIKONET_API_BASE||'https://api.trikonet.com'}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)});
         if(!response.ok)throw Error('Job listings unavailable');
         const jobs=await response.json();
+        if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
+          res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
+          return res.end('<h1>Page Not Found</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
+        }
         fileBody=injectInitialJobs(fileBody.toString(),jobs,{path,category,query:params.get('q')||''});
-      }catch(error){console.warn('Initial job list unavailable:',error.message);}
+      }catch(error){
+        console.warn('Initial job list unavailable:',error.message);
+        res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});
+        return res.end('<h1>Jobs temporarily unavailable</h1><p>Please try again shortly.</p>');
+      }
+    }
+    if(target===join(root,'index.html') && path==='/employers'){
+      try{
+        const params=new URLSearchParams(requestUrl.searchParams);params.set('per_page','12');
+        const response=await fetch(`${seoApiBase}/api/wp/employer?${params}`,{signal:AbortSignal.timeout(10000)});
+        if(!response.ok)throw Error('Employers unavailable');
+        const employers=await response.json();
+        if(!Array.isArray(employers))throw Error('Invalid employer response');
+        if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>Page Not Found</h1>');}
+        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord));
+      }catch(error){res.writeHead(503,{'Content-Type':'text/html','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Employers temporarily unavailable</h1>');}
     }
     if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
       fileBody=fileBody.toString()
@@ -1327,6 +1358,9 @@ const server = http.createServer(async (req, res) => {
     if (publicContentRecord && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="public-content-data" type="application/json">${JSON.stringify(publicContentRecord).replace(/</g,'\u003c')}</script></head>`);
     if (resolvedJobUrl && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="job-url-data" type="application/json">${JSON.stringify(resolvedJobUrl).replace(/</g,'\u003c')}</script></head>`);
     if (target === join(root,'index.html')) fileBody = fileBody.toString().replace('<div id="app"></div>', `<div id="app">${initialPage(path)}</div>`);
+    if (filteredListing && target === join(root,'index.html')) {
+      fileBody=fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi,'').replace('</head>','<meta name="robots" content="noindex,follow"></head>');
+    }
     if (privatePage && target === join(root,'index.html')) {
       fileBody = fileBody.toString().replace(/<meta[^>]+name=["']robots["'][^>]*>/gi, '').replace('</head>', '<meta name="robots" content="noindex,nofollow,noarchive"></head>');
     }
