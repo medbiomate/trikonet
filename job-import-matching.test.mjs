@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {matchImportedEmployer} from './job-import-matching.js';
+test('short imported brand selects the existing employer',()=>{const employer={title:'NMC Healthcare',slug:'nmc-healthcare',logo:'/logo.png'};assert.equal(matchImportedEmployer('NMC',[employer,{title:'Other Hospital'}]),employer);});
+test('exact match wins and unrelated or ambiguous matches require manual selection',()=>{const exact={title:'NMC'};assert.equal(matchImportedEmployer('NMC',[{title:'NMC Healthcare'},exact]),exact);assert.equal(matchImportedEmployer('NMC',[{title:'NMC North'},{title:'NMC South'}]),null);assert.equal(matchImportedEmployer('ABC',[{title:'ABCD Healthcare'}]),null);});

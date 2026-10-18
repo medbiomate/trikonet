@@ -1,3 +1,4 @@
+import {matchImportedEmployer} from './job-import-matching.js?v=20261018-21';
 import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
 import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
@@ -3798,6 +3799,24 @@ export async function initAdmin() {
   const jobForm = document.querySelector('#admin-job-form');
   const jobRows = document.querySelector('#admin-job-rows');
   const jobStatusState = document.querySelector('#admin-save-state');
+  const publishFeedback=document.createElement('div');
+  publishFeedback.className='job-publish-feedback';publishFeedback.hidden=true;
+  publishFeedback.setAttribute('role','status');publishFeedback.setAttribute('aria-live','polite');
+  document.querySelector('#view-job-editor .modern-editor-header')?.after(publishFeedback);
+  function showJobPublishFeedback(message,type='error',url=''){
+    publishFeedback.hidden=false;publishFeedback.dataset.type=type;publishFeedback.replaceChildren();
+    const text=document.createElement('span');text.textContent=message;publishFeedback.append(text);
+    if(url){const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener';link.textContent=new URL(url,location.origin).href;publishFeedback.append(link);}
+  }
+  jobForm.addEventListener('invalid',event=>{
+    const field=event.target;
+    const label=field.labels?.[0]?.textContent?.replace(/\s+/g,' ').trim()||field.name||'Required field';
+    showJobPublishFeedback(`Cannot save: ${label} — ${field.validationMessage||'Check this field.'}`);
+  },true);
+  if(jobStatusState)new MutationObserver(()=>{
+    const message=jobStatusState.textContent.trim();
+    if(message)showJobPublishFeedback(message,message==='Saving…'?'saving':'error');
+  }).observe(jobStatusState,{childList:true,characterData:true,subtree:true});
 
   const employerForm = document.querySelector('#admin-employer-form');
   const employerRows = document.querySelector('#admin-employer-rows');
@@ -4919,9 +4938,13 @@ export async function initAdmin() {
     try{
       const response=await fetch('/api/admin/import-job-link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:input.value})});
       const raw=await response.text();let result;try{result=JSON.parse(raw);}catch{throw Error('Import service is unavailable. Restart the local server and try again.');}if(!response.ok)throw Error(result.error||'Import failed');
+      const employer=matchImportedEmployer(result.job.company,allEmployers());
+      if(employer)Object.assign(result.job,{company:employer.title,employerSlug:employer.slug,employerUrl:`/employer/${employer.slug}`,logo:employer.logo||''});
+      result.job.experience ||= 'Relevant experience required';
       const identity={id:jobForm.elements.namedItem('id')?.value||'',slug:jobForm.elements.namedItem('slug')?.value||'',status:'draft'};
       const originalSlug=jobForm.elements.namedItem('originalSlug')?.value||'';
       fillJob({...result.job,...identity});jobForm.elements.namedItem('originalSlug').value=originalSlug;
+      if(employer)selectEmployerOption(employer.title,employer.logo||'',employer.slug||'',true);
       const normalize=value=>String(value||'').toLowerCase().replace(/&amp;/g,'&').replace(/\bjobs?\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
       const category=normalize(result.job.category),title=normalize(result.job.title);
       const boxes=[...document.querySelectorAll('#view-job-editor input[name="categories"]')];
@@ -7122,7 +7145,7 @@ export async function initAdmin() {
       firstField?.focus();
       firstField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       alert(`Complete the required Google Job Posting fields:\n\n${missingGoogleFields.map(([,label]) => `• ${label}`).join('\n')}`);
-      jobStatusState.textContent = `${missingGoogleFields.length} required field${missingGoogleFields.length === 1 ? '' : 's'} missing.`;
+      jobStatusState.textContent = `Cannot publish: complete ${missingGoogleFields.map(([,label])=>label).join(', ')}.`;
       return;
     }
     job.company = document.getElementById('field-employer-company-value')?.value?.trim() || job.company?.trim() || '';
@@ -7193,6 +7216,7 @@ export async function initAdmin() {
       jobStatusState.textContent = `Job ${statusLabel} successfully.`;
       showAdminNotice(`Job “${saved.title || job.title}” ${statusLabel} successfully.`);
       jobSaveSucceeded = true;
+      queueMicrotask(()=>showJobPublishFeedback(`Job ${statusLabel} successfully.`, 'success', ['publish','published','active'].includes(saved.status)?(saved.publicPath||`/job/${encodeURIComponent(saved.slug)}`):''));
       jobRecovery.clear();
       jobRecovery.saved(saved);
       jobPageCache.clear();
