@@ -1,6 +1,9 @@
 export function createFormRecovery(form, type, account) {
   const view = form.closest('.admin-view');
   let key, dirty = false, restoring = false, timer, pending, draftId, sourceSlug = '';
+  // Never reuse another tab's new-job recovery identity (including duplicated tabs).
+  const newDraftScope = crypto.randomUUID();
+  let generation = 0, paused = false;
   let editingSlug = '';
   let jobId = '';
   function setJobId(id) {
@@ -34,8 +37,8 @@ export function createFormRecovery(form, type, account) {
   }
   async function sync() {
     clearTimeout(timer);
-    if (!dirty || !key || pending) return pending;
-    const snapshotKey = key, snapshotId = draftId, snapshotSlug = sourceSlug;
+    if (paused || !dirty || !key || pending) return pending;
+    const snapshotKey = key, snapshotId = draftId, snapshotSlug = sourceSlug, snapshotGeneration = generation;
     const data = record();
     if (!data.title.trim() && !data.description.trim()) return;
     pending = (async () => {
@@ -43,7 +46,7 @@ export function createFormRecovery(form, type, account) {
         const response = await fetch('/api/admin/autosave', { method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type,draftId:snapshotId,sourceSlug:snapshotSlug,record:{...data,id:jobId || snapshotId}}) });
         if (!response.ok) throw new Error('Draft sync failed');
         const saved = await response.json();
-        if (key === snapshotKey && !saved.skipped) {
+        if (generation === snapshotGeneration && key === snapshotKey && !saved.skipped) {
           if (type === 'job') { setJobId(saved.id || snapshotId); sourceSlug = saved.slug; }
           editingSlug = sourceSlug || saved.slug;
           presence();
@@ -68,7 +71,7 @@ export function createFormRecovery(form, type, account) {
       localStorage.setItem(key, JSON.stringify({ values, draftId, date: Date.now(), status: 'draft' }));
       notice.style.display = 'block';
       notice.textContent = 'Recovery draft saved on this device. Not published.';
-      clearTimeout(timer); timer = setTimeout(sync, 1500);
+      clearTimeout(timer); if (!paused) timer = setTimeout(sync, 1500);
     } catch {
       notice.style.display = 'block';
       notice.textContent = 'Draft could not be saved on this device. Keep this tab open and save manually.';
@@ -82,11 +85,13 @@ export function createFormRecovery(form, type, account) {
     open(slug = '', id = '') {
       if (type === 'job' && !slug && pending && !sourceSlug) return;
       presence(true);
+      generation++;
+      paused = false;
       editingSlug = slug;
       clearTimeout(timer);
       dirty = false;
       sourceSlug = slug;
-      key = `trikonet-recovery:${encodeURIComponent(account)}:${type}:${encodeURIComponent(slug || 'new')}`;
+      key = `trikonet-recovery:${encodeURIComponent(account)}:${type}:${encodeURIComponent(slug || `new:${newDraftScope}`)}`;
       notice.style.display = 'none';
       let draft;
       try { draft = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
@@ -115,7 +120,9 @@ export function createFormRecovery(form, type, account) {
       notice.append(restore);
     },
     saved(job) { if (type === 'job') { setJobId(job.id); sourceSlug = job.slug; } },
+    pause() { paused = true; clearTimeout(timer); },
+    resume() { paused = false; if (dirty) save(); },
     async flush() { clearTimeout(timer); if (pending) await pending; await sync(); },
-    clear() { presence(true); editingSlug = ''; clearTimeout(timer); if (key) localStorage.removeItem(key); dirty = false; notice.style.display = 'none'; }
+    clear() { generation++; presence(true); editingSlug = ''; clearTimeout(timer); if (key) localStorage.removeItem(key); dirty = false; notice.style.display = 'none'; }
   };
 }

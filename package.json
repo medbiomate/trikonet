@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "check": "node --check app.js && node --check admin.js && node --check seo-admin.js && node --check seo-public.js && node --check detail-pages.js && node --check candidate-profile-editor.js && node --check server.js",
+    "check": "node --check app.js && node --check admin.js && node --check seo-admin.js && node --check seo-public.js && node --check detail-pages.js && node --check candidate-profile-editor.js && node --check server.js && node --check bootstrap.js && node --check admin-app-profile.js && node --check website-profile.js && node --check profile-field-editor.js && node --check profile-field-options.js",
     "test:seo": "node --test seo-public.test.mjs"
   }
 }

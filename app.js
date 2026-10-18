@@ -3547,7 +3547,7 @@ const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resum
 let homeContentReady;
 const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : [loadAccount(),loadSeoPages()];
 if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile'].includes(path)) {
-  initialLoads.push(import('./candidate-profile-editor.js?v=20261012').then(({ createCandidateProfile }) => {
+  initialLoads.push(import('./website-profile.js?v=20261018-release-14').then(({ createCandidateProfile }) => {
     ({ candidateProfileWorkspace, initCandidateProfile } = createCandidateProfile({
       getCurrentUser: () => currentUser, escapeAttr, calculateCandidateCompletion
     }));
@@ -3573,7 +3573,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261017-candidate-full-profile').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261018-release-14').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));

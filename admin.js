@@ -1,8 +1,8 @@
-import {mountCandidateAppFields,readCandidateAppFields} from './candidate-app-fields.js?v=1';
+import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
 import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
-import { createFormRecovery } from './admin-recovery.js?v=5';
+import { createFormRecovery } from './admin-recovery.js?v=20261018-release-14';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -3586,7 +3586,7 @@ export function renderAdmin() {
               <h1 class="modern-page-title" id="candidate-editor-title">Add New Candidate</h1>
               <span class="modern-heading-badge">Talent Profile</span>
             </div>
-            <p class="modern-page-subtitle">Configure candidate personal information, qualifications, categories, and bio.</p>
+            <p class="modern-page-subtitle">Manage personal details, professional background, and profile visibility.</p>
           </div>
         </div>
         <div class="modern-heading-actions">
@@ -3596,41 +3596,23 @@ export function renderAdmin() {
         </div>
       </div>
 
-      <div class="modern-card" style="max-width: 860px; padding: 28px;">
-        <form id="admin-candidate-form" autocomplete="off">
-          <input type="hidden" name="id" id="candidate-id" value="">
-          <input type="hidden" name="originalSlug" id="candidate-original-slug" value="">
-
-          <div style="display:flex; flex-direction:column; gap:20px;">
-            <div class="modern-field-wrap">
+      <form id="admin-candidate-form" class="candidate-editor-form" autocomplete="off">
+        <input type="hidden" name="id" id="candidate-id" value="">
+        <input type="hidden" name="originalSlug" id="candidate-original-slug" value="">
+        <div class="candidate-editor-layout"><div class="candidate-editor-main">
+<section class="candidate-editor-section"><header><span class="candidate-section-number">01</span><div><h2>Personal information</h2><p>The essentials for identifying and contacting this candidate.</p></div></header><div class="candidate-fields"><div class="modern-field-wrap">
               <label class="modern-label" for="candidate-name">Full Name <span class="req">*</span></label>
               <input name="name" id="candidate-name" type="text" class="modern-title-input" placeholder="e.g. Ahmed Al-Mansoor" required>
-            </div>
-
-            <div class="modern-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-              <div class="modern-field-wrap">
-                <label class="modern-label" for="candidate-slug">Profile Slug / ID</label>
-                <input name="slug" id="candidate-slug" type="text" class="modern-input" placeholder="e.g. ahmed-al-mansoor">
-              </div>
-              <div class="modern-field-wrap">
+            </div><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-job-title">Job Title / Headline <span class="req">*</span></label>
                 <input name="jobTitle" id="candidate-job-title" type="text" class="modern-input" placeholder="e.g. Senior Civil Engineer" required>
-              </div>
-            </div>
-
-            <div class="modern-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-              <div class="modern-field-wrap">
+              </div><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-email">Email Address <span class="req">*</span></label>
                 <input name="email" id="candidate-email" type="email" class="modern-input" placeholder="e.g. candidate@example.com" required>
-              </div>
-              <div class="modern-field-wrap">
+              </div><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-phone">Phone Number</label>
                 <input name="phone" id="candidate-phone" type="tel" class="modern-input" placeholder="e.g. +971 50 123 4567">
-              </div>
-            </div>
-
-            <div class="modern-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-              <div class="modern-field-wrap">
+              </div></div></section><section class="candidate-editor-section"><header><span class="candidate-section-number">02</span><div><h2>Professional details</h2><p>Help employers find the right experience and expertise.</p></div></header><div class="candidate-fields"><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-category">Primary Category</label>
                 <select name="category" id="candidate-category" class="modern-select">
                   <option value="Information Technology">Information Technology</option>
@@ -3642,8 +3624,7 @@ export function renderAdmin() {
                   <option value="Construction">Construction</option>
                   <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
                 </select>
-              </div>
-              <div class="modern-field-wrap">
+              </div><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-location">Location (UAE)</label>
                 <select name="location" id="candidate-location" class="modern-select">
                   <option value="Dubai" selected>Dubai, UAE</option>
@@ -3654,49 +3635,33 @@ export function renderAdmin() {
                   <option value="Fujairah">Fujairah, UAE</option>
                   <option value="Remote">Remote (UAE)</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="modern-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-              <div class="modern-field-wrap">
+              </div><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-experience">Years of Experience</label>
                 <input name="experience" id="candidate-experience" type="text" class="modern-input" placeholder="e.g. 5+ Years">
-              </div>
-              <div class="modern-field-wrap">
+              </div><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-qualification">Highest Qualification</label>
                 <input name="qualification" id="candidate-qualification" type="text" class="modern-input" placeholder="e.g. B.S. in Civil Engineering">
-              </div>
-            </div>
-
-            <div class="modern-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-              <div class="modern-field-wrap">
+              </div></div></section><section class="candidate-editor-section"><header><span class="candidate-section-number">03</span><div><h2>About the candidate</h2><p>A brief introduction to their background and career highlights.</p></div></header><div class="candidate-fields"><div class="modern-field-wrap">
+              <label class="modern-label" for="candidate-bio">Professional Bio & Career Summary</label>
+              <textarea name="bio" id="candidate-bio" class="modern-textarea" rows="6" placeholder="Candidate background, skills, certifications, and career highlights…"></textarea>
+            </div></div></section></div><aside class="candidate-editor-sidebar"><section class="candidate-editor-section"><header><div><h2>Profile settings</h2><p>Control how this candidate appears.</p></div></header><div class="candidate-settings-fields"><div class="modern-field-wrap">
                 <label class="modern-label" for="candidate-status">Status</label>
                 <select name="status" id="candidate-status" class="modern-select">
                   <option value="Active" selected>Active</option>
                   <option value="Featured">Featured</option>
                   <option value="Pending">Pending Review</option>
                 </select>
-              </div>
-              <div class="modern-field-wrap" style="display:flex; align-items:center; margin-top:28px;">
+              </div><div class="modern-field-wrap">
+                <label class="modern-label" for="candidate-slug">Profile Slug / ID</label>
+                <input name="slug" id="candidate-slug" type="text" class="modern-input" placeholder="e.g. ahmed-al-mansoor">
+              </div><p class="candidate-field-hint">A unique identifier for the candidate’s profile.</p><div class="modern-field-wrap candidate-featured-field">
                 <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:500; color:#334155;">
                   <input type="checkbox" name="featured" id="candidate-featured" value="1" style="width:16px; height:16px;">
                   Highlight as Featured Candidate
                 </label>
-              </div>
-            </div>
-
-            <div class="modern-field-wrap">
-              <label class="modern-label" for="candidate-bio">Professional Bio & Career Summary</label>
-              <textarea name="bio" id="candidate-bio" class="modern-textarea" rows="6" placeholder="Candidate background, skills, certifications, and career highlights…"></textarea>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:12px; margin-top:10px; padding-top:16px; border-top:1px solid #f1f5f9;">
-              <button type="submit" class="modern-btn-primary" id="btn-submit-candidate" style="width:auto; padding:0 24px;">Save Candidate</button>
-              <a href="#candidates" class="modern-filter-btn" style="text-decoration:none; display:inline-flex; align-items:center;">Cancel</a>
-            </div>
-          </div>
-        </form>
-      </div>
+              </div></div></section><div class="candidate-editor-tip"><strong>A stronger first impression</strong><p>Add a clear job title, relevant experience, and a short bio to help employers understand this candidate’s strengths.</p></div></aside></div>
+        <div class="candidate-editor-savebar"><span>Review the details before saving.</span><div><a href="#candidates" class="modern-btn-secondary">Cancel</a><button type="submit" class="modern-btn-primary" id="btn-submit-candidate">Save Candidate</button></div></div>
+      </form>
     </div>
 
     <div class="admin-view" id="view-site-chrome">
@@ -4239,8 +4204,23 @@ export async function initAdmin() {
     } else if (hash === 'candidate-new') {
       fillCandidate({});
       switchView('candidate-new');
-    } else if (hash === 'candidate-editor') {
+    } else if (hash === 'candidate-editor' || hash.startsWith('candidate-editor/')) {
       switchView('candidate-edit');
+      try {
+        const candidateId = hash.startsWith('candidate-editor/') ? decodeURIComponent(hash.slice('candidate-editor/'.length)) : document.getElementById('candidate-id')?.value;
+        let candidate = candidates.find(item => String(item.id) === candidateId);
+        if (!candidate && candidateId) {
+          const response = await fetch('/api/admin/candidates', {cache:'no-store'});
+          if (!response.ok) throw new Error('Unable to load candidate. Refresh and try again.');
+          const records = await response.json();
+          candidate = Array.isArray(records) ? records.find(item => String(item.id) === candidateId) : null;
+          if (location.hash.replace(/^#/, '') !== hash) return;
+        }
+        if (!candidate) throw new Error('Candidate not found. Return to All Candidates and choose Edit again.');
+        fillCandidate(candidate);
+      } catch (error) {
+        showAdminNotice(error.message || 'Unable to open candidate editor.', 'error');
+      }
     } else if (hash === 'candidate-categories') {
       switchView('candidate-categories');
     } else if (hash === 'candidate-locations') {
@@ -7070,9 +7050,16 @@ export async function initAdmin() {
     document.querySelectorAll('[data-deadline-days]').forEach(item => item.classList.toggle('active', item === button));
   }));
 
+  let jobSubmissionPending = false;
   jobForm.addEventListener('submit', async e => {
     e.preventDefault();
+    if (jobSubmissionPending) return;
+    jobSubmissionPending = true;
+    const submitButtons = [document.getElementById('publish-job-btn'), document.getElementById('save-draft-btn')].filter(Boolean);
+    submitButtons.forEach(button => { button.disabled = true; });
+    try {
     await jobRecovery.flush();
+    jobRecovery.pause();
     e.preventDefault();
     jobStatusState.textContent = 'Saving…';
     const fd = new FormData(jobForm);
@@ -7194,6 +7181,11 @@ export async function initAdmin() {
         if (jobSaveSucceeded) setTimeout(() => { pubBtn.textContent = 'Update'; }, 1800);
       }
       if (draftBtn) { draftBtn.disabled = false; draftBtn.textContent = originalDraftText; }
+    }
+    } finally {
+      jobSubmissionPending = false;
+      submitButtons.forEach(button => { button.disabled = false; });
+      jobRecovery.resume();
     }
   });
 
@@ -13853,12 +13845,9 @@ export async function initAdmin() {
     const candEdit = e.target.closest('[data-candidate-edit]');
     if (candEdit) {
       e.preventDefault();
-      const id = String(candEdit.dataset.candidateEdit);
-      const c = candidates.find(x => String(x.id) === id);
-      if (c) {
-        fillCandidate(c);
-        location.hash = 'candidate-editor';
-      }
+      const target = `candidate-editor/${encodeURIComponent(candEdit.dataset.candidateEdit)}`;
+      if (location.hash === `#${target}`) void handleRoute();
+      else location.hash = target;
       return;
     }
 
@@ -14092,6 +14081,7 @@ export async function initAdmin() {
   }
 
   function fillCandidate(c = {}) {
+    c={...(c.appProfile||{}),...c};
     const form = document.getElementById('admin-candidate-form');
     if (!form) return;
     form.reset();
@@ -14106,16 +14096,21 @@ export async function initAdmin() {
     document.getElementById('candidate-job-title').value = c.jobTitle || '';
     document.getElementById('candidate-email').value = c.email || '';
     document.getElementById('candidate-phone').value = c.phone || '';
-    for(const [id,value] of [['candidate-category',c.category],['candidate-location',c.location]]){const select=document.getElementById(id);if(select&&value&&!Array.from(select.options).some(option=>option.value===value)){const option=document.createElement('option');option.value=value;option.textContent=value;select.append(option)}}
     if (c.category) document.getElementById('candidate-category').value = c.category;
     if (c.location) document.getElementById('candidate-location').value = c.location;
     document.getElementById('candidate-experience').value = c.experience || '';
     document.getElementById('candidate-qualification').value = c.qualification || '';
     document.getElementById('candidate-status').value = c.status || 'Active';
     document.getElementById('candidate-featured').checked = !!c.featured;
-    document.getElementById('candidate-bio').value = c.bio || '';
-    mountCandidateAppFields(form,c.appProfile||{});
-    const emailField=document.getElementById('candidate-email');if(emailField)emailField.readOnly=Boolean(c.userId);
+    document.getElementById('candidate-bio').value = c.bio ?? c.summary ?? '';
+    document.getElementById('candidate-job-title').value = c.jobTitle ?? c.role ?? '';
+    for (const [key,value] of [['category',c.category],['location',c.location ?? c.currentLocation],['status',c.status]]) {
+      const select=document.getElementById('candidate-'+key);
+      if(value && !Array.from(select.options).some(option=>option.value===value))select.add(new Option(value,value));
+      if(value)select.value=value;
+    }
+    document.getElementById('candidate-email').readOnly=Boolean(c.sourceAccountId||c.userId);
+    fillAppProfile(c);
   }
 
   function renderCandidateRows() {
@@ -14193,12 +14188,12 @@ export async function initAdmin() {
                 ${(c.photo || c.avatar) ? `<img src="${escapeHtml(c.photo || c.avatar)}" alt="${escapeHtml(c.name || 'Candidate')} profile photo" loading="lazy" decoding="async" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.remove()">` : ''}
               </div>
               <div>
-                <strong><a href="#candidate-editor" class="row-title" data-candidate-edit="${c.id}">${escapeHtml(c.name)}</a></strong>
+                <strong><a href="#candidate-editor/${encodeURIComponent(String(c.id))}" class="row-title" data-candidate-edit="${c.id}">${escapeHtml(c.name)}</a></strong>
                 <div style="font-size:11px; color:#64748b; margin-top:2px;">
                   ${escapeHtml(c.email || '—')}${c.phone ? ` · ${escapeHtml(c.phone)}` : ''}<br>Joined: ${escapeHtml(candidateJoinedLabel(c))}
                 </div>
                 <div class="row-actions modern-tax-row-actions candidate-row-actions">
-                  <span><a href="#candidate-editor" data-candidate-edit="${c.id}">Edit</a> | </span>
+                  <span><a href="#candidate-editor/${encodeURIComponent(String(c.id))}" data-candidate-edit="${c.id}">Edit</a> | </span>
                   <span><a href="#" data-candidate-toggle-feature="${c.id}">${c.featured ? 'Unfeature' : 'Feature'}</a> | </span>
                   <span class="trash"><button type="button" class="candidate-delete-button" data-candidate-delete="${c.id}" aria-label="Delete ${escapeHtml(c.name || 'candidate')}">Delete</button></span>
                   <span><a href="#" data-candidate-profile="${escapeHtml(String(c.id))}">Profile &amp; resumes</a></span>
@@ -14305,70 +14300,29 @@ export async function initAdmin() {
 
   document.getElementById('admin-candidate-form')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const form = e.target;
-    const id = document.getElementById('candidate-id').value;
-    const name = form.name.value.trim();
-    const slug = form.slug.value.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const jobTitle = form.jobTitle.value.trim();
-    const email = form.email.value.trim();
-    const phone = form.phone.value.trim();
-    const category = form.category.value;
-    const locationVal = form.location.value;
-    const experience = form.experience.value.trim();
-    const qualification = form.qualification.value.trim();
-    const status = form.status.value;
-    const featured = form.featured.checked;
-    const bio = form.bio.value.trim();
-
-    if (!name || !email) return;
-
-    if (id) {
-      const existing = candidates.find(c => String(c.id) === String(id));
-      if (existing) {
-        existing.appProfile=readCandidateAppFields(form);
-        existing.name = name;
-        existing.slug = slug;
-        existing.jobTitle = jobTitle;
-        existing.email = email;
-        existing.phone = phone;
-        existing.category = category;
-        existing.location = locationVal;
-        existing.experience = experience;
-        existing.qualification = qualification;
-        existing.status = status;
-        existing.featured = featured;
-        existing.bio = bio;
-      }
-    } else {
-      const newCand = {
-        appProfile:readCandidateAppFields(form),
-        id: Date.now(),
-        name,
-        slug,
-        jobTitle,
-        email,
-        phone,
-        category,
-        location: locationVal,
-        experience,
-        qualification,
-        status,
-        featured,
-        bio,
-        date: new Date().toISOString().slice(0, 10),
-        createdAt: new Date().toISOString()
-      };
-      candidates.unshift(newCand);
-    }
-
-    const submit=form.querySelector('[type=submit]');if(submit)submit.disabled=true;
-    try{
-      const record=candidates.find(c=>String(c.id)===String(id))||candidates[0];
+    const form=e.target, button=document.getElementById('btn-submit-candidate');
+    const field=name=>form.elements.namedItem(name);
+    const id=field('id').value;
+    const existing=candidates.find(c=>String(c.id)===id);
+    const record={...existing,...readAppProfile()};
+    for(const key of ['name','slug','jobTitle','email','phone','category','experience','qualification','status','bio'])record[key]=field(key).value.trim();
+    record.id=existing?.id||crypto.randomUUID();
+    record.location=field('location').value;
+    record.featured=field('featured').checked;
+    record.slug ||= record.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    if(!record.name||!record.email)return;
+    button.disabled=true;button.textContent='Saving…';
+    try {
       const response=await fetch('/api/admin/candidate-save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:[record]})});
-      if(!response.ok)throw new Error((await response.json()).error||'Could not save candidate');
-      saveCandidates(false);form.reset();location.hash='candidates';await refreshCandidateAccounts();showAdminNotice('Candidate profile saved.','success');
-    }catch(error){showAdminNotice(error.message||'Could not save candidate','error')}finally{if(submit)submit.disabled=false;}
-
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||'Unable to save candidate');
+      const index=candidates.findIndex(c=>String(c.id)===String(record.id));
+      if(index>=0)candidates[index]=record;else candidates.unshift(record);
+      localStorage.setItem('trikonet_candidates_cms',JSON.stringify(candidates));
+      renderCandidateRows();showAdminNotice('Candidate profile saved to the account.');
+      location.hash='candidates';
+    }catch(error){showAdminNotice(error.message,'error');}
+    finally{button.disabled=false;button.textContent='Save Candidate';}
   });
 
 
