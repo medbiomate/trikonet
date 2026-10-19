@@ -1,3 +1,4 @@
+import {teamActivityView,initTeamActivity} from './admin-team-activity.js';
 import {normalizeImportedDescription} from './imported-description.js';
 import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
 import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
@@ -186,6 +187,7 @@ export function renderAdmin() {
   <div class="admin-body">
     <!-- Sidebar Navigation -->
     <aside class="admin-navigation" id="adminmenumain">
+      <a href="#team-activity" class="admin-sub-item" data-view="team-activity" id="team-activity-link">Team Activity</a>
       <div class="admin-nav-group-label">CONTENT</div>
 
       <!-- Posts Section -->
@@ -357,6 +359,7 @@ export function renderAdmin() {
     <main class="admin-main">
       
       <!-- VIEW 1: All Jobs -->
+      ${teamActivityView()}
       <div class="admin-view active-view" id="view-jobs">
         <div class="modern-page-header">
           <div class="modern-heading-title-area">
@@ -3773,6 +3776,9 @@ export async function initAdmin() {
     return;
   }
 
+  const loadTeamActivity = initTeamActivity();
+  if (activeAdminSession.role !== 'Administrator') document.getElementById('team-activity-link')?.remove();
+
   // Populate logged-in admin user info in header
   try {
     const adminSess = JSON.parse(localStorage.getItem('trikonet_admin_session') || sessionStorage.getItem('trikonet_admin_session') || '{}');
@@ -3914,6 +3920,7 @@ export async function initAdmin() {
   function switchView(viewName) {
     if (isContentEditorSession && !contentEditorViews.has(viewName)) viewName = 'jobs';
     const views = {
+      'team-activity': 'view-team-activity',
       'jobs': 'view-jobs',
       'reported-jobs': 'view-reported-jobs',
       'job-new': 'view-job-editor',
@@ -3957,7 +3964,9 @@ export async function initAdmin() {
       ,'site-header': 'view-site-chrome'
       ,'site-footer': 'view-site-chrome'
     };
+    if (viewName === 'team-activity' && activeAdminSession.role !== 'Administrator') viewName = 'jobs';
     const targetId = views[viewName] || 'view-jobs';
+    if (viewName === 'team-activity') void loadTeamActivity();
     document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active-view'));
     document.getElementById(targetId)?.classList.add('active-view');
 
@@ -4170,7 +4179,7 @@ export async function initAdmin() {
         ,'site-header': 'Appearance / Header'
         ,'site-footer': 'Appearance / Footer'
       };
-      breadcrumbEl.textContent = titles[viewName] || 'Jobs / All Jobs';
+      breadcrumbEl.textContent = viewName === 'team-activity' ? 'Team Activity' : titles[viewName] || 'Jobs / All Jobs';
     }
 
     const headerAddBtn = document.getElementById('header-add-job-btn');
@@ -4394,6 +4403,8 @@ export async function initAdmin() {
       }
       switchView('employer-edit');
       if (typeof updateEmployerReturnBanner === 'function') updateEmployerReturnBanner();
+    } else if (hash === 'team-activity') {
+      switchView('team-activity');
     } else {
       switchView('jobs');
     }
