@@ -4962,7 +4962,7 @@ export async function initAdmin() {
   importHost.className='job-link-import';
   importHost.innerHTML='<label for="job-import-url">Import from a job link</label><div><input id="job-import-url" type="url" placeholder="https://company.com/careers/job"><button type="button" id="job-import-button">Import details</button></div><p id="job-import-status" role="status">Paste a link to a single job. Review the extracted details before publishing.</p>';
   const pasteOption=document.createElement('details');pasteOption.className='job-import-paste';
-  pasteOption.innerHTML='<summary>LinkedIn blocked? Paste job text</summary><p>Copy the job title as the first line, followed by the full description. Employer selection remains manual.</p><textarea id="job-import-text" rows="7" placeholder="Job title\nPaste the job description, requirements and salary here…" aria-label="Job text to import"></textarea>';
+  pasteOption.innerHTML='<summary>Paste job text instead</summary><p>Paste the full hiring announcement. The importer detects the role, employer, location, requirements and application details where stated.</p><textarea id="job-import-text" rows="7" placeholder="Job title\nPaste the job description, requirements and salary here…" aria-label="Job text to import"></textarea>';
   importHost.append(pasteOption);
   document.querySelector('#view-job-editor .modern-editor-container')?.prepend(importHost);
   document.getElementById('job-import-button')?.addEventListener('click',async()=>{
@@ -4980,7 +4980,7 @@ export async function initAdmin() {
       const employer=matchImportedEmployer(importedCompany,allEmployers());
       if(!employer)Object.assign(result.job,{company:'',employerSlug:'',logo:''});
       if(employer)Object.assign(result.job,{company:employer.title,employerSlug:employer.slug,employerUrl:`/employer/${employer.slug}`,logo:employer.logo||''});
-      result.job.experience ||= 'Relevant experience required';
+      // Leave requirements absent from the source empty for review.
       const identity={id:jobForm.elements.namedItem('id')?.value||'',slug:jobForm.elements.namedItem('slug')?.value||'',status:'draft'};
       const originalSlug=jobForm.elements.namedItem('originalSlug')?.value||'';
       fillJob({...result.job,...identity});jobForm.elements.namedItem('originalSlug').value=originalSlug;
@@ -4994,7 +4994,7 @@ export async function initAdmin() {
 
       jobForm.dispatchEvent(new Event('input',{bubbles:true}));
       status.textContent='Details imported. '+(employer?'Existing employer selected. ':`Select an existing employer for ${importedCompany||'this job'}. `)+(selected?'Category matched. ':'Choose the closest category. ')+(result.job.minSalary?'':'Salary was not disclosed. ')+'Review missing fields before publishing.';
-    }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+    }catch(error){status.textContent=error.message;pasteOption.open=true;document.getElementById('job-import-text')?.focus();}finally{button.disabled=false;}
   });
 
   function fillJob(job = {}) {
@@ -5009,13 +5009,6 @@ export async function initAdmin() {
         if (jobForm.elements[key].type === 'checkbox') jobForm.elements[key].checked = !!value;
         else jobForm.elements[key].value = value ?? '';
       }
-    }
-    const defaultDeadline = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
-    if (!job.deadline && jobForm.elements['deadline']) {
-      jobForm.elements['deadline'].value = defaultDeadline;
-    }
-    if (!job.expiryDate && jobForm.elements['expiryDate']) {
-      jobForm.elements['expiryDate'].value = defaultDeadline;
     }
     if (!job.datePosted && jobForm.elements['datePosted']) {
       const now = new Date();
