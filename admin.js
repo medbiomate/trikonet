@@ -820,11 +820,11 @@ export function renderAdmin() {
                     </div>
                     <div class="modern-field-wrap">
                       <label class="modern-label">Min. Salary (AED)</label>
-                      <input type="number" name="minSalary" class="modern-input" placeholder="e.g. 8000">
+                      <input type="number" name="minSalary" class="modern-input" min="0" value="0" placeholder="0">
                     </div>
                     <div class="modern-field-wrap">
                       <label class="modern-label">Max. Salary (AED)</label>
-                      <input type="number" name="maxSalary" class="modern-input" placeholder="e.g. 14000">
+                      <input type="number" name="maxSalary" class="modern-input" min="0" value="0" placeholder="0">
                     </div>
                   </div>
 
@@ -4999,6 +4999,7 @@ export async function initAdmin() {
   });
 
   function fillJob(job = {}) {
+    job={...job,salaryType:!job.salaryType||job.salaryType==='Not specified'?'Monthly':job.salaryType,minSalary:job.minSalary==null||job.minSalary===''?0:job.minSalary,maxSalary:job.maxSalary==null||job.maxSalary===''?0:job.maxSalary};
     queueMicrotask(() => jobRecovery.open(job.slug || '', job.id || ''));
     jobForm.reset();
     renderGutenbergChecklists();
