@@ -8426,3 +8426,13 @@ mark.wp-highlight {
 .job-selected-categories{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.job-selected-categories button{border:1px solid #bcd5f6;background:#edf5ff;color:#245ca3;padding:6px 9px;border-radius:7px;font-family:inherit;font-size:11px;cursor:pointer}.job-selected-categories small{font-size:11px;color:#94a3b8}#job-rich-content p{margin-bottom:12px}#job-rich-content ul,#job-rich-content ol{padding-left:24px;margin:12px 0}#job-rich-content li{margin-bottom:6px}
 
 #checklist-categories label:has(input:checked){background:#e7f3ff!important;color:#075b96!important;box-shadow:inset 3px 0 #0284c7;border-radius:7px;font-weight:600}#view-job-editor .job-selected-categories{display:flex!important;flex-wrap:wrap;gap:8px;padding:12px;margin-bottom:12px;background:white;border:1px solid #dbe7f1;border-radius:9px;min-height:42px;box-sizing:border-box}#view-job-editor .job-selected-categories>strong{width:100%;font-size:11px;color:#64748b}#view-job-editor .job-selected-categories button{background:#e5f2ff;color:#075b96;border:1px solid #9bccec;padding:8px 10px;font-weight:600}
+
+/* Reserve icon space even when general editor input padding is overridden. */
+#job-form .application-input-with-icon > input.modern-input {
+  padding-left: 42px !important;
+}
+#job-form .application-input-with-icon > span {
+  width: 18px;
+  text-align: center;
+  pointer-events: none;
+}
