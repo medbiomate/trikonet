@@ -1,3 +1,4 @@
+import {normalizeImportedDescription} from './imported-description.js';
 import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
 import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
 import { createJobPageCache } from './admin-job-cache.js';
@@ -5033,9 +5034,10 @@ export async function initAdmin() {
     if (gutenbergTitle) gutenbergTitle.value = titleText;
 
     const gutenbergContent = document.getElementById('job-gutenberg-content');
-    if (gutenbergContent) gutenbergContent.value = job.description || '';
+    const normalizedDescription=normalizeImportedDescription(job.description||'');
+    if (gutenbergContent) gutenbergContent.value = normalizedDescription;
     const jobRichContent = document.getElementById('job-rich-content');
-    if (jobRichContent) jobRichContent.innerHTML = job.description || '';
+    if (jobRichContent) jobRichContent.innerHTML = normalizedDescription;
 
     const publishBtn = document.getElementById('publish-job-btn');
     if (publishBtn) publishBtn.textContent = job.slug ? 'Update' : 'Publish';
