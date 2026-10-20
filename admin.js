@@ -5,7 +5,7 @@ import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-r
 import { createJobPageCache } from './admin-job-cache.js';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
-import { createFormRecovery } from './admin-recovery.js?v=20261018-publish-timeout-29';
+import { createFormRecovery } from './admin-recovery.js?v=20261020-scoped-save-1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -7271,6 +7271,7 @@ export async function initAdmin() {
       jobRecovery.clear();
       jobRecovery.saved(saved);
       jobPageCache.clear();
+      currentPage = 1;
       updateJobPreview();
       renderJobRows();
     } catch (error) {

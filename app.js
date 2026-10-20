@@ -359,7 +359,7 @@ if (cats.length) {
     const localCandidates=localResponse.ok?await localResponse.json():[];
     const localRelated=localCandidates.filter(job=>extractJobCats(job).some(category=>cats.some(c=>c.toLowerCase()===category.toLowerCase())));
     const overrides=new Map(localCandidates.map(job=>[job.slug,job]));
-    const publishedTime=job=>Date.parse(job.publishedDate || job.datePosted || job.postedDate || job.date || job.createdAt || '') || 0;
+    const publishedTime=job=>Date.parse(job.publishedAt||job.publishedDate || job.datePosted || job.postedDate || job.date || job.createdAt || '') || 0;
     categoryJobs=uniqueJobs([...catResults.flat().map(job=>overrides.get(job.slug)||job),...localRelated]).filter(job=>job && job.slug).sort((a,b)=>publishedTime(b)-publishedTime(a));
   } catch {}
 }}catch(error){console.warn('Related job data unavailable:',error);}})();}}catch{wpRecord=null}}
@@ -3570,7 +3570,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261019-user-reports-2').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261020-scoped-save-20261019-user-reports-2').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));

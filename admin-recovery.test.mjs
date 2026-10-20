@@ -46,3 +46,16 @@ test('late autosave response cannot assign its ID to another open editor',async(
  item.recovery.open('different-job','different-id');release();await pending;
  assert.equal(item.fields.id.value,'different-id');assert.equal(item.fields.originalSlug.value,'');
 });
+test('publishing proceeds while an autosave has not answered',async()=>{
+ let release;const item=tab(new Map(),body=>new Promise(resolve=>{release=()=>resolve({ok:true,json:async()=>({id:body.record.id,slug:'late',status:'draft'})});}));
+ item.recovery.open();item.type('Ready');const pending=item.recovery.flush();
+ await item.recovery.preparePublish();
+ release();await pending;
+ assert.equal(item.fields.originalSlug.value,'');
+});
+test('opening a fresh editor during autosave assigns a separate stable identity',async()=>{
+ let release;const item=tab(new Map(),body=>new Promise(resolve=>{release=()=>resolve({ok:true,json:async()=>({id:body.record.id,slug:'old',status:'draft'})});}));
+ item.recovery.open();item.type('Old');const first=item.fields.id.value;const pending=item.recovery.flush();
+ item.recovery.open();assert.notEqual(item.fields.id.value,first);
+ release();await pending;assert.equal(item.fields.originalSlug.value,'');
+});

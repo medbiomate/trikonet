@@ -2,7 +2,7 @@ export function createFormRecovery(form, type, account) {
   const view = form.closest('.admin-view');
   let key, dirty = false, restoring = false, timer, pending, draftId, sourceSlug = '';
   // Never reuse another tab's new-job recovery identity (including duplicated tabs).
-  const newDraftScope = crypto.randomUUID();
+  let newDraftScope = crypto.randomUUID();
   let generation = 0, paused = false, autosaveController;
   let editingSlug = '';
   let jobId = '';
@@ -73,7 +73,7 @@ export function createFormRecovery(form, type, account) {
       localStorage.setItem(key, JSON.stringify({ values, draftId, date: Date.now(), status: 'draft' }));
       notice.style.display = 'block';
       notice.textContent = 'Recovery draft saved on this device. Not published.';
-      clearTimeout(timer); if (!paused) timer = setTimeout(sync, 1500);
+      clearTimeout(timer); if (!paused) timer = setTimeout(sync, 5000);
     } catch {
       notice.style.display = 'block';
       notice.textContent = 'Draft could not be saved on this device. Keep this tab open and save manually.';
@@ -85,7 +85,6 @@ export function createFormRecovery(form, type, account) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   return {
     open(slug = '', id = '') {
-      if (type === 'job' && !slug && pending && !sourceSlug) return;
       presence(true);
       generation++;
       paused = false;
@@ -93,6 +92,7 @@ export function createFormRecovery(form, type, account) {
       clearTimeout(timer);
       dirty = false;
       sourceSlug = slug;
+      if (!slug) newDraftScope = crypto.randomUUID();
       key = `trikonet-recovery:${encodeURIComponent(account)}:${type}:${encodeURIComponent(slug || `new:${newDraftScope}`)}`;
       notice.style.display = 'none';
       let draft;
@@ -122,7 +122,7 @@ export function createFormRecovery(form, type, account) {
       notice.append(restore);
     },
     saved(job) { if (type === 'job') { setJobId(job.id); sourceSlug = job.slug; } },
-    async preparePublish() { paused=true;generation++;clearTimeout(timer);autosaveController?.abort();if(pending)await pending; },
+    async preparePublish() { paused=true;generation++;clearTimeout(timer);autosaveController?.abort(); },
     pause() { paused = true; clearTimeout(timer); },
     resume() { paused = false; if (dirty) save(); },
     async flush() { clearTimeout(timer); if (pending) await pending; await sync(); },
