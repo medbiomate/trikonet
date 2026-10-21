@@ -929,7 +929,7 @@ export function renderAdmin() {
                 <div class="modern-card-body">
                   <div class="google-job-notice"><strong>Google required information</strong><span>Publishing is blocked until every field marked * is completed.</span></div>
                   <div class="modern-grid-2">
-                    <div class="modern-field-wrap"><label class="modern-label">Employment Type <span class="req">*</span></label><select name="employmentType" id="job-employment-type" class="modern-select" required><option value="">Select employment type</option><option value="FULL_TIME">Full time</option><option value="PART_TIME">Part time</option><option value="CONTRACTOR">Contractor</option><option value="TEMPORARY">Temporary</option><option value="INTERN">Intern</option><option value="VOLUNTEER">Volunteer</option><option value="PER_DIEM">Per diem</option><option value="OTHER">Other</option></select></div>
+                    <div class="modern-field-wrap"><label class="modern-label">Employment Type <span class="req">*</span></label><select name="employmentType" id="job-employment-type" class="modern-select" required><option value="">Select employment type</option><option value="FULL_TIME" selected>Full Time</option><option value="PART_TIME">Part time</option><option value="CONTRACTOR">Contractor</option><option value="TEMPORARY">Temporary</option><option value="INTERN">Intern</option><option value="VOLUNTEER">Volunteer</option><option value="PER_DIEM">Per diem</option><option value="OTHER">Other</option></select></div>
                     <div class="modern-field-wrap"><label class="modern-label">Date Posted <span class="req">*</span></label><input type="date" name="datePosted" id="job-date-posted" class="modern-input" required></div>
                   </div>
                   <div class="modern-field-wrap"><label class="modern-label">Street Address <span class="req">*</span></label><input type="text" name="streetAddress" class="modern-input" placeholder="e.g. Dubai Internet City, Building 12" required></div>
@@ -5058,9 +5058,9 @@ export async function initAdmin(verifiedSession = null) {
       jobForm.elements['datePosted'].value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     }
     if (!job.addressCountry && jobForm.elements['addressCountry']) jobForm.elements['addressCountry'].value = 'AE';
-    if (!job.employmentType && jobForm.elements['employmentType'] && (job.types?.[0] || job.type)) {
+    if (!job.employmentType && jobForm.elements['employmentType']) {
       const typeMap = { 'Full Time':'FULL_TIME', 'Part Time':'PART_TIME', 'Freelance':'CONTRACTOR', 'Contract':'CONTRACTOR', 'Internship':'INTERN', 'Temporary':'TEMPORARY' };
-      jobForm.elements['employmentType'].value = typeMap[job.types?.[0] || job.type] || '';
+      jobForm.elements['employmentType'].value = typeMap[job.types?.[0] || job.type] || 'FULL_TIME';
     }
     jobForm.originalSlug.value = job.slug || '';
 
