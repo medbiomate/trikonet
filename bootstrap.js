@@ -28,6 +28,7 @@ export function showLoadingRecovery(error) {
 const timeout = setTimeout(() => {
   const status = document.getElementById('initial-loading-status');
   if (status) status.textContent = 'Your connection is taking a little longer. You can still use search and navigation.';
-  showLoadingRecovery(new Error('Loading timed out'));
+  // Keep initialization alive; only a rejected module should replace the page.
+  // Slow authentication or a busy server is not a failed editor.
 }, 12000);
-import('./app.js?v=20261019-user-reports-2').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261021-editor-startup-1').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));

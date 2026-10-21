@@ -3734,7 +3734,7 @@ export function showAdminNotice(message, type = 'success') {
 }
 window.showAdminNotice = showAdminNotice;
 
-export async function initAdmin() {
+export async function initAdmin(verifiedSession = null) {
   // Use explicit navigation as well as the normal link. Keep the document's
   // capture-phase unsaved-changes guard authoritative when editing a post.
   document.querySelector('.admin-brand')?.addEventListener('click', event => {
@@ -3763,7 +3763,7 @@ export async function initAdmin() {
   // The browser copy is only for rendering the header. The HttpOnly cookie is
   // authoritative and is cleared whenever the Node process is redeployed.
   try {
-    const sessionResponse = await fetch('/api/admin/me', { cache: 'no-store' });
+    const sessionResponse = verifiedSession ? {ok:true,json:async()=>({admin:verifiedSession})} : await fetch('/api/admin/me', { cache: 'no-store' });
     if (!sessionResponse.ok) {
       localStorage.removeItem('trikonet_admin_session');
       sessionStorage.removeItem('trikonet_admin_session');
@@ -4412,6 +4412,16 @@ export async function initAdmin() {
   }
 
   window.addEventListener('hashchange', handleRoute);
+  // Load heavy management catalogues only when their screen is opened.
+  let managementRoute='';
+  window.addEventListener('hashchange',()=>{
+    const route=location.hash.split('/')[0];
+    if(route===managementRoute)return;
+    managementRoute=route;
+    if(/^#(?:posts|pages|media|employers)(?:-|$)/.test(route))void loadData();
+    if(route.includes('claim'))void loadEmployerClaims();
+    if(route.includes('reported'))void loadReportedJobs();
+  });
 
   // Sidebar navigation and menu accordion toggle
   function handleMenuToggle(prefix, defaultHash) {
@@ -6492,6 +6502,12 @@ export async function initAdmin() {
     employerLoadError = false;
     const records = [];
     try {
+      if (location.hash.startsWith('#job')) {
+        const response=await fetch('/api/admin/employer-options',{signal:AbortSignal.timeout(20000)});
+        if(!response.ok)throw Error('Company options unavailable');
+        const options=await response.json();
+        updateImportedEmployers(options);return options;
+      }
       // Bound response size and retry transient failures without hiding companies.
       for (let page = 1; page <= 100; page++) {
         let batch;
@@ -6535,10 +6551,10 @@ export async function initAdmin() {
       Promise.resolve(localJobs),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
       fetch('/api/wp/taxonomies').then(r => r.ok ? r.json() : null).catch(() => null),
-      loadRemoteJobs(),
+      location.hash==='#jobs'||!location.hash ? loadRemoteJobs() : Promise.resolve([]),
       Promise.resolve(localEmployers),
       Promise.resolve(remoteEmployers),
-      fetch('/api/admin/candidates',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('Candidate refresh failed');return r.json()}).catch(()=>[])
+      Promise.resolve([])
     ]);
 
     localJobs = local;
@@ -6611,9 +6627,9 @@ export async function initAdmin() {
 
     try {
       const [pRes, pgRes, mRes] = await Promise.all([
-        fetch('/api/wp/posts?per_page=100').catch(() => null),
-        fetch('/api/wp/pages?per_page=30').catch(() => null),
-        fetch('/api/wp/media?per_page=5000').catch(() => null)
+        location.hash.includes('post') ? fetch('/api/wp/posts?per_page=100').catch(() => null) : Promise.resolve(null),
+        location.hash.includes('page') ? fetch('/api/wp/pages?per_page=30').catch(() => null) : Promise.resolve(null),
+        location.hash.includes('media') ? fetch('/api/wp/media?per_page=100').catch(() => null) : Promise.resolve(null)
       ]);
       if (pRes && pRes.ok) {
         const wpPosts = await pRes.json();
@@ -6726,8 +6742,8 @@ export async function initAdmin() {
     if (typeof renderPageRows === 'function') renderPageRows();
     if (typeof renderMediaGrid === 'function') renderMediaGrid();
     if (typeof renderCandidateRows === 'function') renderCandidateRows();
-    if (typeof loadEmployerClaims === 'function') loadEmployerClaims();
-    if (typeof loadReportedJobs === 'function') loadReportedJobs();
+    if (location.hash.includes('claim'))void loadEmployerClaims();
+    if (location.hash.includes('reported'))void loadReportedJobs();
 
   }
 
@@ -9095,7 +9111,8 @@ export async function initAdmin() {
       renderUserRows();
     } catch {}
   }
-  syncServerAdminUsers();
+  if(location.hash.includes('user'))void syncServerAdminUsers();
+  window.addEventListener('hashchange',()=>{if(location.hash.includes('user'))void syncServerAdminUsers();});
 
   function fillUser(u = {}) {
     const form = document.getElementById('admin-user-form');
@@ -14433,9 +14450,9 @@ export async function initAdmin() {
   const seoAdmin = initSeoAdmin(showAdminNotice);
   // Initial routing and data loading
   handleRoute();
-  void refreshCandidateAccounts();
+  if(location.hash.includes('candidate')) void refreshCandidateAccounts();
   await loadData();
-  if(activeAdminSession.role==='Administrator'){
+  if(activeAdminSession.role==='Administrator' && location.hash.includes('page')){
     try{
       const response=await fetch('/api/admin/seo-job-pages/main-categories');
       if(response.ok){
@@ -14451,5 +14468,4 @@ export async function initAdmin() {
   }
   renderPostCategoryFilterDropdown();
   renderGutenbergPostCategoriesChecklist();
-  handleRoute();
 }

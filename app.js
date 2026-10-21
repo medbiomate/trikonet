@@ -3570,7 +3570,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261020-scoped-save-20261019-user-reports-2').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261021-editor-startup-1').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));
@@ -3959,7 +3959,7 @@ function addStructuredData(){
   const script=document.createElement('script');script.type='application/ld+json';script.id='trikonet-structured-data';script.textContent=JSON.stringify({'@context':'https://schema.org','@graph':graph}).replace(/</g,'\\u003c');document.head.append(script);
 }
 addStructuredData();
-if(path.startsWith('/admin') && getAdminAuth()) initAdmin(data,store.set);
+if(path.startsWith('/admin') && getAdminAuth()) initAdmin(getVerifiedAdmin());
 document.querySelectorAll('.wp-block-rank-math-faq-block .rank-math-faq-item').forEach((item,index)=>{
   const question=item.querySelector('.rank-math-question');
   const answer=item.querySelector('.rank-math-answer');
