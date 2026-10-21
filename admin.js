@@ -1,4 +1,3 @@
-import {openJobTabs} from './admin-job-tabs.js?v=20261021-1';
 import {teamActivityView,initTeamActivity} from './admin-team-activity.js?v=2';
 import {normalizeImportedDescription} from './imported-description.js';
 import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
@@ -372,16 +371,16 @@ export function renderAdmin() {
               <p class="modern-page-subtitle">Track, filter, and manage all published job listings across the portal.</p>
             </div>
           </div>
-          <div class="modern-heading-actions">
+          <div class="modern-heading-actions" style="display:flex;flex-wrap:wrap;justify-content:flex-end;width:100%">
             <a href="#job-new" class="modern-btn-primary-header" id="new-job-top">
               <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               <span>Add New Job</span>
             </a>
-            <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:12px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;width:100%">
               <label for="new-job-tab-count" style="font-size:14px;color:#475569">Job tabs</label>
               <input id="new-job-tab-count" type="number" min="1" max="10" step="1" value="3" aria-label="Number of new job tabs" style="width:64px;min-height:42px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font:inherit">
-              <button type="button" id="open-job-tabs" class="modern-btn-secondary" style="min-height:42px">Open job tabs ↗</button>
-              <span id="new-job-tabs-status" role="status" style="font-size:13px;color:#475569"></span>
+              <button type="button" id="open-job-tabs" class="modern-btn-secondary" style="min-height:42px">Create job links</button>
+              <div id="new-job-tab-links" aria-label="New job editors" style="display:flex;gap:8px;flex-wrap:wrap;flex-basis:100%;min-height:44px"></div>
             </div>
           </div>
         </div>
@@ -3759,15 +3758,24 @@ export async function initAdmin(verifiedSession = null) {
     document.querySelectorAll('.modern-qe-slug-chip').forEach(chip => { chip.hidden = restricted; });
   };
   new MutationObserver(lockJobUrlControls).observe(document.body,{childList:true,subtree:true});
-  document.getElementById('open-job-tabs')?.addEventListener('click', () => {
-    const countField=document.getElementById('new-job-tab-count');
-    if(!countField.reportValidity())return;
-    const {opened,requested}=openJobTabs(countField.value,location.origin,window.open.bind(window));
-    document.getElementById('new-job-tabs-status').textContent=opened===requested
-      ? `${opened} independent job ${opened===1?'tab':'tabs'} opened.`
-      : `${opened} of ${requested} tabs opened. Allow pop-ups for Trikonet, then open the remaining ${requested-opened}.`;
-    if(opened<requested)countField.value=String(requested-opened);
+  function renderNewJobLinks(){
+    const field=document.getElementById('new-job-tab-count');
+    if(!field.checkValidity())return;
+    const links=document.getElementById('new-job-tab-links');
+    links.replaceChildren(...Array.from({length:Number(field.value)},(_,index)=>{
+      const link=document.createElement('a');
+      link.href='/admin#job-new';link.target='_blank';link.rel='noopener';
+      link.className='modern-btn-secondary';link.textContent=`Job ${index+1} ↗`;
+      link.style.cssText='min-height:40px;display:inline-flex;align-items:center;white-space:nowrap';
+      link.addEventListener('click',()=>{link.textContent=`Job ${index+1} ✓`;});
+      return link;
+    }));
+  }
+  document.getElementById('open-job-tabs')?.addEventListener('click',()=>{
+    if(document.getElementById('new-job-tab-count').reportValidity())renderNewJobLinks();
   });
+  document.getElementById('new-job-tab-count')?.addEventListener('change',renderNewJobLinks);
+  renderNewJobLinks();
 
   // Logout handler
   document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {
