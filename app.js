@@ -13,7 +13,7 @@ import { uniqueJobs } from './job-list-identity.js';
 import { restoreArticleImages } from './article-images.js';
 import { getVerifiedAdmin, refreshAdminSession, initPublicAdminBar, signalAdminSessionChange } from './admin-session.js?v=20261021-publish-tabs-2';
 let renderJobDetail, renderEmployerDetail;
-import { formatCompanyName } from './company-name.js';
+import { formatCompanyName, formatJobTitle } from './company-name.js?v=20261021-title-trash-1';
 import { employerProfileHref } from './employer-link.js';
 import { renderCategoryLinks, renderAllCategories } from './category-links.js';
 let renderAdmin, initAdmin;
@@ -429,7 +429,7 @@ function mapJob(record){
     ...record,
     description:record.local ? (record.description ?? '') : (record.content?.rendered || record.description || ''),
     id:record.id,
-    title:record.title?.rendered||record.title||'',
+    title:formatJobTitle(decodeHtml(record.title?.rendered||record.title||'')),
     company:formatCompanyName(decodeHtml(m._job_employer_name||record.company||'')),
     category:fieldValues(m._job_category)||(record.categories||[]).join(', ')||record.category||'',
     location:fieldValues(m._job_location)||(record.locations||[]).join(', ')||record.location||'',
@@ -3570,7 +3570,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261021-publish-tabs-2').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261021-title-trash-1').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));
@@ -4827,7 +4827,7 @@ window.renderEmployerUserReviews = function(slug) {
               <div class="emp-reviewer-info">
                 <span class="emp-reviewer-badge" style="background:#16a34a; color:#ffffff;">★ ${Number(r.ratingScore || 5).toFixed(1)}</span>
                 <div>
-                  <strong>${escHtml(r.jobTitle || 'Employee')}</strong>
+                  <strong>${escHtml(formatJobTitle(r.jobTitle || 'Employee'))}</strong>
                   <span class="emp-review-meta">${escHtml(r.employmentStatus || 'Employee')}${r.location ? ' • ' + escHtml(r.location) : ''} • Verified Community Submission</span>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { formatJobTitle, formatCompanyName } from './company-name.js?v=20261021-title-trash-1';
 import {teamActivityView,initTeamActivity} from './admin-team-activity.js?v=2';
 import {normalizeImportedDescription} from './imported-description.js';
 import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
@@ -5181,8 +5182,8 @@ export async function initAdmin(verifiedSession = null) {
         <th scope="row" class="check-column"><input type="checkbox" name="post[]" value="${esc(j.slug)}"></th>
         <td class="column-title">
           <div class="modern-title-line">
-            <a class="row-title" href="#job-editor" data-job-edit="${esc(j.slug)}">${esc(j.title)}</a>
-            <span class="modern-company-text">${esc(j.company || 'Trikonet')}</span>
+            <a class="row-title" href="#job-editor" data-job-edit="${esc(j.slug)}">${esc(formatJobTitle(j.title))}</a>
+            <span class="modern-company-text">${esc(formatCompanyName(j.company || 'Trikonet'))}</span>
             <span style="display:block;font-size:12px;color:#64748b;margin-top:3px">${j.createdBy?.name ? `Created by: ${esc(j.createdBy.name)}` : j.updatedBy?.name ? `Edited by: ${esc(j.updatedBy.name)}` : 'Creator not recorded'}</span>
             ${j.editingNames?.length ? `<span style="display:block;color:#2563eb;font-size:12px" role="status">${esc(j.editingNames.join(', '))} ${j.editingNames.length > 1 ? 'are' : 'is'} editing this job</span>` : ''}
           </div>
@@ -6166,7 +6167,7 @@ export async function initAdmin(verifiedSession = null) {
         <tr id="reported-row-${esc(job.jobSlug)}">
           <td class="column-title">
             <div style="font-weight:700;font-size:14px;color:#0f172a;line-height:1.35;margin-bottom:3px;">
-              <a href="/job/${encodeURIComponent(job.jobSlug)}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;">${esc(job.jobTitle)} ↗</a>
+              <a href="/job/${encodeURIComponent(job.jobSlug)}" target="_blank" rel="noopener" style="color:#0f172a;text-decoration:none;">${esc(formatJobTitle(job.jobTitle))} ↗</a>
             </div>
             ${job.company ? `<div style="font-size:12px;color:#64748b;display:flex;align-items:center;gap:4px;margin-bottom:3px;">🏢 <span>${esc(job.company)}</span></div>` : ''}
             <div style="font-size:11px;font-family:monospace;color:#94a3b8;">/job/${esc(job.jobSlug)}</div>
@@ -6876,7 +6877,7 @@ export async function initAdmin(verifiedSession = null) {
               <div class="bulk-edit-tags-container" id="bulk-edit-items-list">
                 ${selectedJobs.map(j => `
                   <span class="bulk-job-chip" id="bulk-chip-${esc(j.slug)}">
-                    <span class="bulk-job-chip-title">${esc(j.title)}</span>
+                    <span class="bulk-job-chip-title">${esc(formatJobTitle(j.title))}</span>
                     <button type="button" class="bulk-job-chip-remove" data-remove-slug="${esc(j.slug)}" title="Exclude from bulk edit">✕</button>
                   </span>
                 `).join('')}
@@ -7059,6 +7060,20 @@ export async function initAdmin(verifiedSession = null) {
     });
   }
 
+  async function trashJob(slug) {
+    const response = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}`, { method:'DELETE' });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || `Unable to delete job (HTTP ${response.status}).`);
+    }
+    jobsController?.abort();
+    ++jobsRequest;
+    jobPageCache.clear();
+    localJobs = localJobs.filter(job => job.slug !== slug);
+    remoteJobs = remoteJobs.filter(job => job.slug !== slug);
+    pageJobs = pageJobs.filter(job => job.slug !== slug);
+  }
+
   async function handleBulkDelete(selectedSlugs) {
     if (!confirm(`Are you sure you want to delete ${selectedSlugs.length} selected job(s)? This action cannot be undone.`)) {
       return;
@@ -7069,22 +7084,16 @@ export async function initAdmin(verifiedSession = null) {
       applyBtn.textContent = 'Deleting…';
     }
 
-    for (const slug of selectedSlugs) {
-      await fetch(`/api/local/jobs/${encodeURIComponent(slug)}`, { method: 'DELETE' }).catch(() => {});
-      localJobs = localJobs.filter(j => j.slug !== slug);
-      remoteJobs = remoteJobs.filter(j => j.slug !== slug);
+    let deleted = 0;
+    try {
+      for (const slug of selectedSlugs) { await trashJob(slug); deleted++; }
+      showAdminNotice(`${deleted} job(s) moved to Trash.`);
+    } catch(error) {
+      showAdminNotice(`${deleted} job(s) moved to Trash. ${error.message}`,'error');
+    } finally {
+      renderJobRows();
+      if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply'; }
     }
-
-    renderJobRows();
-    const selectAllCb = document.getElementById('cb-select-all-1');
-    if (selectAllCb) selectAllCb.checked = false;
-    const actionSelect = document.getElementById('bulk-action-selector-top');
-    if (actionSelect) actionSelect.value = '-1';
-    if (applyBtn) {
-      applyBtn.disabled = false;
-      applyBtn.textContent = 'Apply';
-    }
-    alert(`Successfully deleted ${selectedSlugs.length} job(s).`);
   }
 
   document.getElementById('doaction')?.addEventListener('click', () => {
@@ -7127,7 +7136,7 @@ export async function initAdmin(verifiedSession = null) {
       e.preventDefault();
       const slug = trashBtn.dataset.jobTrash;
       if (!confirm(`Move “${slug}” to Trash?`)) return;
-      await fetch(`/api/local/jobs/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+      try { await trashJob(slug); } catch(error) { showAdminNotice(error.message,'error'); return; }
       localJobs = localJobs.filter(j => j.slug !== slug);
       remoteJobs = remoteJobs.filter(j => j.slug !== slug);
       renderJobRows();
@@ -7384,7 +7393,7 @@ export async function initAdmin(verifiedSession = null) {
   document.querySelector('#admin-delete')?.addEventListener('click', async () => {
     const slug = jobForm.originalSlug.value;
     if (!slug || !confirm(`Delete local job “${jobForm.title.value}”?`)) return;
-    await fetch(`/api/local/jobs/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+    try { await trashJob(slug); } catch(error) { showAdminNotice(error.message,'error'); return; }
     localJobs = localJobs.filter(x => x.slug !== slug);
     fillJob({});
     renderJobRows();
@@ -14412,7 +14421,7 @@ export async function initAdmin(verifiedSession = null) {
           </td>
           <td class="column-candidate-id"><span class="candidate-id-badge" title="Account user ID">${escapeHtml(String(c.userId || c.id || '—'))}</span></td>
           <td class="column-candidate-title">
-            <span style="font-weight:500; color:#0f172a; font-size:13px;">${escapeHtml(c.jobTitle || 'Candidate')}</span>
+            <span style="font-weight:500; color:#0f172a; font-size:13px;">${escapeHtml(formatJobTitle(c.jobTitle || 'Candidate'))}</span>
           </td>
           <td class="column-candidate-category">
             <span class="modern-badge" style="background:#eff6ff; color:#1d4ed8; font-weight:500; font-size:11px; padding:3px 8px; border-radius:6px;">
