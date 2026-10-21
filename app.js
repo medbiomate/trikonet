@@ -981,16 +981,8 @@ function homeHowItWorks(s = {}) {
 function homeWidgets(){const fallback=['hero','categories','top-companies','how-it-works','articles'].map(type=>({type,settings:{}}));try{const pages=JSON.parse(localStorage.getItem('trikonet_pages_cms')||'[]');const page=pages.find(item=>item.slug==='home');if(!page?.content)return fallback;const doc=new DOMParser().parseFromString(page.content,'text/html');const widgets=[...doc.querySelectorAll('[data-home-widget]')].map(node=>{let settings={};try{settings=JSON.parse(decodeURIComponent(node.dataset.homeSettings||'%7B%7D'))}catch{}return {type:node.dataset.homeWidget,settings}}).filter(item=>['hero','categories','top-companies','how-it-works','articles'].includes(item.type));if(widgets.length&&!widgets.some(w=>w.type==='top-companies')){const catIdx=widgets.findIndex(w=>w.type==='categories');if(catIdx>=0)widgets.splice(catIdx+1,0,{type:'top-companies',settings:{}});else widgets.push({type:'top-companies',settings:{}})}return widgets.length?widgets:fallback}catch{return fallback}}
 function home(){const renderers={hero:homeHero,categories:homeCategories,'top-companies':homeTopCompanies,'how-it-works':homeHowItWorks,articles:(s)=>articleSection(s)};return `<main>${homeWidgets().map(item=>renderers[item.type]?.(item.settings)||'').join('')}</main>`}
 function getPaginationRange(current, total) {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, '...', total];
-  }
-  if (current >= total - 3) {
-    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
-  }
-  return [1, '...', current - 1, current, current + 1, '...', total];
+  const start = Math.floor((current - 1) / 5) * 5 + 1;
+  return Array.from({ length: Math.min(5, total - start + 1) }, (_, i) => start + i);
 }
 
 function pager(base, total, size = pageSize) {
