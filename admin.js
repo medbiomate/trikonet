@@ -1015,7 +1015,7 @@ export function renderAdmin() {
 
               <!-- Taxonomies: Categories -->
               <div class="modern-sidebar-card">
-                <h4 class="modern-sidebar-card-title">Categories</h4>
+                <h4 class="modern-sidebar-card-title">Categories <span class="req">*</span></h4>
                 <input type="text" class="modern-search-sm" placeholder="Filter categories…" data-search-checklist="categories">
                 <div class="modern-taxonomy-checklist tree-checklist" data-list="categories" id="checklist-categories">
                   <!-- Populated dynamically with hierarchy -->
@@ -7279,6 +7279,16 @@ export async function initAdmin(verifiedSession = null) {
     const fd = new FormData(jobForm);
     const job = Object.fromEntries(fd.entries());
     if (e.submitter?.id === 'publish-job-btn') job.status = 'publish';
+    if (['publish','published','active'].includes(job.status) && !selectedTerms('categories').length) {
+      const message = 'Select at least one job category before publishing.';
+      jobStatusState.textContent = message;
+      showAdminNotice(message, 'error');
+      showJobPublishFeedback(message, 'error');
+      const categorySearch = document.querySelector('[data-search-checklist="categories"]');
+      categorySearch?.scrollIntoView({block:'center',behavior:'smooth'});
+      categorySearch?.focus();
+      return;
+    }
     job.id = jobForm.elements.id?.value || '';
     job.originalSlug = jobForm.originalSlug.value;
     job.description = currentJobDescription().trim();
