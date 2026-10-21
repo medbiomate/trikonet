@@ -2,7 +2,7 @@ import {teamActivityView,initTeamActivity} from './admin-team-activity.js?v=2';
 import {normalizeImportedDescription} from './imported-description.js';
 import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
 import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
-import { createJobPageCache } from './admin-job-cache.js';
+import { createJobPageCache } from './admin-job-cache.js?v=20261021-day-scoped';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=2';
 import { createFormRecovery } from './admin-recovery.js?v=20261020-scoped-save-1';
@@ -385,7 +385,7 @@ export function renderAdmin() {
           </div>
         </div>
 
-        <p id="admin-job-load-notice" role="status" hidden></p>
+        <p id="admin-job-load-notice" role="status">Today’s jobs · All statuses · India time</p>
         <div class="modern-card modern-table-card">
           <!-- 1. Integrated Status Tabs Navigation -->
           <div class="modern-card-tab-bar">
@@ -427,8 +427,10 @@ export function renderAdmin() {
                 <select name="m" id="filter-by-date" class="modern-select-pill">
                   <option value="today" selected>Today’s jobs</option>
                   <option value="yesterday">Yesterday’s jobs</option>
-                  <option value="all">All dates</option>
+                  <option value="custom">Choose a date…</option>
+                  <option value="all">All dates — published &amp; drafts</option>
                 </select>
+                <input type="date" id="filter-job-date" class="modern-select-pill" aria-label="Job date" hidden>
                 <select id="filter-by-creator" class="modern-select-pill" aria-label="Job creator"><option value="">Everyone</option></select>
                 <select name="rank_math_seo" id="filter-by-rank-math" style="display:none;">
                   <option value="">Rank Math</option>
@@ -6414,7 +6416,12 @@ export async function initAdmin(verifiedSession = null) {
   jobRows.addEventListener('click', event => {
     if (event.target.closest('#retry-jobs-load')) void loadRemoteJobs();
   });
-  for(const id of ['filter-by-date','filter-by-creator'])document.getElementById(id)?.addEventListener('change',()=>{currentPage=1;void loadRemoteJobs();});
+  for(const id of ['filter-by-date','filter-by-creator','filter-job-date'])document.getElementById(id)?.addEventListener('change',()=>{
+    const custom=document.getElementById('filter-by-date').value==='custom';
+    document.getElementById('filter-job-date').hidden=!custom;
+    if(custom&&!document.getElementById('filter-job-date').value)return;
+    currentPage=1;void loadRemoteJobs();
+  });
   const jobPageCache = createJobPageCache(localStorage, recoveryAccount);
   jobForm.addEventListener('input', () => jobPageCache.clear());
 
@@ -6432,12 +6439,14 @@ export async function initAdmin(verifiedSession = null) {
       page: String(currentPage), per_page: String(pageSize), status: currentStatus,
       q: document.querySelector('#admin-search')?.value || '',
       job_type: document.querySelector('#filter-by-type')?.value || '',
-      period:document.querySelector('#filter-by-date')?.value||'today',
+      period:document.querySelector('#filter-by-date')?.value==='custom' ? document.getElementById('filter-job-date').value : document.querySelector('#filter-by-date')?.value||'today',
       creator:document.querySelector('#filter-by-creator')?.value||'',
       filter_day:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata'}).format(new Date()),
       category: document.querySelector('#filter-by-category')?.value || ''
     });
-    const cached = jobPageCache.read(params.toString());
+    const scopeLabel=params.get('period')==='all'?'All dates':params.get('period')==='yesterday'?'Yesterday’s jobs':params.get('period')==='today'?'Today’s jobs':params.get('period');
+    document.getElementById('admin-job-load-notice').textContent=scopeLabel+' · '+(currentStatus==='all'?'Published, drafts, pending & expired':currentStatus)+' · India time';
+    const cached = null; // Always get day-scoped jobs and totals from the server.
     if (cached) {
       displayedJobsPage = currentPage;
       pageJobs = cached.jobs.map(job => job.local ? job : wordpressJob(job));

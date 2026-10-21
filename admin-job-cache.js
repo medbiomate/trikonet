@@ -1,4 +1,4 @@
-const prefix = 'trikonet-job-pages-v1:';
+const prefix = 'trikonet-job-pages-day-scoped-v2:';
 const ttl = 24 * 60 * 60 * 1000;
 export function createJobPageCache(storage, account) {
   const scope = prefix + encodeURIComponent(account) + ':';
