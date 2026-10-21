@@ -426,7 +426,7 @@ export function renderAdmin() {
                     <button type="button" id="job-day-next" class="modern-btn-secondary" aria-label="Next day" style="border:0;background:transparent;padding:8px 12px">›</button>
                   </div>
                   <button type="button" data-job-day="today" class="modern-btn-secondary" aria-pressed="true">Today</button>
-                  <button type="button" data-job-day="tomorrow" class="modern-btn-secondary" aria-pressed="false">Tomorrow</button>
+                  <button type="button" data-job-day="yesterday" class="modern-btn-secondary" aria-pressed="false">Yesterday</button>
                   <button type="button" data-job-day="all" class="modern-btn-secondary" aria-pressed="false">All Dates</button>
                   <input type="hidden" id="filter-by-date" value="today">
                 </div>
@@ -1072,6 +1072,15 @@ export function renderAdmin() {
               <input id="employer-search" type="search" placeholder="Search employers by name, location, industry…" aria-label="Search Employer">
               <button id="employer-search-button" type="button" class="modern-search-submit-btn">Search</button>
             </div>
+          </div>
+          <div class="employer-day-controls">
+            <button type="button" id="employer-day-prev" aria-label="Previous day">‹</button>
+            <input type="date" id="employer-day" aria-label="Employer date">
+            <button type="button" id="employer-day-next" aria-label="Next day">›</button>
+            <button type="button" data-employer-period="today" aria-pressed="true">Today</button>
+            <button type="button" data-employer-period="yesterday">Yesterday</button>
+            <button type="button" data-employer-period="all">All Dates</button>
+            <select id="employer-creator" aria-label="Employer creator"><option value="">Everyone</option></select>
           </div>
           <div class="modern-toolbar-right">
             <div class="modern-count-badge" id="employer-total-count">0 items</div>
@@ -3867,6 +3876,7 @@ export async function initAdmin(verifiedSession = null) {
   let currentPage = 1;
   const pageSize = 50;
   let employerPage = 1;
+  let employerList=[],employerTotal=0,employerPeriod="today",employerRequest=0;
   const employerPageSize = 50;
   let taxonomies = { types: [], categories: [], locations: [], tags: [], postCategories: [] };
   let currentTaxonomyCategoryMode = 'categories'; // 'categories' or 'postCategories'
@@ -4112,7 +4122,7 @@ export async function initAdmin(verifiedSession = null) {
     } else if (targetId === 'view-reported-jobs') {
       renderReportedJobs();
     } else if (targetId === 'view-employers') {
-      renderEmployerRows();
+      void loadEmployerPage();
     } else if (targetId === 'view-employer-claims') {
       renderEmployerClaims();
     } else if (targetId === 'view-candidates') {
@@ -4426,7 +4436,7 @@ export async function initAdmin(verifiedSession = null) {
     const route=location.hash.split('/')[0];
     if(route===managementRoute)return;
     managementRoute=route;
-    if(/^#(?:posts|pages|media|employers)(?:-|$)/.test(route))void loadData();
+    if(/^#(?:posts|pages|media)(?:-|$)/.test(route))void loadData();
     if(route.includes('claim'))void loadEmployerClaims();
     if(route.includes('reported'))void loadReportedJobs();
   });
@@ -5740,6 +5750,20 @@ export async function initAdmin(verifiedSession = null) {
     } catch { /* Keep an unknown count instead of inventing zero. */ }
   }
 
+  async function loadEmployerPage(){
+    const request=++employerRequest;employersLoading=true;employerLoadError=false;renderEmployerRows();
+    try{
+      const params=new URLSearchParams({period:employerPeriod,page:String(employerPage),per_page:String(employerPageSize),q:document.getElementById('employer-search').value,creator:document.getElementById('employer-creator').value});
+      const response=await fetch('/api/admin/employers?'+params,{signal:AbortSignal.timeout(15000)});
+      if(!response.ok)throw Error('Employers unavailable');const payload=await response.json();if(request!==employerRequest)return;
+      employerList=payload.employers;employerTotal=payload.total;employerPage=payload.page;
+      const select=document.getElementById('employer-creator'),selected=select.value;
+      select.replaceChildren(new Option('Everyone',''),...(payload.creators||[]).map(c=>new Option(c.name,c.id)));select.value=selected;
+      // Retain loaded page records for existing editor and preview actions.
+      for(const item of employerList.filter(e=>e.local)){localEmployers=localEmployers.filter(e=>e.slug!==item.slug);localEmployers.push(item);}
+    }catch(error){if(request===employerRequest)employerLoadError=true;}
+    finally{if(request===employerRequest){employersLoading=false;renderEmployerRows();}}
+  }
   function renderEmployerRows() {
     let warning = document.getElementById('employer-load-warning');
     if (!warning && employerRows) {
@@ -5753,16 +5777,16 @@ export async function initAdmin(verifiedSession = null) {
       warning.querySelector('button')?.addEventListener('click', () => { location.reload(); });
     }
     const q = document.querySelector('#employer-search')?.value.toLowerCase().trim() || '';
-    const allEmps = allEmployers();
-    const list = allEmps.filter(x => !q || `${x.title} ${(x.categories || []).join(' ')} ${(x.locations || []).join(' ')}`.toLowerCase().includes(q));
-    const pageCount = Math.max(1, Math.ceil(list.length / employerPageSize));
+    const allEmps=employerList;
+    const list=employerList;
+    const pageCount = Math.max(1, Math.ceil(employerTotal / employerPageSize));
     if (employerPage > pageCount) employerPage = pageCount;
-    const pagedEmployers = list.slice((employerPage - 1) * employerPageSize, employerPage * employerPageSize);
+    const pagedEmployers = employersLoading?[]:list;
 
     const countEl = document.querySelector('#employer-total-count');
-    if (countEl) countEl.textContent = `${list.length} items`;
+    if (countEl) countEl.textContent = `${employerTotal} items`;
     const chipEl = document.querySelector('#admin-employers-count-chip');
-    if (chipEl) chipEl.textContent = `${allEmps.length} Companies`;
+    if (chipEl) chipEl.textContent = `${employerTotal} Companies`;
 
     if (employerRows) {
       employerRows.innerHTML = pagedEmployers.length ? pagedEmployers.map(x => `
@@ -5804,7 +5828,7 @@ export async function initAdmin(verifiedSession = null) {
     }
     if (pagedEmployers.length && document.querySelector('#view-employers')?.classList.contains('active-view')) void refreshEmployerJobCounts(pagedEmployers.filter(e=>!employerJobCounts.has(e.slug)));
     const pager = document.getElementById('admin-employer-pagination');
-    if (pager) pager.innerHTML = list.length > employerPageSize ? `<button type="button" class="modern-filter-btn" id="employer-prev-page" ${employerPage===1?'disabled':''}>← Previous</button><strong style="font-size:13px;color:#475569;">Page ${employerPage} of ${pageCount}</strong><button type="button" class="modern-filter-btn" id="employer-next-page" ${employerPage===pageCount?'disabled':''}>Next →</button>` : '';
+    if (pager) pager.innerHTML = employerTotal > employerPageSize ? `<button type="button" class="modern-filter-btn" id="employer-prev-page" ${employerPage===1?'disabled':''}>← Previous</button><strong style="font-size:13px;color:#475569;">Page ${employerPage} of ${pageCount}</strong><button type="button" class="modern-filter-btn" id="employer-next-page" ${employerPage===pageCount?'disabled':''}>Next →</button>` : '';
   }
 
   // --- Employer Profile Claims Management ---
@@ -6415,11 +6439,11 @@ export async function initAdmin(verifiedSession = null) {
   }
   document.querySelectorAll('[data-job-day]').forEach(button=>button.addEventListener('click',()=>{
     const mode=button.dataset.jobDay;
-    selectJobDay(mode==='tomorrow'?'custom':mode,mode==='tomorrow'?shiftDay(indiaToday(),1):mode==='today'?indiaToday():null);
-    if(mode==='tomorrow'){
-      document.querySelector('[data-job-day="tomorrow"]').style.background='#00576b';
-      document.querySelector('[data-job-day="tomorrow"]').style.color='white';
-      document.querySelector('[data-job-day="tomorrow"]').setAttribute('aria-pressed','true');
+    selectJobDay(mode==='yesterday'?'custom':mode,mode==='yesterday'?shiftDay(indiaToday(),-1):mode==='today'?indiaToday():null);
+    if(mode==='yesterday'){
+      document.querySelector('[data-job-day="yesterday"]').style.background='#00576b';
+      document.querySelector('[data-job-day="yesterday"]').style.color='white';
+      document.querySelector('[data-job-day="yesterday"]').setAttribute('aria-pressed','true');
     }
   }));
   dayInput.addEventListener('change',()=>{if(dayInput.value)selectJobDay('custom',dayInput.value);});
@@ -6583,19 +6607,9 @@ export async function initAdmin(verifiedSession = null) {
 
   // Load all data
   async function loadData() {
-    employersLoading = true;
-    void Promise.allSettled([
-      fetch('/api/local/employers?admin=1').then(async response => {
-        if (!response.ok) throw new Error('Saved companies unavailable');
-        localEmployers = await response.json();
-        renderEmployerRows(); populateEmployerDropdown();
-      }),
-      loadImportedEmployers()
-    ]).then(results => {
-      if (results.some(result=>result.status==='rejected')) employerLoadError=true;
-      employersLoading=false;
-      renderEmployerRows(); populateEmployerDropdown();
-    });
+    if(location.hash.startsWith('#job')||location.hash.startsWith('#employer-editor')||location.hash==='#employer-new'){
+      void fetch('/api/admin/employer-options').then(r=>r.ok?r.json():[]).then(records=>updateImportedEmployers(records));
+    }
     const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
       Promise.resolve(localJobs),
       fetch('/api/local/taxonomies').then(r => r.json()).catch(() => null),
@@ -8052,25 +8066,42 @@ export async function initAdmin(verifiedSession = null) {
   });
 
   // Employer Form Submission & Actions
-  employerRows.addEventListener('click', e => {
-    const editBtn = e.target.closest('[data-employer-edit]');
-    if (editBtn) {
-      e.preventDefault();
-      const employer = allEmployers().find(x => x.slug === editBtn.dataset.employerEdit);
-      if (employer) {
-        fillEmployer(employer);
-        location.hash = 'employer-editor';
-      }
-    }
+  employerRows.addEventListener('click', async e => {
+    const editBtn=e.target.closest('[data-employer-edit]');if(!editBtn)return;e.preventDefault();
+    const slug=editBtn.dataset.employerEdit;
+    try{
+      const response=await fetch('/api/admin/employer-record/'+encodeURIComponent(slug));
+      if(!response.ok)throw Error('Unable to load company');
+      const item=await response.json();
+      const m=item.metas||{};
+      const employer=item.local?item:{...item,title:item.title?.rendered||item.title||'',description:item.content?.rendered||'',logo:item.logo||m._employer_logo||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||''};
+      fillEmployer(employer);location.hash='employer-editor';
+    }catch(error){showAdminNotice(error.message,'error');}
   });
 
-  document.querySelector('#employer-search')?.addEventListener('input', () => { employerPage = 1; renderEmployerRows(); });
-  document.querySelector('#employer-search-button')?.addEventListener('click', () => { employerPage = 1; renderEmployerRows(); });
+  const employerDay=document.getElementById('employer-day');
+  employerDay.value=indiaToday();
+  function applyEmployerDay(period,day){
+    employerPeriod=period;if(day)employerDay.value=day;employerPage=1;
+    for(const button of document.querySelectorAll('[data-employer-period]'))button.setAttribute('aria-pressed',String(button.dataset.employerPeriod===period));
+    void loadEmployerPage();
+  }
+  document.querySelectorAll('[data-employer-period]').forEach(button=>button.addEventListener('click',()=>{
+    const period=button.dataset.employerPeriod;
+    applyEmployerDay(period==='yesterday'?shiftDay(indiaToday(),-1):period,period==='today'?indiaToday():period==='yesterday'?shiftDay(indiaToday(),-1):null);
+    if(period==='yesterday')button.setAttribute('aria-pressed','true');
+  }));
+  employerDay.addEventListener('change',()=>{if(employerDay.value)applyEmployerDay(employerDay.value);});
+  document.getElementById('employer-day-prev').addEventListener('click',()=>applyEmployerDay(shiftDay(employerDay.value,-1),shiftDay(employerDay.value,-1)));
+  document.getElementById('employer-day-next').addEventListener('click',()=>applyEmployerDay(shiftDay(employerDay.value,1),shiftDay(employerDay.value,1)));
+  document.getElementById('employer-creator').addEventListener('change',()=>{employerPage=1;void loadEmployerPage();});
+  document.querySelector('#employer-search')?.addEventListener('keydown', event => {if(event.key==='Enter'){event.preventDefault();employerPage=1;void loadEmployerPage();}});
+  document.querySelector('#employer-search-button')?.addEventListener('click', () => { employerPage = 1; void loadEmployerPage(); });
   document.querySelector('#admin-employer-pagination')?.addEventListener('click', e => {
     if (e.target.closest('#employer-prev-page')) employerPage = Math.max(1, employerPage - 1);
     else if (e.target.closest('#employer-next-page')) employerPage += 1;
     else return;
-    renderEmployerRows();
+    void loadEmployerPage();
     document.getElementById('view-employers')?.scrollIntoView({behavior:'smooth',block:'start'});
   });
   document.querySelector('#employer-clear')?.addEventListener('click', () => fillEmployer({}));
@@ -13549,14 +13580,14 @@ export async function initAdmin(verifiedSession = null) {
     if (isClosed) {
       const input = document.getElementById('wp-post-schedule-datetime');
       if (input && !input.value) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(9, 0, 0, 0);
-        const y = tomorrow.getFullYear();
-        const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
-        const d = String(tomorrow.getDate()).padStart(2, '0');
-        const h = String(tomorrow.getHours()).padStart(2, '0');
-        const min = String(tomorrow.getMinutes()).padStart(2, '0');
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() + 1);
+        yesterday.setHours(9, 0, 0, 0);
+        const y = yesterday.getFullYear();
+        const m = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const d = String(yesterday.getDate()).padStart(2, '0');
+        const h = String(yesterday.getHours()).padStart(2, '0');
+        const min = String(yesterday.getMinutes()).padStart(2, '0');
         input.value = `${y}-${m}-${d}T${h}:${min}`;
         handleScheduleChange();
       }

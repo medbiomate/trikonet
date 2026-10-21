@@ -8436,3 +8436,20 @@ mark.wp-highlight {
   text-align: center;
   pointer-events: none;
 }
+
+/* Consistent list tools: search first, scoped filters second. */
+#view-jobs .modern-card-toolbar,#view-employers .modern-card-toolbar{display:flex!important;flex-wrap:wrap!important;gap:14px!important;padding:20px 24px!important;align-items:center!important}
+#view-jobs .modern-toolbar-left,#view-employers .modern-toolbar-left{display:contents!important}
+#view-jobs .modern-search-box-unified,#view-employers .modern-search-box-unified{flex:1 1 420px!important;max-width:620px!important;min-width:240px!important;height:44px!important;border-radius:10px!important;background:#fff!important}
+#view-jobs .modern-toolbar-right,#view-employers .modern-toolbar-right{margin-left:auto!important;display:flex!important;gap:8px!important;order:1}
+#view-jobs .modern-filter-dropdowns,.employer-day-controls{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important;flex-basis:100%!important;order:2;padding-top:14px!important;border-top:1px solid #edf1f5}
+#view-jobs .modern-select-pill,#view-employers select{height:40px!important;min-height:40px!important;border:1px solid #dbe3ec!important;border-radius:9px!important;background:#fff!important;font-size:13px!important;color:#475569!important;padding:0 12px!important;width:auto!important;max-width:210px}
+#view-jobs .job-day-controls{gap:4px!important;flex-wrap:nowrap!important;background:#f1f5f9;padding:4px;border-radius:11px}
+#view-jobs .job-day-controls>div{border:0!important;padding:0!important;background:white!important;border-radius:8px!important;box-shadow:0 1px 3px #0f172a10}
+#view-jobs .job-day-controls button,.employer-day-controls button{height:36px!important;min-height:36px!important;border:0!important;border-radius:7px!important;padding:0 12px!important;font-size:13px!important;font-weight:600!important;box-shadow:none!important;white-space:nowrap;background:#f1f5f9;color:#475569;cursor:pointer}
+#view-jobs .job-day-controls button[aria-pressed=true],.employer-day-controls button[aria-pressed=true]{background:#07566b!important;color:#fff!important}
+#view-jobs #filter-job-date,#view-employers #employer-day{font-size:14px!important;font-weight:600!important;width:148px!important;min-height:36px!important;height:36px!important;border:0!important;border-radius:8px!important;background:white!important;padding:0 8px!important;color:#0f172a!important}
+#view-jobs #post-query-submit{height:40px!important;border-radius:9px!important;padding:0 16px!important}
+.employer-day-controls{background:transparent}
+#view-jobs button:focus-visible,#view-employers button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+@media(max-width:900px){#view-jobs .modern-card-toolbar,#view-employers .modern-card-toolbar{padding:14px!important}#view-jobs .job-day-controls{flex-wrap:wrap!important}#view-jobs .modern-toolbar-right{flex-wrap:wrap}#view-jobs .modern-filter-dropdowns{gap:8px!important}}
