@@ -1,3 +1,4 @@
+import {openJobTabs} from './admin-job-tabs.js?v=20261021-1';
 import {teamActivityView,initTeamActivity} from './admin-team-activity.js?v=2';
 import {normalizeImportedDescription} from './imported-description.js';
 import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
@@ -376,6 +377,12 @@ export function renderAdmin() {
               <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               <span>Add New Job</span>
             </a>
+            <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:12px">
+              <label for="new-job-tab-count" style="font-size:14px;color:#475569">Job tabs</label>
+              <input id="new-job-tab-count" type="number" min="1" max="10" step="1" value="3" aria-label="Number of new job tabs" style="width:64px;min-height:42px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font:inherit">
+              <button type="button" id="open-job-tabs" class="modern-btn-secondary" style="min-height:42px">Open job tabs ↗</button>
+              <span id="new-job-tabs-status" role="status" style="font-size:13px;color:#475569"></span>
+            </div>
           </div>
         </div>
 
@@ -3751,6 +3758,16 @@ export async function initAdmin(verifiedSession = null) {
     document.querySelectorAll('.modern-qe-slug-chip').forEach(chip => { chip.hidden = restricted; });
   };
   new MutationObserver(lockJobUrlControls).observe(document.body,{childList:true,subtree:true});
+  document.getElementById('open-job-tabs')?.addEventListener('click', () => {
+    const countField=document.getElementById('new-job-tab-count');
+    if(!countField.reportValidity())return;
+    const {opened,requested}=openJobTabs(countField.value,location.origin,window.open.bind(window));
+    document.getElementById('new-job-tabs-status').textContent=opened===requested
+      ? `${opened} independent job ${opened===1?'tab':'tabs'} opened.`
+      : `${opened} of ${requested} tabs opened. Allow pop-ups for Trikonet, then open the remaining ${requested-opened}.`;
+    if(opened<requested)countField.value=String(requested-opened);
+  });
+
   // Logout handler
   document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
