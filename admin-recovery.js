@@ -46,7 +46,7 @@ export function createFormRecovery(form, type, account) {
     pending = (async () => {
       try {
         const response = await fetch('/api/admin/autosave', { method: 'POST', signal:autosaveController.signal, credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({type,draftId:snapshotId,sourceSlug:snapshotSlug,record:{...data,id:jobId || snapshotId}}) });
-        if (!response.ok) throw new Error('Draft sync failed');
+        if (!response.ok) {const failure=await response.json().catch(()=>({}));throw new Error(failure.error||`Draft sync failed (HTTP ${response.status})`);}
         const saved = await response.json();
         if (generation === snapshotGeneration && key === snapshotKey && !saved.skipped) {
           if (type === 'job') { setJobId(saved.id || snapshotId); sourceSlug = saved.slug; }
@@ -55,7 +55,7 @@ export function createFormRecovery(form, type, account) {
           notice.textContent = saved.status === 'publish' ? 'Changes saved for recovery. Update to publish them.' : 'Draft saved to this job.';
           if (type === 'job' && form.elements.originalSlug) form.elements.originalSlug.value = saved.slug;
         }
-      } catch { if (key === snapshotKey) notice.textContent = 'Draft saved on this device — waiting to sync. Not published.'; }
+      } catch(error) { if (generation===snapshotGeneration && key === snapshotKey) notice.textContent = error.name==='AbortError' ? 'Recovery copy saved on this device. Server draft sync timed out. You can still use Publish.' : `Recovery copy saved on this device. ${error.message||'Server draft sync failed.'} You can still use Publish.`; }
       finally { clearTimeout(timeout);pending = null; }
     })();
     return pending;

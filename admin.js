@@ -5,7 +5,7 @@ import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-r
 import { createJobPageCache } from './admin-job-cache.js?v=20261021-day-scoped';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=20261021-fast-admin-1';
-import { createFormRecovery } from './admin-recovery.js?v=20261020-scoped-save-1';
+import { createFormRecovery } from './admin-recovery.js?v=20261021-publish-feedback-1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -7232,6 +7232,11 @@ export async function initAdmin(verifiedSession = null) {
     document.querySelectorAll('[data-deadline-days]').forEach(item => item.classList.toggle('active', item === button));
   }));
 
+  // Apply the same expiry default as the API before native required-field
+  // validation runs, including imported jobs whose deadline arrived separately.
+  document.getElementById('publish-job-btn').addEventListener('click',()=>{
+    if(!listingExpiry.value&&applicationDeadline.value){listingExpiry.value=applicationDeadline.value;if(syncExpiry)syncExpiry.checked=true;}
+  },true);
   let jobSubmissionPending = false;
   jobForm.addEventListener('submit', async e => {
     e.preventDefault();
