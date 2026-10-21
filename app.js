@@ -1,7 +1,7 @@
 import {renderEmployerDirectory} from './employer-directory.js?v=20261021-category-reset-11';
 import {isClosedJob} from './job-availability.js';
 import {renderHomeHero} from './home-hero.js';
-import {initDisplayAds} from './display-ads.js?v=20261018-fixed-slots';
+import {initDisplayAds} from './display-ads.js?v=20261021-pagination';
 import { protectJobNavigation } from './job-navigation.js';
 import { loadContentRecord } from './content-record.js';
 import { renderSiteHeader } from './site-header.js';
@@ -470,7 +470,7 @@ async function loadDirectoryTaxonomies() {
 async function loadLocalJobs(){
   data.jobsLoadError = false;
   const embedded=document.getElementById('initial-job-list');
-  if(embedded){try{data.jobs=JSON.parse(embedded.textContent).map(mapJob);return;}catch{}}
+  if(embedded){try{const total=Number(embedded.dataset.total);if(Number.isFinite(total)){data.counts.job_listing=total;data.counts.category=total;data.counts.nurse=total;}data.jobs=JSON.parse(embedded.textContent).map(mapJob);return;}catch{}}
   try{
     const isCategoryPage = path.startsWith('/category/');
     if (isCategoryPage && (!data.taxonomies?.categories || data.taxonomies.categories.length <= defaultTopCategories.length)) {
@@ -589,7 +589,7 @@ async function fetchCounts(){
         const filtered=await fetch(`/api/wp/count?${filters}`);
         if(filtered.ok)data.counts.category=(await filtered.json()).total;
       }
-    }else if((path==='/employers'||path==='/jobs'||path.startsWith('/job-location/'))&&[...queryParams].some(([key])=>['q','location','category','job_type','min_jobs'].includes(key))){
+    }else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path.startsWith('/job-location/')||(path==='/employers'&&[...queryParams].some(([key])=>['q','location','category','min_jobs'].includes(key)))){
       const filters=new URLSearchParams(queryParams);
       filters.set('type',path==='/employers'?'employer':'job_listing');
       filters.delete('page');
@@ -3257,7 +3257,7 @@ if (path.startsWith('/job/') || path.startsWith('/employer/')) {
 }
 if(isCvAppRoute || path.startsWith('/admin') || MEMBER_PATHS.includes(path)) { /* These screens load their own data. */ }
 else if(path==='/')homeContentReady=Promise.allSettled([loadTopEmployers(),loadConnectedContent()]);
-else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadDirectoryTaxonomies());
+else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadCounts().then(loadLocalJobs),loadDirectoryTaxonomies());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadDirectoryTaxonomies());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
   if (wpRecord && (wpRecord.autosaved || String(wpRecord.slug || '').startsWith('autosave-') || !['publish','published','active',''].includes(String(wpRecord.status || '').toLowerCase()))) wpRecord = null;

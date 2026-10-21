@@ -1316,14 +1316,20 @@ const server = http.createServer(async (req, res) => {
       if(path==='/nurse-jobs-in-uae'&&!params.get('q'))params.set('q','nurse');
       if(path.startsWith('/job-location/'))params.set('location',path.slice('/job-location/'.length).replace(/-/g,' '));
       try {
-        const response=await fetch(`${process.env.TRIKONET_API_BASE||'https://api.trikonet.com'}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)});
+        const countParams=new URLSearchParams(params);countParams.set('type','job_listing');countParams.delete('page');countParams.delete('per_page');
+        const [response,countResponse]=await Promise.all([
+          fetch(`${seoApiBase}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)}),
+          fetch(`${seoApiBase}/api/wp/count?${countParams}`,{signal:AbortSignal.timeout(8000)})
+        ]);
+        if(!countResponse.ok)throw Error('Job count unavailable');
+        const {total}=await countResponse.json();
         if(!response.ok)throw Error('Job listings unavailable');
         const jobs=await response.json();
         if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
           res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
           return res.end('<h1>Page Not Found</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
         }
-        fileBody=injectInitialJobs(fileBody.toString(),jobs,{path,category,query:params.get('q')||''});
+        fileBody=injectInitialJobs(fileBody.toString(),jobs,{path,category,query:params.get('q')||'',total,page:Number(params.get('page'))||1,search:requestUrl.search});
       }catch(error){
         console.warn('Initial job list unavailable:',error.message);
         res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});

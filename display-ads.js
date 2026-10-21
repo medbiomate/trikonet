@@ -29,7 +29,9 @@ function initJobListingAds(jobs) {
     placement.setAttribute('aria-label', 'Advertisement');
     placement.style.cssText = 'width:100%;max-width:1100px;min-width:0;grid-column:1 / -1;clear:both;';
     placement.innerHTML = '<div style="text-align:center;font:11px/1.5 system-ui;color:#64748b;margin-bottom:8px">Advertisement</div><ins class="adsbygoogle" style="display:block;min-height:250px" data-ad-client="ca-pub-4310822705633659" data-ad-slot="9017818388" data-ad-format="auto" data-full-width-responsive="true"></ins>';
-    cards[cardIndex].after(placement);
+    const pagination = feed.parentElement.querySelector('.data-pagination');
+    if (cardIndex === cards.length - 1 && pagination) pagination.after(placement);
+    else cards[cardIndex].after(placement);
     initializeAd(placement.querySelector('ins'), true);
   }
 }
