@@ -6,7 +6,7 @@ import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-r
 import { createJobPageCache } from './admin-job-cache.js?v=20261021-day-scoped';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=20261021-fast-admin-1';
-import { createFormRecovery } from './admin-recovery.js?v=20261021-publish-feedback-1';
+import { createFormRecovery } from './admin-recovery.js?v=20261021-publish-feedback-6';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -7254,6 +7254,15 @@ export async function initAdmin(verifiedSession = null) {
   document.getElementById('publish-job-btn').addEventListener('click',()=>{
     if(!listingExpiry.value&&applicationDeadline.value){listingExpiry.value=applicationDeadline.value;if(syncExpiry)syncExpiry.checked=true;}
   },true);
+  jobForm.addEventListener('invalid', event => {
+    const field = event.target;
+    const label = field.labels?.[0]?.textContent?.replace(/\s*\*\s*$/, '').trim() || field.name || 'required field';
+    const message = `Please complete ${label}: ${field.validationMessage}`;
+    jobStatusState.textContent = message;
+    showAdminNotice(message, 'error');
+    showJobPublishFeedback(message, 'error');
+    field.scrollIntoView({block:'center',behavior:'smooth'});
+  }, true);
   let jobSubmissionPending = false;
   jobForm.addEventListener('submit', async e => {
     e.preventDefault();

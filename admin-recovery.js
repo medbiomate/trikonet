@@ -76,7 +76,8 @@ export function createFormRecovery(form, type, account) {
       clearTimeout(timer); if (!paused) timer = setTimeout(sync, 5000);
     } catch {
       notice.style.display = 'block';
-      notice.textContent = 'Draft could not be saved on this device. Keep this tab open and save manually.';
+      notice.textContent = 'Device draft storage is full or unavailable. Keep this tab open; server autosave and Publish are still available.';
+      clearTimeout(timer); if (!paused) timer = setTimeout(sync, 5000);
     }
   }
   view.addEventListener('input', () => { dirty = true; save(); });
@@ -126,6 +127,6 @@ export function createFormRecovery(form, type, account) {
     pause() { paused = true; clearTimeout(timer); },
     resume() { paused = false; if (dirty) save(); },
     async flush() { clearTimeout(timer); if (pending) await pending; await sync(); },
-    clear() { generation++; presence(true); editingSlug = ''; clearTimeout(timer); if (key) localStorage.removeItem(key); dirty = false; notice.style.display = 'none'; }
+    clear() { generation++; presence(true); editingSlug = ''; clearTimeout(timer); if (key) { try { localStorage.removeItem(key); } catch {} } dirty = false; notice.style.display = 'none'; }
   };
 }
