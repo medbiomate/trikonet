@@ -426,10 +426,11 @@ export function renderAdmin() {
                   <option value="Customer Service">Customer Service</option>
                 </select>
                 <select name="m" id="filter-by-date" class="modern-select-pill">
-                  <option value="0">All dates</option>
-                  <option value="202609">September 2026</option>
-                  <option value="202608">August 2026</option>
+                  <option value="today" selected>Today’s jobs</option>
+                  <option value="yesterday">Yesterday’s jobs</option>
+                  <option value="all">All dates</option>
                 </select>
+                <select id="filter-by-creator" class="modern-select-pill" aria-label="Job creator"><option value="">Everyone</option></select>
                 <select name="rank_math_seo" id="filter-by-rank-math" style="display:none;">
                   <option value="">Rank Math</option>
                 </select>
@@ -6405,6 +6406,7 @@ export async function initAdmin(verifiedSession = null) {
   jobRows.addEventListener('click', event => {
     if (event.target.closest('#retry-jobs-load')) void loadRemoteJobs();
   });
+  for(const id of ['filter-by-date','filter-by-creator'])document.getElementById(id)?.addEventListener('change',()=>{currentPage=1;void loadRemoteJobs();});
   const jobPageCache = createJobPageCache(localStorage, recoveryAccount);
   jobForm.addEventListener('input', () => jobPageCache.clear());
 
@@ -6422,6 +6424,9 @@ export async function initAdmin(verifiedSession = null) {
       page: String(currentPage), per_page: String(pageSize), status: currentStatus,
       q: document.querySelector('#admin-search')?.value || '',
       job_type: document.querySelector('#filter-by-type')?.value || '',
+      period:document.querySelector('#filter-by-date')?.value||'today',
+      creator:document.querySelector('#filter-by-creator')?.value||'',
+      filter_day:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata'}).format(new Date()),
       category: document.querySelector('#filter-by-category')?.value || ''
     });
     const cached = jobPageCache.read(params.toString());
@@ -6439,6 +6444,10 @@ export async function initAdmin(verifiedSession = null) {
       if (request !== jobsRequest) return [];
       if (!Array.isArray(payload.jobs)) throw new Error('Invalid jobs response');
       jobPageCache.write(params.toString(),payload);
+      const creatorSelect=document.getElementById('filter-by-creator');
+      const selectedCreator=creatorSelect.value;
+      creatorSelect.replaceChildren(new Option('Everyone',''),...(payload.creators||[]).map(person=>new Option(person.name,person.id)));
+      creatorSelect.value=selectedCreator;
       for (const status of ['all','publish','draft','pending','expired','mine']) {
         const counter = document.getElementById(`count-${status}`);
         if (counter) counter.textContent = Number.isFinite(payload.counts?.[status]) ? `(${payload.counts[status].toLocaleString()})` : '(—)';
