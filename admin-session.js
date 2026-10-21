@@ -13,7 +13,8 @@ export async function refreshAdminSession() {
   pending = (async () => {
     let admin = null;
     try {
-      const response = await fetch('/api/admin/me', { credentials: 'include', cache: 'no-store' });
+      const early=window.trikonetEarlyAdminSession;delete window.trikonetEarlyAdminSession;
+      const response = (early?await early:null)||await fetch('/api/admin/me', { credentials: 'include', cache: 'no-store' });
       if (response.ok) {
         const payload = await response.json();
         if (allowedRoles.includes(payload.admin?.role) && Number(payload.admin.expiresAt) > Date.now()) admin = payload.admin;

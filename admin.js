@@ -4,7 +4,7 @@ import {matchImportedEmployer} from './job-import-matching.js?v=20261018-23';
 import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-release-14';
 import { createJobPageCache } from './admin-job-cache.js?v=20261021-day-scoped';
 import {candidateProfileView} from './candidate-profile-view.js';
-import { signalAdminSessionChange } from './admin-session.js?v=2';
+import { signalAdminSessionChange } from './admin-session.js?v=20261021-fast-admin-1';
 import { createFormRecovery } from './admin-recovery.js?v=20261020-scoped-save-1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
@@ -52,7 +52,7 @@ const statusLabel = st => {
 
 const publicField = v => v && typeof v === 'object' ? Object.values(v).join(', ') : '';
 
-import { jobPostedTime } from './job-posted-time.js';
+import { jobPostedTime } from './job-posted-time.js?v=20261021-formatter';
 
 function wordpressJob(job) {
   const m = job.metas || {};
@@ -6485,7 +6485,10 @@ export async function initAdmin(verifiedSession = null) {
       renderJobRows(false);
     }
     try {
-      const response = await fetch(`/api/admin/jobs?${params}`, { signal: jobsController.signal });
+      const early=window.trikonetEarlyJobs;
+      delete window.trikonetEarlyJobs;
+      const useEarly=early&&currentPage===1&&currentStatus==='all'&&params.get('period')==='today'&&!params.get('q')&&!params.get('creator')&&!params.get('category')&&!params.get('job_type');
+      const response = (useEarly?await early:null)||await fetch(`/api/admin/jobs?${params}`, { signal: jobsController.signal });
       if (!response.ok) throw new Error(`Unable to load jobs (HTTP ${response.status})`);
       const payload = await response.json();
       if (request !== jobsRequest) return [];
