@@ -419,13 +419,17 @@ export function renderAdmin() {
                   <option value="Construction">Construction</option>
                   <option value="Customer Service">Customer Service</option>
                 </select>
-                <select name="m" id="filter-by-date" class="modern-select-pill">
-                  <option value="today" selected>Today’s jobs</option>
-                  <option value="yesterday">Yesterday’s jobs</option>
-                  <option value="custom">Choose a date…</option>
-                  <option value="all">All dates — published &amp; drafts</option>
-                </select>
-                <input type="date" id="filter-job-date" class="modern-select-pill" aria-label="Job date" hidden>
+                <div class="job-day-controls" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <div style="display:flex;align-items:center;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;padding:4px">
+                    <button type="button" id="job-day-prev" class="modern-btn-secondary" aria-label="Previous day" style="border:0;background:transparent;padding:8px 12px">‹</button>
+                    <input type="date" id="filter-job-date" aria-label="Job date" style="border:0;background:transparent;font:inherit;font-weight:600;min-height:36px;color:#0f172a">
+                    <button type="button" id="job-day-next" class="modern-btn-secondary" aria-label="Next day" style="border:0;background:transparent;padding:8px 12px">›</button>
+                  </div>
+                  <button type="button" data-job-day="today" class="modern-btn-secondary" aria-pressed="true">Today</button>
+                  <button type="button" data-job-day="tomorrow" class="modern-btn-secondary" aria-pressed="false">Tomorrow</button>
+                  <button type="button" data-job-day="all" class="modern-btn-secondary" aria-pressed="false">All Dates</button>
+                  <input type="hidden" id="filter-by-date" value="today">
+                </div>
                 <select id="filter-by-creator" class="modern-select-pill" aria-label="Job creator"><option value="">Everyone</option></select>
                 <select name="rank_math_seo" id="filter-by-rank-math" style="display:none;">
                   <option value="">Rank Math</option>
@@ -6392,12 +6396,38 @@ export async function initAdmin(verifiedSession = null) {
   jobRows.addEventListener('click', event => {
     if (event.target.closest('#retry-jobs-load')) void loadRemoteJobs();
   });
-  for(const id of ['filter-by-date','filter-by-creator','filter-job-date'])document.getElementById(id)?.addEventListener('change',()=>{
-    const custom=document.getElementById('filter-by-date').value==='custom';
-    document.getElementById('filter-job-date').hidden=!custom;
-    if(custom&&!document.getElementById('filter-job-date').value)return;
+  const dayInput=document.getElementById('filter-job-date');
+  const dayMode=document.getElementById('filter-by-date');
+  const indiaToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const shiftDay=(day,offset)=>new Date(Date.parse(day+'T12:00:00Z')+offset*86400000).toISOString().slice(0,10);
+  dayInput.value=indiaToday();
+  function selectJobDay(mode,day){
+    dayMode.value=mode;
+    if(day)dayInput.value=day;
+    for(const button of document.querySelectorAll('[data-job-day]')){
+      const active=button.dataset.jobDay===mode;
+      button.setAttribute('aria-pressed',String(active));
+      button.style.background=active?'#00576b':'#f1f5f9';
+      button.style.color=active?'white':'#475569';
+      button.style.borderColor='transparent';
+    }
     currentPage=1;void loadRemoteJobs();
-  });
+  }
+  document.querySelectorAll('[data-job-day]').forEach(button=>button.addEventListener('click',()=>{
+    const mode=button.dataset.jobDay;
+    selectJobDay(mode==='tomorrow'?'custom':mode,mode==='tomorrow'?shiftDay(indiaToday(),1):mode==='today'?indiaToday():null);
+    if(mode==='tomorrow'){
+      document.querySelector('[data-job-day="tomorrow"]').style.background='#00576b';
+      document.querySelector('[data-job-day="tomorrow"]').style.color='white';
+      document.querySelector('[data-job-day="tomorrow"]').setAttribute('aria-pressed','true');
+    }
+  }));
+  dayInput.addEventListener('change',()=>{if(dayInput.value)selectJobDay('custom',dayInput.value);});
+  document.getElementById('job-day-prev').addEventListener('click',()=>selectJobDay('custom',shiftDay(dayInput.value||indiaToday(),-1)));
+  document.getElementById('job-day-next').addEventListener('click',()=>selectJobDay('custom',shiftDay(dayInput.value||indiaToday(),1)));
+  document.getElementById('filter-by-creator').addEventListener('change',()=>{currentPage=1;void loadRemoteJobs();});
+  const todayButton=document.querySelector('[data-job-day="today"]');
+  todayButton.style.background='#00576b';todayButton.style.color='white';todayButton.style.borderColor='transparent';
   const jobPageCache = createJobPageCache(localStorage, recoveryAccount);
   jobForm.addEventListener('input', () => jobPageCache.clear());
 
