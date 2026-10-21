@@ -1590,8 +1590,8 @@ export function renderAdmin() {
                 <div class="modern-card-body">
                   <div class="modern-grid-2">
                     <div class="modern-field-wrap">
-                      <label class="modern-label" for="field-employer-email">Official Email <span class="req">*</span></label>
-                      <input type="email" name="email" id="field-employer-email" class="modern-input" placeholder="company@example.com" required>
+                      <label class="modern-label" for="field-employer-email">Official Email (Optional)</label>
+                      <input type="email" name="email" id="field-employer-email" class="modern-input" placeholder="company@example.com">
                     </div>
                     <div class="modern-field-wrap">
                       <label class="modern-label" for="field-employer-phone">Phone Number</label>
