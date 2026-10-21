@@ -8456,3 +8456,9 @@ mark.wp-highlight {
 
 #publish-job-btn:not([aria-busy="true"]),#save-draft-btn:not([aria-busy="true"]){cursor:pointer!important;pointer-events:auto!important}
 #publish-job-btn[aria-busy="true"],#save-draft-btn[aria-busy="true"]{cursor:progress!important}
+
+/* Keep publish controls outside editable-content hit areas. */
+#view-job-editor .modern-editor-header { z-index:1000; isolation:isolate; cursor:default; }
+#view-job-editor .modern-editor-header-right { position:relative; z-index:1; }
+#view-job-editor #publish-job-btn, #view-job-editor #save-draft-btn { position:relative; z-index:2; cursor:pointer!important; user-select:none; -webkit-user-select:none; pointer-events:auto!important; }
+#view-job-editor #publish-job-btn[aria-busy="true"], #view-job-editor #save-draft-btn[aria-busy="true"] { cursor:progress!important; }

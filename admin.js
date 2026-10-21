@@ -608,8 +608,8 @@ export function renderAdmin() {
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4h6m0 0v6m0-6L7 13"/><path d="M14 11v5a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5"/></svg>
               <span>Preview ↗</span>
             </a>
-            <button type="button" class="modern-header-btn secondary" id="save-draft-btn">Save Draft</button>
-            <button type="submit" class="modern-header-btn primary" id="publish-job-btn" form="admin-job-form">Publish Listing</button>
+            <button type="button" class="modern-header-btn secondary" id="save-draft-btn" contenteditable="false" style="cursor:pointer;user-select:none">Save Draft</button>
+            <button type="submit" class="modern-header-btn primary" id="publish-job-btn" form="admin-job-form" contenteditable="false" style="cursor:pointer;user-select:none">Publish Listing</button>
             <button type="button" class="modern-header-icon-btn active" id="toggle-gutenberg-sidebar" title="Toggle settings panel">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
             </button>
