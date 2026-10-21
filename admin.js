@@ -385,7 +385,7 @@ export function renderAdmin() {
           </div>
         </div>
 
-        <p id="admin-job-load-notice" role="status">Today’s jobs · All statuses · India time</p>
+        <p id="admin-job-date-scope" role="status">Today’s jobs · All statuses · India time</p><p id="admin-job-load-notice" role="status" hidden></p>
         <div class="modern-card modern-table-card">
           <!-- 1. Integrated Status Tabs Navigation -->
           <div class="modern-card-tab-bar">
@@ -6445,7 +6445,7 @@ export async function initAdmin(verifiedSession = null) {
       category: document.querySelector('#filter-by-category')?.value || ''
     });
     const scopeLabel=params.get('period')==='all'?'All dates':params.get('period')==='yesterday'?'Yesterday’s jobs':params.get('period')==='today'?'Today’s jobs':params.get('period');
-    document.getElementById('admin-job-load-notice').textContent=scopeLabel+' · '+(currentStatus==='all'?'Published, drafts, pending & expired':currentStatus)+' · India time';
+    document.getElementById('admin-job-date-scope').textContent=scopeLabel+' · '+(currentStatus==='all'?'Published, drafts, pending & expired':currentStatus)+' · India time';
     const cached = null; // Always get day-scoped jobs and totals from the server.
     if (cached) {
       displayedJobsPage = currentPage;
