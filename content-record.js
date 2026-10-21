@@ -10,6 +10,9 @@ export async function fetchContentResponse(fetcher, url) {
 }
 // Check both sources concurrently; a transient local failure must not hide an imported record.
 export async function loadContentRecord(fetcher, base, type, slug) {
+  // WordPress stores non-ASCII slug characters as lowercase percent escapes.
+  // Browser paths may supply either those escapes or decoded Unicode.
+  if (type === 'employer') slug = String(slug).replace(/[^\x00-\x7F]+/g, value => encodeURIComponent(value).toLowerCase()).replace(/%[0-9a-f]{2}/gi, value => value.toLowerCase());
   const encoded = encodeURIComponent(slug);
   const remote = () => fetchContentResponse(fetcher, `${base}/api/wp/${type}?slug=${encoded}`).then(async r => {
     if (!r.ok) throw new Error('Imported content unavailable');

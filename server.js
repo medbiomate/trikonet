@@ -1187,7 +1187,7 @@ const server = http.createServer(async (req, res) => {
   let publicContentRecord = null;
   if (contentType && !privatePage) {
     try {
-      const slug = decodeURIComponent(contentParts[1]);
+      const slug = contentParts[1]; // path was already decoded once above.
       let published = false;
       let contentRecord;
       contentRecord = resolvedJobUrl?.job || await loadContentRecord(fetch, seoApiBase, contentType, slug);
