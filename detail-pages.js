@@ -5,10 +5,13 @@ import { formatCompanyName, formatJobTitle } from './company-name.js?v=20261021-
 function applicationAction(record,m){
   if(isClosedJob(record))return '<p class="application-unavailable" role="status">Applications closed. This vacancy is no longer accepting applications.</p>';
   const rawMethod=record.applyType||m._job_apply_type||'External URL';
-  const method=({external:'External URL',with_email:'By Email'})[rawMethod]||rawMethod;
+  let method=({external:'External URL',with_email:'By Email'})[rawMethod]||rawMethod;
+  const sourceUrl=String(record.applyUrl||m._job_apply_url||'').trim();
+  const embeddedEmail=/^mailto:/i.test(sourceUrl)?sourceUrl.replace(/^(?:mailto:)+/i,'').split('?')[0]:'';
+  if (embeddedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(embeddedEmail)) method='By Email';
   if(method==='Walk-in')return `<div class="walk-in-details"><strong>Walk-in Interview</strong><p>${esc(record.walkInDetails||m._job_walk_in_details||'Contact the employer for interview details.').replaceAll('\n','<br>')}</p></div>`;
   let href=record.applyUrl||m._job_apply_url||'#',label='Apply Now';
-  if(method==='By Email'){href='mailto:'+(record.applyEmail||m._job_apply_email||'');label='Apply by Email';}
+  if(method==='By Email'){href='mailto:'+(record.applyEmail||m._job_apply_email||embeddedEmail||'');label='Apply by Email';}
   if(method==='WhatsApp'){href='https://wa.me/'+String(record.applyWhatsApp||m._job_apply_whatsapp||'').replace(/\D/g,'');label='Apply on WhatsApp';}
   const usable=method==='By Email'?/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(href):method==='WhatsApp'?/^https:\/\/wa.me\/\d{7,15}$/.test(href):/^https?:\/\/[^\s/]+/i.test(href);
   if(!usable)return '<p class="application-unavailable" role="status">Application details are unavailable. Please verify this vacancy on the employer’s official careers website.</p>';
