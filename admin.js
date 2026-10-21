@@ -608,7 +608,7 @@ export function renderAdmin() {
               <span>Preview ↗</span>
             </a>
             <button type="button" class="modern-header-btn secondary" id="save-draft-btn">Save Draft</button>
-            <button type="submit" class="modern-header-btn primary" id="publish-job-btn">Publish Listing</button>
+            <button type="submit" class="modern-header-btn primary" id="publish-job-btn" form="admin-job-form">Publish Listing</button>
             <button type="button" class="modern-header-icon-btn active" id="toggle-gutenberg-sidebar" title="Toggle settings panel">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
             </button>
@@ -5081,7 +5081,7 @@ export async function initAdmin(verifiedSession = null) {
     if (jobRichContent) jobRichContent.innerHTML = normalizedDescription;
 
     const publishBtn = document.getElementById('publish-job-btn');
-    if (publishBtn) publishBtn.textContent = job.slug ? 'Update' : 'Publish';
+    if (publishBtn) {publishBtn.disabled=false;publishBtn.removeAttribute('aria-busy');publishBtn.textContent=job.slug?'Update':'Publish';}
 
     const statusField = document.getElementById('field-status');
     if (statusField) statusField.value = job.status || 'draft';
@@ -7243,7 +7243,7 @@ export async function initAdmin(verifiedSession = null) {
     if (jobSubmissionPending) return;
     jobSubmissionPending = true;
     const submitButtons = [document.getElementById('publish-job-btn'), document.getElementById('save-draft-btn')].filter(Boolean);
-    submitButtons.forEach(button => { button.disabled = true; });
+    submitButtons.forEach(button => { button.disabled=false;button.setAttribute('aria-busy','true'); });
     try {
     jobStatusState.textContent = 'Saving job…';
     showJobPublishFeedback('Saving job…','saving');
@@ -7334,8 +7334,8 @@ export async function initAdmin(verifiedSession = null) {
     const draftBtn = document.getElementById('save-draft-btn');
     const originalPubText = pubBtn?.textContent || 'Publish Listing';
     const originalDraftText = draftBtn?.textContent || 'Save Draft';
-    if (pubBtn) { pubBtn.disabled = true; pubBtn.textContent = 'Saving…'; }
-    if (draftBtn) draftBtn.disabled = true;
+    if (pubBtn) { pubBtn.disabled=false;pubBtn.setAttribute('aria-busy','true');pubBtn.textContent='Saving…'; }
+    if (draftBtn) {draftBtn.disabled=false;draftBtn.setAttribute('aria-busy','true');}
     let jobSaveSucceeded = false;
     try {
       const response = await fetch('/api/local/jobs', {
@@ -7375,7 +7375,7 @@ export async function initAdmin(verifiedSession = null) {
     }
     } finally {
       jobSubmissionPending = false;
-      submitButtons.forEach(button => { button.disabled = false; });
+      submitButtons.forEach(button => { button.disabled = false;button.removeAttribute('aria-busy'); });
       jobRecovery.resume();
     }
   });

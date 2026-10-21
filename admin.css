@@ -8453,3 +8453,6 @@ mark.wp-highlight {
 .employer-day-controls{background:transparent}
 #view-jobs button:focus-visible,#view-employers button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 @media(max-width:900px){#view-jobs .modern-card-toolbar,#view-employers .modern-card-toolbar{padding:14px!important}#view-jobs .job-day-controls{flex-wrap:wrap!important}#view-jobs .modern-toolbar-right{flex-wrap:wrap}#view-jobs .modern-filter-dropdowns{gap:8px!important}}
+
+#publish-job-btn:not([aria-busy="true"]),#save-draft-btn:not([aria-busy="true"]){cursor:pointer!important;pointer-events:auto!important}
+#publish-job-btn[aria-busy="true"],#save-draft-btn[aria-busy="true"]{cursor:progress!important}
