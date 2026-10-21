@@ -31,4 +31,4 @@ const timeout = setTimeout(() => {
   // Keep initialization alive; only a rejected module should replace the page.
   // Slow authentication or a busy server is not a failed editor.
 }, 12000);
-import('./app.js?v=20261021-title-trash-1').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));
+import('./app.js?v=20261021-title-detail-2').catch(showLoadingRecovery).finally(() => clearTimeout(timeout));

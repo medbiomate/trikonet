@@ -3553,7 +3553,7 @@ if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sig
 // Detail renderers are only needed on job and employer pages. Fetch them
 // alongside page data instead of blocking every page's module startup.
 if (path.startsWith('/job/') || path.startsWith('/employer/')) {
-  initialLoads.push(import('./detail-pages.js?v=20261018-company-links').then(module => {
+  initialLoads.push(import('./detail-pages.js?v=20261021-title-detail-2').then(module => {
     renderJobDetail = module.renderJobDetail;
     renderEmployerDetail = module.renderEmployerDetail;
   }));

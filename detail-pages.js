@@ -1,7 +1,7 @@
 import {isClosedJob} from './job-availability.js';
 import {employerProfileHref} from './employer-link.js';
 import { publicJobPath } from './job-urls.js';
-import { formatCompanyName } from './company-name.js';
+import { formatCompanyName, formatJobTitle } from './company-name.js?v=20261021-title-trash-1';
 function applicationAction(record,m){
   if(isClosedJob(record))return '<p class="application-unavailable" role="status">Applications closed. This vacancy is no longer accepting applications.</p>';
   const rawMethod=record.applyType||m._job_apply_type||'External URL';
@@ -151,7 +151,7 @@ const slugFromUrl = value => { try { return new URL(value).pathname; } catch { r
 const filterSlug = value => decode(value).trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 function jobCard([title,slug,category,location,type,publishedDate],logo='') {
-  const cleanTitle = decode(title);
+  const cleanTitle = formatJobTitle(decode(title));
   const cleanCat = decode(category);
   const cleanLoc = decode(location);
   const published = formatJobDate(publishedDate);
@@ -326,7 +326,7 @@ function renderSameOrgJobsSidebar(orgJobs, company, employer, employerPath) {
 
       <div class="detail-org-jobs-list">
         ${totalCount > 0 ? orgJobs.slice(0, 5).map(job => {
-          const jTitle = decode(job.title?.rendered || job.title || 'Job Opening');
+          const jTitle = formatJobTitle(decode(job.title?.rendered || job.title || 'Job Opening'));
           const jCat = job.category || (job.categories || []).join(', ') || values(job.metas?._job_category) || '';
           const jLoc = job.location || (job.locations || []).join(', ') || values(job.metas?._job_location) || '';
           let jType = values(job.metas?._job_type) || (job.types || []).join(', ') || '';
@@ -375,7 +375,7 @@ function renderSameOrgJobsSidebar(orgJobs, company, employer, employerPath) {
 export function renderJobDetail(record, employer, path, orgJobs = [], relatedJobs = []) {
   if (!record) return '<main class="detail-page"><div class="wrap detail-empty"><h1>Job not found</h1><a href="/jobs">Browse Jobs</a></div></main>';
   const m=record.metas||{};
-  const title=decode(record.title?.rendered||record.title);
+  const title=formatJobTitle(decode(record.title?.rendered||record.title));
   const company=m._job_employer_name||record.company||'';
   const seenCategories = new Set();
   const catList = parseCategories(record).filter(category => {
