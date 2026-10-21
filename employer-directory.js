@@ -144,7 +144,7 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
           <div class="emp-top-hiring-track" id="empTopHiringTrack">
             ${topStripCategories.map(cat => {
               const isActive = selectedCategory.toLowerCase() === cat.qParam.toLowerCase();
-              return `<a href="${buildFilterUrl({ category: isActive ? null : cat.qParam })}" class="emp-top-hiring-card${isActive ? ' active' : ''}">
+              return `<a href="${buildFilterUrl({ category: isActive ? null : cat.qParam, q: null })}" class="emp-top-hiring-card${isActive ? ' active' : ''}">
                 <strong>${escapeAttr(cat.title)}</strong>
                 <span class="emp-top-count">${cat.subtitle} <span class="arrow">›</span></span>
               </a>`;
@@ -198,7 +198,7 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
             <div class="emp-filter-list">
               ${sidebarCategories.map(cat => {
                 const isActive = selectedCategory.toLowerCase() === cat.name.toLowerCase();
-                return `<a href="${buildFilterUrl({ category: isActive ? null : cat.name })}" class="emp-filter-row${isActive ? ' active' : ''}">
+                return `<a href="${buildFilterUrl({ category: isActive ? null : cat.name, q: null })}" class="emp-filter-row${isActive ? ' active' : ''}">
                   <span class="emp-checkbox${isActive ? ' checked' : ''}">${isActive ? `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : ''}</span>
                   <span class="label">${escapeAttr(cat.name)}</span>
                   <span class="count">(${cat.count})</span>

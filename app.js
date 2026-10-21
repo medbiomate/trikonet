@@ -1,4 +1,4 @@
-import {renderEmployerDirectory} from './employer-directory.js?v=20261021-unified-directory-9';
+import {renderEmployerDirectory} from './employer-directory.js?v=20261021-category-reset-11';
 import {isClosedJob} from './job-availability.js';
 import {renderHomeHero} from './home-hero.js';
 import {initDisplayAds} from './display-ads.js?v=20261018-fixed-slots';
