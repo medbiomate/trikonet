@@ -7136,7 +7136,15 @@ export async function initAdmin(verifiedSession = null) {
       e.preventDefault();
       const slug = trashBtn.dataset.jobTrash;
       if (!confirm(`Move “${slug}” to Trash?`)) return;
-      try { await trashJob(slug); } catch(error) { showAdminNotice(error.message,'error'); return; }
+      if (trashBtn.dataset.busy) return;
+      trashBtn.dataset.busy = '1';
+      trashBtn.textContent = 'Moving to Trash…';
+      trashBtn.setAttribute('aria-disabled','true');
+      try { await trashJob(slug); } catch(error) {
+        delete trashBtn.dataset.busy; trashBtn.textContent = 'Trash'; trashBtn.removeAttribute('aria-disabled');
+        showAdminNotice(error.message,'error'); return;
+      }
+      renderJobRows(false);
       localJobs = localJobs.filter(j => j.slug !== slug);
       remoteJobs = remoteJobs.filter(j => j.slug !== slug);
       renderJobRows();
