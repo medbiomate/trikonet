@@ -1338,7 +1338,7 @@ const server = http.createServer(async (req, res) => {
         const employers=await response.json();
         if(!Array.isArray(employers))throw Error('Invalid employer response');
         if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>Page Not Found</h1>');}
-        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord));
+        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams);
       }catch(error){res.writeHead(503,{'Content-Type':'text/html','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Employers temporarily unavailable</h1>');}
     }
     if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
