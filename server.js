@@ -1194,6 +1194,10 @@ const server = http.createServer(async (req, res) => {
       publicContentRecord = contentRecord;
       published = Boolean(contentRecord && isPublishedRecord(contentRecord));
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
+      if (contentType === 'employer' && contentRecord.slug !== slug) {
+        res.writeHead(301, {Location:`/employer/${encodeURIComponent(contentRecord.slug)}`, 'Cache-Control':'no-cache'});
+        return res.end();
+      }
       if (['job_listing','employer'].includes(contentType)) {
         let logo=logoFor(contentRecord,contentType);
         if(contentType==='job_listing' && !logo) {

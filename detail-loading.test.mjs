@@ -20,7 +20,7 @@ test('embedded job renders without awaiting employer and related-job downloads',
  const calls=[];
  const context=vm.createContext({path:'/job/sample',wpRecord:null,wpEmployer:null,orgJobs:[],categoryJobs:[],profileJobs:[],URL,URLSearchParams,console,
  document:{getElementById:()=>({textContent:JSON.stringify(record)})},
- loadContentRecord(){assert.fail('must reuse the server record');},fetch:url=>{calls.push(url);return new Promise(()=>{});}});
+ loadContentRecord(fetcher,base,type){assert.equal(type,'employer');calls.push('/employer?');return new Promise(()=>{});},fetch:url=>{calls.push(url);return new Promise(()=>{});}});
  await vm.runInContext(source.slice(start,end)+';loadWordPressRecord()',context);
  assert.equal(context.wpRecord.slug,'sample');assert.ok(calls.some(url=>url.includes('/employer?')));
 });
@@ -42,4 +42,15 @@ test('middle dots in employer slugs retain their WordPress spelling',async()=>{
  const record={slug:'neue-world-ai-design-agency-uae-%c2%b7-eu-%c2%b7-usa'};
  const result=await loadContentRecord(async url=>url.includes('/local/')?{status:404}:{ok:true,json:async()=>new URL(url,'https://example.com').searchParams.get('slug')===record.slug?[record]:[]},'','employer',decodeURIComponent(record.slug));
  assert.equal(result,record);
+});
+test('guessed employer URL resolves only a unique exact company name and respects saved overrides',async()=>{
+ const record={slug:'reemhospital',title:{rendered:'Reem Hospital'}};
+ const lookup=async(url)=>url.includes('/local/')?{status:404}: {ok:true,json:async()=>url.includes('slug=reemhospital')||url.includes('?q=')?[record]:[]};
+ assert.equal((await loadContentRecord(lookup,'','employer','reem-hospital')).slug,'reemhospital');
+ const unrelated=async url=>url.includes('/local/')?{status:404}:{ok:true,json:async()=>url.includes('?q=')?[{slug:'al-reem',title:{rendered:'Al Reem Health Group'}}]:[]};
+ assert.equal(await loadContentRecord(unrelated,'','employer','reem-hospital'),null);
+ const ambiguous=async url=>url.includes('/local/')?{status:404}:{ok:true,json:async()=>url.includes('?q=')?[record,{...record,slug:'reem-hospital-2'}]:[]};
+ assert.equal(await loadContentRecord(ambiguous,'','employer','reem-hospital'),null);
+ const draft={...record,status:'draft'};
+ assert.equal(await loadContentRecord(async url=>url.includes('/local/employers/reemhospital')?{ok:true,json:async()=>draft}:lookup(url),'','employer','reem-hospital'),draft);
 });

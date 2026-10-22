@@ -32,6 +32,15 @@ export async function loadContentRecord(fetcher, base, type, slug) {
   const imported = await importedReady;
   if (saved.status === 'fulfilled' && saved.value) return saved.value;
   if (imported.status === 'fulfilled' && imported.value) return imported.value;
-  if (saved.status === 'fulfilled' && imported.status === 'fulfilled') return null;
+  if (saved.status === 'fulfilled' && imported.status === 'fulfilled') {
+    if (type === 'employer') {
+      const response = await fetchContentResponse(fetcher, `${base}/api/wp/employer?q=${encodeURIComponent(slug.replace(/-/g, ' '))}&per_page=100`);
+      if (!response.ok) throw new Error('Employer lookup temporarily unavailable');
+      const nameSlug = value => String(value?.rendered ?? value ?? '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const matches = (await response.json()).filter(record => record.slug !== slug && nameSlug(record.title) === slug);
+      if (matches.length === 1) return loadContentRecord(fetcher, base, type, matches[0].slug);
+    }
+    return null;
+  }
   throw new Error('Content temporarily unavailable');
 }
