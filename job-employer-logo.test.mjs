@@ -36,5 +36,5 @@ test('a stale employer slug cannot replace the displayed company logo',async()=>
   if(url.includes('slug='))return response([{title:'Wrong Company',logo:'/wrong.png'}]);
   return response([{title:'Shifa',slug:'shifa',logo:'/shifa.png'}]);
  });
- assert.equal((await resolve([{company:'Shifa',employerSlug:'wrong-company'}]))[0].logo,'/shifa.png');
+ assert.equal((await resolve([{company:'Shifa',local:true,employerSlug:'wrong-company',metas:{_job_logo:'/wrong.png'}}]))[0].logo,'/shifa.png');
 });

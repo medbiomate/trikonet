@@ -47,13 +47,14 @@ export function createJobLogoResolver(fetcher, base = '') {
     return promise;
   }
   return async jobs => Promise.all(jobs.map(async job => {
-    if (job.logo || job.metas?._job_logo) return job;
+    if (job.logo || (job.metas?._job_logo && !job.local)) return job;
     try {
       const employer = await lookup(job);
       const logo = logoOf(employer);
       if (!logo) return job;
-      return {...job, logo, employerSlug: employer.slug || job.employerSlug,
-        metas: {...job.metas, _job_logo: logo}};
+      const employerUrl = employer.slug ? `/employer/${employer.slug}` : job.employerUrl;
+      return {...job, logo, employerSlug: employer.slug || job.employerSlug, employerUrl,
+        metas: {...job.metas, _job_logo: logo, _job_employer_url: employerUrl}};
     } catch { return job; } // Optional branding must never hide a job.
   }));
 }
