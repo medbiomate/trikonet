@@ -1,3 +1,5 @@
+import {createJobLogoResolver} from './job-employer-logo.js';
+const resolveJobLogos = createJobLogoResolver((...args) => fetch(...args));
 import {renderEmployerDirectory} from './employer-directory.js?v=20261021-category-reset-11';
 import {isClosedJob} from './job-availability.js';
 import {renderHomeHero} from './home-hero.js';
@@ -494,7 +496,7 @@ async function loadLocalJobs(){
     }
     const response=await fetch(`/api/public/jobs?${filters}`, {signal:AbortSignal.timeout(12000)});
     if(!response.ok)throw Error('Jobs unavailable');
-    data.jobs=(await response.json()).map(mapJob);
+    data.jobs=(await resolveJobLogos(await response.json())).map(mapJob);
   }catch(error){data.jobs=[];data.jobsLoadError=true;console.warn('Job listing unavailable:',error.message);}
 }
 async function loadLocalEmployers(){

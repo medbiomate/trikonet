@@ -1,3 +1,5 @@
+import {createJobLogoResolver} from './job-employer-logo.js';
+const resolveJobLogos = createJobLogoResolver(fetch, process.env.TRIKONET_API_BASE || 'https://api.trikonet.com');
 import { injectInitialEmployers } from './employer-list-ssr.js';
 import { legacyDestination, isFilteredListing } from './legacy-routes.js';
 import { reconcileJobSitemap, cleanSitemapIndex } from './sitemap-policy.js';
@@ -1191,6 +1193,7 @@ const server = http.createServer(async (req, res) => {
       let published = false;
       let contentRecord;
       contentRecord = resolvedJobUrl?.job || await loadContentRecord(fetch, seoApiBase, contentType, slug);
+      if (contentType === 'job_listing' && contentRecord) [contentRecord] = await resolveJobLogos([contentRecord]);
       publicContentRecord = contentRecord;
       published = Boolean(contentRecord && isPublishedRecord(contentRecord));
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
@@ -1328,7 +1331,7 @@ const server = http.createServer(async (req, res) => {
         if(!countResponse.ok)throw Error('Job count unavailable');
         const {total}=await countResponse.json();
         if(!response.ok)throw Error('Job listings unavailable');
-        const jobs=await response.json();
+        const jobs=await resolveJobLogos(await response.json());
         if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
           res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
           return res.end('<h1>Page Not Found</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
