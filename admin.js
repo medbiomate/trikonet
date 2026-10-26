@@ -1,3 +1,4 @@
+import {newJobDates, oneYearFromToday} from './job-date-defaults.js';
 import { jobWorkCredit } from './job-work-credit.js';
 import { formatJobTitle, formatCompanyName } from './company-name.js?v=20261021-title-trash-1';
 import {teamActivityView,initTeamActivity} from './admin-team-activity.js?v=2';
@@ -5026,6 +5027,10 @@ export async function initAdmin(verifiedSession = null) {
       // Leave requirements absent from the source empty for review.
       const identity={id:jobForm.elements.namedItem('id')?.value||'',slug:jobForm.elements.namedItem('slug')?.value||'',status:'draft'};
       const originalSlug=jobForm.elements.namedItem('originalSlug')?.value||'';
+      if (!originalSlug) {
+        result.job.deadline = jobForm.elements['deadline'].value || oneYearFromToday();
+        result.job.expiryDate = jobForm.elements['expiryDate'].value || result.job.deadline;
+      }
       fillJob({...result.job,...identity});jobForm.elements.namedItem('originalSlug').value=originalSlug;
       if(employer)selectEmployerOption(employer.title,employer.logo||'',employer.slug||'',true);
       const normalize=value=>String(value||'').toLowerCase().replace(/&amp;/g,'&').replace(/\bjobs?\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
@@ -5041,6 +5046,7 @@ export async function initAdmin(verifiedSession = null) {
   });
 
   function fillJob(job = {}) {
+    job = newJobDates(job);
     job={...job,salaryType:!job.salaryType||job.salaryType==='Not specified'?'Monthly':job.salaryType,minSalary:job.minSalary==null||job.minSalary===''?0:job.minSalary,maxSalary:job.maxSalary==null||job.maxSalary===''?0:job.maxSalary};
     queueMicrotask(() => jobRecovery.open(job.slug || '', job.id || ''));
     jobForm.reset();
