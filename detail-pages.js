@@ -15,7 +15,7 @@ function applicationAction(record,m){
   if(method==='WhatsApp'){href='https://wa.me/'+String(record.applyWhatsApp||m._job_apply_whatsapp||'').replace(/\D/g,'');label='Apply on WhatsApp';}
   const usable=method==='By Email'?/^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(href):method==='WhatsApp'?/^https:\/\/wa.me\/\d{7,15}$/.test(href):/^https?:\/\/[^\s/]+/i.test(href);
   if(!usable)return '<p class="application-unavailable" role="status">Application details are unavailable. Please verify this vacancy on the employer’s official careers website.</p>';
-  return `<a class="primary apply" href="${esc(href)}" target="_blank" rel="noopener noreferrer nofollow">${label}</a>`;
+  return `<a class="primary apply" href="${esc(href)}"${method === 'By Email' ? '' : ' target="_blank"'} rel="noopener noreferrer nofollow">${label}</a>`;
 }
 const bateelJobs = [
   ['Corporate Accounting Manager','corporate-accounting-manager','Accountant, Accounting or Finance','Dubai'],
