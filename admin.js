@@ -4233,31 +4233,31 @@ export async function initAdmin(verifiedSession = null) {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
+  function restoreJobAfterCompany() {
+    const raw = sessionStorage.getItem('trikonet_job_return_ctx');
+    if (!raw) return false;
+    try {
+      const context = JSON.parse(raw);
+      if (!context.job || (context.returnHash || '#job-new') !== location.hash) return false;
+      fillJob(context.job);
+      if (context.selectedEmployer) {
+        const {title, logo, slug} = context.selectedEmployer;
+        selectEmployerOption(title, logo || '', slug || '', true);
+      }
+      sessionStorage.removeItem('trikonet_job_return_ctx');
+      return true;
+    } catch { return false; }
+  }
+
   async function handleRoute() {
     const hash = location.hash.replace(/^#/, '');
     if (hash === 'job-new') {
-      const returnCtxStr = sessionStorage.getItem('trikonet_job_return_ctx');
-      if (returnCtxStr) {
-        try {
-          const returnCtx = JSON.parse(returnCtxStr);
-          if (returnCtx.job) {
-            fillJob(returnCtx.job);
-            if (returnCtx.selectedEmployer) {
-              selectEmployerOption(returnCtx.selectedEmployer.title, returnCtx.selectedEmployer.logo || '', returnCtx.selectedEmployer.slug || '', true);
-            }
-          } else {
-            fillJob({});
-          }
-        } catch {
-          fillJob({});
-        }
-        sessionStorage.removeItem('trikonet_job_return_ctx');
-      } else {
-        fillJob({});
-      }
+      if (!restoreJobAfterCompany()) fillJob({});
       switchView('job-new');
     } else if (hash === 'employer-new') {
-      fillEmployer({});
+      let companyName = '';
+      try { companyName = JSON.parse(sessionStorage.getItem('trikonet_job_return_ctx') || 'null')?.companyName || ''; } catch {}
+      fillEmployer({title: companyName});
       switchView('employer-new');
       if (typeof updateEmployerReturnBanner === 'function') updateEmployerReturnBanner();
     } else if (hash === 'employer-categories') {
@@ -4374,7 +4374,8 @@ export async function initAdmin(verifiedSession = null) {
     } else if (hash === 'page-editor') {
       location.hash = 'pages-core';
     } else if (hash.startsWith('job-editor/')) {
-      await editReportedJob(decodeURIComponent(hash.slice('job-editor/'.length)), true);
+      if (restoreJobAfterCompany()) switchView('job-edit');
+      else await editReportedJob(decodeURIComponent(hash.slice('job-editor/'.length)), true);
     } else if (hash.startsWith('employer-editor/')) {
       const slug = decodeURIComponent(hash.slice('employer-editor/'.length));
       let employer = allEmployers().find(item => item.slug === slug);
@@ -4405,19 +4406,7 @@ export async function initAdmin(verifiedSession = null) {
         showAdminNotice(`Could not load employer “${slug}” for editing.`, 'error');
       }
     } else if (hash === 'job-editor') {
-      const returnCtxStr = sessionStorage.getItem('trikonet_job_return_ctx');
-      if (returnCtxStr) {
-        try {
-          const returnCtx = JSON.parse(returnCtxStr);
-          if (returnCtx.job) {
-            fillJob(returnCtx.job);
-            if (returnCtx.selectedEmployer) {
-              selectEmployerOption(returnCtx.selectedEmployer.title, returnCtx.selectedEmployer.logo || '', returnCtx.selectedEmployer.slug || '', true);
-            }
-          }
-        } catch {}
-        sessionStorage.removeItem('trikonet_job_return_ctx');
-      }
+      restoreJobAfterCompany();
       switchView('job-edit');
     } else if (hash === 'employer-editor') {
       if (!employerForm.originalSlug.value) {
@@ -4500,6 +4489,8 @@ export async function initAdmin(verifiedSession = null) {
   let employerDataset = [];
 
   function populateEmployerDropdown() {
+    const picker = document.getElementById('employer-combobox-dropdown');
+    const pickerOpen = picker && picker.style.display !== 'none';
     const employerMap = new Map();
     allEmployers().forEach(e => {
       // Recovery snapshots are drafts, not selectable company identities.
@@ -4541,10 +4532,11 @@ export async function initAdmin(verifiedSession = null) {
     const currentVal = document.getElementById('field-employer-company-value')?.value || select?.value || '';
     if (currentVal) {
       const match = employerDataset.find(e => e.title.toLowerCase() === currentVal.toLowerCase());
-      selectEmployerOption(currentVal, match?.logo || '', match?.slug || '', false);
+      if (!pickerOpen) selectEmployerOption(currentVal, match?.logo || '', match?.slug || document.getElementById('field-employer-company-value')?.dataset.employerSlug || '', false);
     } else {
       renderEmployerComboboxItems('');
     }
+    if (pickerOpen) renderEmployerComboboxItems(searchInput?.value || '');
   }
 
   function renderEmployerComboboxItems(filterText = '') {
@@ -4616,13 +4608,14 @@ export async function initAdmin(verifiedSession = null) {
     const dropdown = document.getElementById('employer-combobox-dropdown');
     const trigger = document.getElementById('employer-combobox-trigger');
 
-    if (hiddenVal) hiddenVal.value = title;
+    if (hiddenVal) { hiddenVal.value = title; hiddenVal.dataset.employerSlug = slug; }
     if (select) {
       if (title && !Array.from(select.options).some(o => o.value.toLowerCase() === title.toLowerCase())) {
         const opt = document.createElement('option');
         opt.value = title;
         opt.textContent = title;
         opt.dataset.logo = logoUrl;
+        opt.dataset.slug = slug;
         select.appendChild(opt);
       }
       select.value = title;
@@ -4689,6 +4682,7 @@ export async function initAdmin(verifiedSession = null) {
       comboboxTrigger.classList.remove('open');
     } else {
       comboboxDropdown.style.display = 'block';
+      if (employerLoadError) void loadImportedEmployers();
       comboboxTrigger.setAttribute('aria-expanded', 'true');
       comboboxTrigger.classList.add('open');
       if (comboboxSearchInput) {
@@ -4790,7 +4784,7 @@ export async function initAdmin(verifiedSession = null) {
     data.company = document.getElementById('field-employer-company-value')?.value || data.company || '';
     data.logo = document.getElementById('field-logo-img')?.value || data.logo || '';
     data.banner = document.getElementById('field-banner-img')?.value || data.banner || '';
-    data.employerSlug = document.getElementById('field-employer-author')?.value || '';
+    data.employerSlug = document.getElementById('field-employer-company-value')?.dataset.employerSlug || '';
     data.id = jobForm?.elements.id?.value || '';
     data.originalSlug = jobForm?.originalSlug?.value || '';
     data.types = Array.from(document.querySelectorAll('input[name="types"]:checked')).map(cb => cb.value);
@@ -4807,6 +4801,7 @@ export async function initAdmin(verifiedSession = null) {
     const jobData = collectCurrentJobFormData();
     sessionStorage.setItem('trikonet_job_return_ctx', JSON.stringify({
       job: jobData,
+      companyName: comboboxSearchInput?.value.trim() || '',
       returnHash: location.hash || '#job-new',
       timestamp: Date.now()
     }));
@@ -5069,7 +5064,7 @@ export async function initAdmin(verifiedSession = null) {
       const typeMap = { 'Full Time':'FULL_TIME', 'Part Time':'PART_TIME', 'Freelance':'CONTRACTOR', 'Contract':'CONTRACTOR', 'Internship':'INTERN', 'Temporary':'TEMPORARY' };
       jobForm.elements['employmentType'].value = typeMap[job.types?.[0] || job.type] || 'FULL_TIME';
     }
-    jobForm.originalSlug.value = job.slug || '';
+    jobForm.originalSlug.value = job.originalSlug || job.slug || '';
 
     // Gutenberg Title & Summary Bar Sync
     const titleText = job.title || '';
@@ -6619,7 +6614,9 @@ export async function initAdmin(verifiedSession = null) {
   // Load all data
   async function loadData() {
     if(location.hash.startsWith('#job')||location.hash.startsWith('#employer-editor')||location.hash==='#employer-new'){
-      void fetch('/api/admin/employer-options').then(r=>r.ok?r.json():[]).then(records=>updateImportedEmployers(records));
+      void loadImportedEmployers().then(() => {
+        if (employerLoadError) showAdminNotice('Company list could not load. Reopen the company picker to retry.', 'error');
+      });
     }
     const [local, localTax, wpTax, remote, employers, wpEmployers, registeredCandidates] = await Promise.all([
       Promise.resolve(localJobs),
@@ -7334,7 +7331,9 @@ export async function initAdmin(verifiedSession = null) {
       jobStatusState.textContent = 'Please specify an employer / company.';
       return;
     }
-    const employer = allEmployers().find(x => x.title.toLowerCase() === job.company.toLowerCase());
+    const selectedEmployerSlug = document.getElementById('field-employer-company-value')?.dataset.employerSlug || '';
+    const employer = allEmployers().find(x => selectedEmployerSlug ? x.slug === selectedEmployerSlug : x.title.toLowerCase() === job.company.toLowerCase());
+    if (selectedEmployerSlug) { job.employerSlug = selectedEmployerSlug; job.employerUrl = `/employer/${selectedEmployerSlug}`; }
     if (employer) {
       job.employerSlug = employer.slug;
       job.employerUrl = `/employer/${employer.slug}`;
@@ -8487,7 +8486,9 @@ export async function initAdmin(verifiedSession = null) {
     const missing = [];
     if (!document.querySelector('#employer-checklist-categories input:checked')) missing.push('category');
     if (!document.querySelector('#employer-checklist-locations input:checked')) missing.push('location');
-    const description = document.getElementById('employer-gutenberg-content')?.value || '';
+    const description = document.getElementById('employer-btn-code')?.classList.contains('active')
+      ? (document.getElementById('employer-gutenberg-content')?.value || '')
+      : (document.getElementById('employer-rich-content')?.innerHTML || '');
     if (!description.replace(/<[^>]*>/g,'').replace(/&nbsp;|&#160;/gi,' ').trim()) missing.push('description');
     if (!document.getElementById('field-employer-logo-val')?.value.trim()) missing.push('logo');
     if (missing.length) {
@@ -8507,7 +8508,7 @@ export async function initAdmin(verifiedSession = null) {
     const split = v => String(v || '').split(',').map(x => x.trim()).filter(Boolean);
     const employer = {
       title: document.getElementById('employer-gutenberg-title')?.value.trim() || '',
-      description: document.getElementById('employer-gutenberg-content')?.value.trim() || '',
+      description: description.trim(),
       originalSlug: employerForm.originalSlug.value,
       slug: (document.getElementById('field-employer-slug')?.value || '').trim() || (document.getElementById('employer-gutenberg-title')?.value || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       status: document.getElementById('field-employer-status')?.value || 'publish',
