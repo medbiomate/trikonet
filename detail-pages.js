@@ -224,7 +224,7 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
   if (!employer && !company) return '';
   const m = employer?.metas || {};
   const compName = decode(employer?.title?.rendered || employer?.title || company || 'Company');
-  const profileUrl = resolveEmployerProfile(employer, jobEmployerUrl, compName);
+  const profileUrl = employer ? resolveEmployerProfile(employer, jobEmployerUrl, compName) : '/employers';
   const empLogo = employer?.logo || m._employer_logo || m._employer_featured_image_img || logo || '';
   
   // Category
@@ -256,7 +256,7 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
     ? (hasEmpHtml ? empDesc : (empDesc ? empDesc.split(/\n\s*\n/).map(p => `<p>${esc(p).replaceAll('\n', '<br>')}</p>`).join('') : ''))
     : employer?.content?.rendered || '';
 
-  const cleanBio = rawContent || `<p>${esc(compName)} is a leading employer operating across the UAE and GCC region, providing top-tier professional career opportunities, modern workplace culture, and continuous development for talent.</p>`;
+  const cleanBio = rawContent || '';
   const socialsHtml = formatSocialLinks(employer?.socials);
 
   return `
@@ -288,12 +288,12 @@ function renderAboutCompanySection(employer, company, logo, location, jobEmploye
           </div>
         </div>
 
-        <div class="detail-about-company-action">
+        ${employer ? `<div class="detail-about-company-action">
           <a href="${esc(profileUrl)}" class="detail-about-profile-btn">
             View Company Profile
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
-        </div>
+        </div>` : ''}
       </div>
 
       <div class="detail-about-company-body">
