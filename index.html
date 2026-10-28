@@ -16,7 +16,7 @@
   <link rel="modulepreload" href="/app.js?v=20261026-email-handler">
   <script>
     if(location.pathname==='/admin'||location.pathname.startsWith('/admin/')){
-      const preload=document.createElement('link');preload.rel='modulepreload';preload.href='/admin.js?v=20261028-user-delete-1';document.head.append(preload);
+      const preload=document.createElement('link');preload.rel='modulepreload';preload.href='/admin.js?v=20261028-user-save-progress-1';document.head.append(preload);
       const api=window.TRIKONET_API_BASE||(['localhost','127.0.0.1'].includes(location.hostname)?'':'https://api.trikonet.com');
       const read=path=>fetch(api+path,{credentials:'include',cache:'no-store',signal:AbortSignal.timeout(15000)});
       window.trikonetEarlyAdminSession=read('/api/admin/me').catch(()=>null);
@@ -626,5 +626,5 @@ html.jobs-awaiting-page #favicon-flash{right:calc(50% - 29px);bottom:calc(50% - 
 })();
 </script>
 <div id="app"></div><style></style>
-<script src="/config.js?v=20261018-server-job-list"></script><script type="module" src="/bootstrap.js?v=20261028-user-delete-1"></script></body>
+<script src="/config.js?v=20261018-server-job-list"></script><script type="module" src="/bootstrap.js?v=20261028-user-save-progress-1"></script></body>
 </html>

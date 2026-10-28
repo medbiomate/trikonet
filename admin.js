@@ -2348,6 +2348,7 @@ export function renderAdmin() {
             </div>
 
             <div style="display:flex; align-items:center; gap:12px; margin-top:10px; padding-top:16px; border-top:1px solid #f1f5f9;">
+              <p id="user-save-status" role="status" aria-live="polite" style="margin:0; font-size:14px;"></p>
               <button type="submit" class="modern-btn-primary" id="btn-submit-user" style="width:auto; padding:0 24px;">Add New User</button>
               <a href="#users" class="modern-filter-btn" style="text-decoration:none; display:inline-flex; align-items:center;">Cancel</a>
             </div>
@@ -9273,6 +9274,8 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     const form = document.getElementById('admin-user-form');
     if (!form) return;
     form.reset();
+    const saveStatus = document.getElementById('user-save-status');
+    if (saveStatus) saveStatus.textContent = '';
     document.getElementById('field-user-id').value = u.id || '';
     document.getElementById('user-username').value = u.username || '';
     document.getElementById('user-username').readOnly = false;
@@ -9379,6 +9382,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
   document.getElementById('admin-user-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
+    if (form.dataset.saving === 'true') return;
     const id = String(form.elements.namedItem('userId').value || '');
     const username = form.elements.namedItem('username').value.trim();
     const email = form.elements.namedItem('email').value.trim();
@@ -9411,6 +9415,19 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     if (existing?.role === 'Administrator' && role !== 'Administrator' && users.filter(item => item.role === 'Administrator').length <= 1) return alert('Create another administrator before changing the role of the last administrator.');
     if ((!existing?.serverBacked && password.length < 8) || (password && password.length < 8)) return alert('Set a password of at least 8 characters so this user can sign in.');
 
+    const submitButton = document.getElementById('btn-submit-user');
+    const saveStatus = document.getElementById('user-save-status');
+    const idleLabel = wasEditing ? 'Update User' : 'Add New User';
+    form.dataset.saving = 'true';
+    form.setAttribute('aria-busy', 'true');
+    submitButton.disabled = true;
+    submitButton.textContent = wasEditing ? 'Saving changes…' : 'Creating user…';
+    saveStatus.textContent = 'Saving user. Please wait…';
+    saveStatus.style.color = '#1d4ed8';
+    const slowSaveTimer = setTimeout(() => {
+      saveStatus.textContent = 'Still saving. Please keep this page open; you do not need to click again.';
+    }, 5000);
+    userMutationVersion++;
     let savedUser;
     try {
       const response = await fetch('/api/admin/user-save', {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({id:existing?.serverBacked?id:'',username,email,name,role,status,password,website,bio,posts:existing?.posts||0})});
@@ -9427,20 +9444,33 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
         throw new Error('The server returned an invalid response. Refresh the page and sign in again.');
       }
       if (!response.ok) throw new Error(result.error || 'Unable to save login account.');
+      if (!result.id) throw new Error('The server did not confirm the saved account. Please check the user list before retrying.');
       savedUser = result;
-    } catch (error) {
-      showAdminNotice(error.message || 'Unable to save login account.', 'error');
-      return;
-    }
     const palette = ['#4f46e5','#0284c7','#059669','#d97706','#dc2626','#7c3aed','#ec4899'];
     const userRecord = {...existing,...savedUser,firstName,lastName,name,website,bio,serverBacked:true,color:existing?.color||palette[Math.floor(Math.random()*palette.length)],initials:(name.split(/\s+/).map(x=>x[0]).join('').slice(0,2)||username.slice(0,2)).toUpperCase(),registered:existing?.registered||new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
     users = users.filter(user => String(user.id)!==id && String(user.email||'').toLowerCase()!==email.toLowerCase());
     users.unshift(userRecord);
 
     saveUsers();
+    renderUserRows();
+    saveStatus.textContent = `User “${username}” saved successfully.`;
+    saveStatus.style.color = '#047857';
     showAdminNotice(`User “${username}” ${wasEditing ? 'updated' : 'created'} successfully.`);
     form.reset();
     location.hash = 'users';
+    } catch (error) {
+      const message = error.message || 'Unable to save user. Check your connection and try again.';
+      saveStatus.textContent = message;
+      saveStatus.style.color = '#b91c1c';
+      showAdminNotice(message, 'error');
+    } finally {
+      clearTimeout(slowSaveTimer);
+      form.dataset.saving = 'false';
+      form.removeAttribute('aria-busy');
+      submitButton.disabled = false;
+      submitButton.textContent = idleLabel;
+      userMutationVersion++;
+    }
   });
 
   // Click delegation for user edit / delete
