@@ -9252,7 +9252,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     document.getElementById('user-first-name').value = u.firstName || '';
     document.getElementById('user-last-name').value = u.lastName || '';
     document.getElementById('user-website').value = u.website || '';
-    document.getElementById('user-role').value = u.role || 'Employer';
+    document.getElementById('user-role').value = ['Administrator', 'Editor', 'Content Editor'].includes(u.role) ? u.role : 'Editor';
     document.getElementById('user-status').value = u.status || 'active';
     document.getElementById('user-bio').value = u.bio || '';
     document.getElementById('user-password').value = '';
@@ -9345,16 +9345,16 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
   document.getElementById('admin-user-form')?.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
-    const id = String(form.userId.value || '');
-    const username = form.username.value.trim();
-    const email = form.email.value.trim();
-    const firstName = form.firstName.value.trim();
-    const lastName = form.lastName.value.trim();
-    const website = form.website.value.trim();
-    const role = form.role.value;
-    const status = form.status.value;
-    const password = form.password.value;
-    const bio = form.bio.value.trim();
+    const id = String(form.elements.namedItem('userId').value || '');
+    const username = form.elements.namedItem('username').value.trim();
+    const email = form.elements.namedItem('email').value.trim();
+    const firstName = form.elements.namedItem('firstName').value.trim();
+    const lastName = form.elements.namedItem('lastName').value.trim();
+    const website = form.elements.namedItem('website').value.trim();
+    const role = form.elements.namedItem('role').value;
+    const status = form.elements.namedItem('status').value;
+    const password = form.elements.namedItem('password').value;
+    const bio = form.elements.namedItem('bio').value.trim();
     const name = `${firstName} ${lastName}`.trim() || username;
 
     if (!username || !email) return;
