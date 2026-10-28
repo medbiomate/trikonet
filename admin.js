@@ -4378,32 +4378,21 @@ export async function initAdmin(verifiedSession = null) {
       else await editReportedJob(decodeURIComponent(hash.slice('job-editor/'.length)), true);
     } else if (hash.startsWith('employer-editor/')) {
       const slug = decodeURIComponent(hash.slice('employer-editor/'.length));
-      let employer = allEmployers().find(item => item.slug === slug);
-      if (!employer) {
-        try {
-          const response = await fetch(`/api/wp/employer?slug=${encodeURIComponent(slug)}`);
-          const item = response.ok ? (await response.json())[0] : null;
-          if (item) {
-            const m = item.metas || {};
-            employer = item.local ? item : {
-              id: item.id, slug: item.slug, title: item.title?.rendered || item.title || '',
-              status: item.status || 'publish', description: item.content?.rendered || item.content || '',
-              email: m._employer_email || '', phone: m._employer_phone || '', website: m._employer_website || '',
-              foundedDate: m._employer_founded_date || '', companySize: m._employer_company_size || '',
-              showProfile: m._employer_show_profile || 'show', featured: !!m._job_featured,
-              logo: m._employer_logo || m._employer_featured_image || '', openJobs: Number(m._employer_open_jobs) || 0,
-              categories: publicField(m._employer_category).split(', ').filter(Boolean),
-              locations: publicField(m._employer_location).split(', ').filter(Boolean), local: false
-            };
-          }
-        } catch {}
-      }
-      if (employer) {
+      try {
+        const response = await fetch(`/api/admin/employer-record/${encodeURIComponent(slug)}`, {cache:'no-store'});
+        if (!response.ok) throw new Error('Unable to load the saved company.');
+        const item = await response.json();
+        const m = item.metas || {};
+        const employer = item.local ? item : {...item,
+          title:item.title?.rendered || item.title || '', description:item.content?.rendered || '',
+          logo:item.logo || m._employer_logo || m._employer_featured_image || '',
+          categories:Object.values(m._employer_category || {}), locations:Object.values(m._employer_location || {}),
+          email:m._employer_email || '', phone:m._employer_phone || '', website:m._employer_website || ''};
         fillEmployer(employer);
         switchView('employer-edit');
-      } else {
+      } catch (error) {
         switchView('employers');
-        showAdminNotice(`Could not load employer “${slug}” for editing.`, 'error');
+        showAdminNotice(error.message || 'Unable to load the saved company.', 'error');
       }
     } else if (hash === 'job-editor') {
       restoreJobAfterCompany();
