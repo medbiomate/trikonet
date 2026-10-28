@@ -40,3 +40,25 @@ test('selection retains company slug before catalogue is available',()=>{
  assert.equal(hidden.value,'Clinic');assert.equal(hidden.dataset.employerSlug,'clinic-profile');
  sandbox.selectEmployerOption('','', '',false);assert.equal(hidden.dataset.employerSlug,'');
 });
+
+test('picker loads companies after navigation, shares pending requests and retries failures',async()=>{
+ let calls=0,fail=true,updated,notices=0;
+ const sandbox={fetch:async()=>{calls++;return {ok:!fail,status:503,json:async()=>[{slug:'clinic',title:{rendered:'Clinic'}}]};},AbortSignal,Promise,remoteEmployers:[],updateImportedEmployers:rows=>{updated=rows;},showAdminNotice:()=>{notices++;},console:{error:()=>{}}};
+ vm.createContext(sandbox);
+ vm.runInContext(section('  let employerOptionsLoaded = false;', '  async function loadImportedEmployers()'),sandbox);
+ const first=sandbox.ensureEmployerOptions();
+ assert.equal(sandbox.ensureEmployerOptions(),first);
+ await first;
+ assert.equal(calls,1);assert.equal(notices,1);
+ fail=false;
+ await sandbox.ensureEmployerOptions();
+ assert.equal(calls,2);assert.equal(updated[0].slug,'clinic');
+ await sandbox.ensureEmployerOptions();assert.equal(calls,2);
+});
+
+test('mouse and keyboard opening request company options',()=>{
+ const events=section("  comboboxTrigger?.addEventListener('click'", "  comboboxTrigger?.addEventListener('keydown'");
+ assert.match(events,/void ensureEmployerOptions\(\)/);
+ const keyboard=source.slice(source.indexOf("  comboboxTrigger?.addEventListener('keydown'"));
+ assert.match(keyboard.slice(0,450),/void ensureEmployerOptions\(\)/);
+});

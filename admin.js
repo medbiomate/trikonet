@@ -4661,7 +4661,7 @@ export async function initAdmin(verifiedSession = null) {
       comboboxTrigger.classList.remove('open');
     } else {
       comboboxDropdown.style.display = 'block';
-      if (employerLoadError) void loadImportedEmployers();
+      void ensureEmployerOptions();
       comboboxTrigger.setAttribute('aria-expanded', 'true');
       comboboxTrigger.classList.add('open');
       if (comboboxSearchInput) {
@@ -4675,6 +4675,7 @@ export async function initAdmin(verifiedSession = null) {
   comboboxTrigger?.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
       e.preventDefault();
+      void ensureEmployerOptions();
       comboboxDropdown.style.display = 'block';
       comboboxTrigger.setAttribute('aria-expanded', 'true');
       comboboxTrigger.classList.add('open');
@@ -6566,15 +6567,36 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
   }
   let employersLoading = true;
   let employerLoadError = false;
+  let employerOptionsLoaded = false;
+  let employerOptionsRequest = null;
+  function ensureEmployerOptions() {
+    if (employerOptionsRequest) return employerOptionsRequest;
+    if (employerOptionsLoaded) return Promise.resolve(remoteEmployers);
+    employerOptionsRequest = (async () => {
+      try {
+        const response = await fetch('/api/admin/employer-options', {cache:'no-store', signal:AbortSignal.timeout(20000)});
+        if (!response.ok) throw new Error(`Companies unavailable (HTTP ${response.status})`);
+        const options = await response.json();
+        if (!Array.isArray(options)) throw new Error('Invalid company response');
+        updateImportedEmployers(options);
+        employerOptionsLoaded = true;
+        return options;
+      } catch (error) {
+        showAdminNotice('Company list could not load. Reopen the company picker to retry.', 'error');
+        console.error('Company options loading failed:', error);
+        return [];
+      } finally {
+        employerOptionsRequest = null;
+      }
+    })();
+    return employerOptionsRequest;
+  }
   async function loadImportedEmployers() {
     employerLoadError = false;
     const records = [];
     try {
       if (location.hash.startsWith('#job')) {
-        const response=await fetch('/api/admin/employer-options',{signal:AbortSignal.timeout(20000)});
-        if(!response.ok)throw Error('Company options unavailable');
-        const options=await response.json();
-        updateImportedEmployers(options);return options;
+        return await ensureEmployerOptions();
       }
       // Bound response size and retry transient failures without hiding companies.
       for (let page = 1; page <= 100; page++) {
