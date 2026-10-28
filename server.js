@@ -221,7 +221,7 @@ const server = http.createServer(async (req, res) => {
         resolvedJobUrl = await response.json();
         if (path !== resolvedJobUrl.publicPath) { res.writeHead(301,{Location:resolvedJobUrl.publicPath}); return res.end(); }
         path = `/job/${resolvedJobUrl.slug}`;
-      } else if (response.status === 404) { res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex'}); return res.end('<h1>Page Not Found</h1>'); }
+      } else if (response.status === 404) { res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex'}); return res.end('<h1>404</h1>'); }
       else throw new Error('Job URL service unavailable');
     } catch { res.writeHead(503,{'Content-Type':'text/html','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
   }
@@ -1196,7 +1196,7 @@ const server = http.createServer(async (req, res) => {
       if (contentType === 'job_listing' && contentRecord) [contentRecord] = await resolveJobLogos([contentRecord]);
       publicContentRecord = contentRecord;
       published = Boolean(contentRecord && isPublishedRecord(contentRecord));
-      if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>Page Not Found</h1>'); }
+      if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>404</h1>'); }
       if (contentType === 'employer' && contentRecord.slug !== slug) {
         res.writeHead(301, {Location:`/employer/${encodeURIComponent(contentRecord.slug)}`, 'Cache-Control':'no-cache'});
         return res.end();
@@ -1249,7 +1249,7 @@ const server = http.createServer(async (req, res) => {
       const payload=await response.json();
       if(response.ok){
         if(pageNumber>1 && (!payload.jobs?.length || (pageNumber-1)*10>=payload.total)){
-          res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow'});return res.end('<h1>Page Not Found</h1>');
+          res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow'});return res.end('<h1>404</h1>');
         }
         let html=await readFile(join(root,'index.html'),'utf8');
         html=html.replace(/<title>[\s\S]*?<\/title>/,'').replace(/<meta name="description"[^>]*>/,'').replace(/<link rel="canonical"[^>]*>/,'').replace('</head>',seoHead(payload.page,pageNumber)+'</head>');
@@ -1259,7 +1259,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':payload.page.indexingStatus==='Noindex'?'noindex,follow':'index,follow'});
         return res.end(html);
       }
-      if(response.status===404){res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex'});return res.end('<h1>Page Not Found</h1>');}
+      if(response.status===404){res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex'});return res.end('<h1>404</h1>');}
       if(response.status>=500){res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
     }catch{res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Page temporarily unavailable</h1>');}
   }
@@ -1282,7 +1282,7 @@ const server = http.createServer(async (req, res) => {
     // A successful SPA shell for an unknown URL is a soft 404.
     if (!extname(path) && !contentType && !privatePage && !isPublicAppRoute(path)) {
       res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
-      return res.end('<h1>Page Not Found</h1><p>This page is no longer available.</p><a href="/jobs">Browse current jobs</a>');
+      return res.end('<h1>404</h1><p>This page is no longer available.</p><a href="/jobs">Browse current jobs</a>');
     }
     if (!extname(path)) {
       target = join(root, 'index.html');
@@ -1334,7 +1334,7 @@ const server = http.createServer(async (req, res) => {
         const jobs=await resolveJobLogos(await response.json());
         if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
           res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
-          return res.end('<h1>Page Not Found</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
+          return res.end('<h1>404</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
         }
         fileBody=injectInitialJobs(fileBody.toString(),jobs,{path,category,query:params.get('q')||'',total,page:Number(params.get('page'))||1,search:requestUrl.search});
       }catch(error){
@@ -1350,7 +1350,7 @@ const server = http.createServer(async (req, res) => {
         if(!response.ok)throw Error('Employers unavailable');
         const employers=await response.json();
         if(!Array.isArray(employers))throw Error('Invalid employer response');
-        if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>Page Not Found</h1>');}
+        if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>404</h1>');}
         fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams);
       }catch(error){res.writeHead(503,{'Content-Type':'text/html','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Employers temporarily unavailable</h1>');}
     }
