@@ -9219,12 +9219,40 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     `;
   }
 
+  let userMutationVersion = 0;
+  const deletingUserIds = new Set();
+
+  async function deleteAdminUser(user) {
+    const id = String(user.id);
+    if (deletingUserIds.has(id)) return false;
+    if (!canDeleteUser(user)) throw new Error('The signed-in account and last administrator cannot be deleted.');
+    deletingUserIds.add(id);
+    userMutationVersion++;
+    try {
+      if (user.serverBacked) {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {method: 'DELETE', headers: {Accept: 'application/json'}});
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok && response.status !== 404) throw new Error(result.error || 'Unable to delete user. Please try again.');
+        if (response.ok && result.ok !== true) throw new Error('The server did not confirm deletion. Please refresh and try again.');
+      }
+      users = users.filter(item => String(item.id) !== id);
+      saveUsers();
+      renderUserRows();
+      return true;
+    } finally {
+      deletingUserIds.delete(id);
+      userMutationVersion++;
+    }
+  }
+
   async function syncServerAdminUsers() {
+    if (deletingUserIds.size) return;
+    const version = userMutationVersion;
     try {
       const response = await fetch('/api/admin/users');
       if (!response.ok) return;
       const serverUsers = await response.json();
-      if (!Array.isArray(serverUsers)) return;
+      if (!Array.isArray(serverUsers) || version !== userMutationVersion) return;
       const serverKeys = new Set();
       const merged = serverUsers.map(serverUser => {
         serverKeys.add(String(serverUser.email || '').toLowerCase());
@@ -9232,7 +9260,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
         const cached = users.find(user => String(user.email || '').toLowerCase() === String(serverUser.email || '').toLowerCase() || String(user.username || '').toLowerCase() === String(serverUser.username || '').toLowerCase());
         return { ...cached, ...serverUser, serverBacked: true };
       });
-      merged.push(...users.filter(user => !serverKeys.has(String(user.email || '').toLowerCase()) && !serverKeys.has(String(user.username || '').toLowerCase())));
+      merged.push(...users.filter(user => !user.serverBacked && !serverKeys.has(String(user.email || '').toLowerCase()) && !serverKeys.has(String(user.username || '').toLowerCase())));
       users = merged;
       saveUsers();
       renderUserRows();
@@ -9324,7 +9352,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
   });
 
   // Bulk actions for users
-  document.getElementById('btn-apply-user-bulk')?.addEventListener('click', () => {
+  document.getElementById('btn-apply-user-bulk')?.addEventListener('click', async () => {
     const action = document.getElementById('bulk-action-users-selector')?.value;
     if (action === 'delete') {
       const selectedIds = Array.from(document.querySelectorAll('#admin-user-rows input[type="checkbox"]:checked')).map(b => String(b.value));
@@ -9334,9 +9362,15 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       }
       if (!confirm(`Delete ${selectedIds.length} selected user(s)?`)) return;
       const blocked = users.filter(u => selectedIds.includes(String(u.id)) && !canDeleteUser(u));
-      users = users.filter(u => !selectedIds.includes(String(u.id)) || !canDeleteUser(u));
-      saveUsers();
-      renderUserRows();
+      const selected = users.filter(u => selectedIds.includes(String(u.id)) && canDeleteUser(u));
+      let deleted = 0;
+      const errors = [];
+      for (const user of selected) {
+        try { if (await deleteAdminUser(user)) deleted++; }
+        catch (error) { errors.push(error.message || 'Unable to delete user. Check your connection and try again.'); }
+      }
+      if (errors.length) showAdminNotice(`${deleted} user(s) deleted. ${errors[0]}`, 'error');
+      else if (deleted) showAdminNotice(`${deleted} user(s) deleted successfully.`);
       if (blocked.length) alert('The signed-in account and the last administrator were kept to prevent an account lockout.');
     }
   });
@@ -9434,15 +9468,17 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
         return;
       }
       if (!confirm(`Are you sure you want to delete user “${u.username}”?`)) return;
-      if (u.serverBacked) {
-        const response = await fetch(`/api/admin/users/${encodeURIComponent(id)}`, {method:'DELETE'});
-        const result = await response.json().catch(()=>({}));
-        if (!response.ok) return showAdminNotice(result.error || 'Unable to delete user.', 'error');
+      delBtn.disabled = true;
+      const label = delBtn.textContent;
+      delBtn.textContent = 'Deleting…';
+      try {
+        if (await deleteAdminUser(u)) showAdminNotice(`User “${u.username}” deleted successfully.`);
+      } catch (error) {
+        showAdminNotice(error.message || 'Unable to delete user. Check your connection and try again.', 'error');
+      } finally {
+        delBtn.disabled = false;
+        delBtn.textContent = label;
       }
-      users = users.filter(x => String(x.id) !== id);
-      saveUsers();
-      renderUserRows();
-      showAdminNotice(`User “${u.username}” deleted successfully.`);
     }
   });
 
