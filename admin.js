@@ -8485,7 +8485,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       showAdminNotice(message);
       return;
     }
-    await employerRecovery.flush();
+    await employerRecovery.preparePublish();
     e.preventDefault();
     if (employerStatusState) employerStatusState.textContent = 'Saving…';
     const saveBtn = document.getElementById('save-employer-btn');
@@ -8572,6 +8572,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       if (employerStatusState) employerStatusState.textContent = message;
       showAdminNotice(message, 'error');
     } finally {
+      employerRecovery.resume();
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.textContent = employerSaveSucceeded ? 'Saved ✓' : 'Save';
