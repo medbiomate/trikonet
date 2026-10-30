@@ -1328,8 +1328,8 @@ const server = http.createServer(async (req, res) => {
       try {
         const countParams=new URLSearchParams(params);countParams.set('type','job_listing');countParams.delete('page');countParams.delete('per_page');
         const [response,countResponse]=await Promise.all([
-          fetch(`${seoApiBase}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(3500)}),
-          fetch(`${seoApiBase}/api/wp/count?${countParams}`,{signal:AbortSignal.timeout(3500)})
+          fetch(`${seoApiBase}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)}),
+          fetch(`${seoApiBase}/api/wp/count?${countParams}`,{signal:AbortSignal.timeout(8000)})
         ]);
         if(!countResponse.ok)throw Error('Job count unavailable');
         const {total}=await countResponse.json();
