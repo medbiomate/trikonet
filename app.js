@@ -544,7 +544,7 @@ function updateLiveJobCountUI(){
 }
 
 let baseCountsFetched = false;
-const COUNT_REFRESH_MS = 60000;
+const COUNT_REFRESH_MS = 300000;
 let countsRequest = null;
 let countsRequestedAt = -Infinity;
 function loadCounts(){
@@ -3253,7 +3253,7 @@ if (path.startsWith('/job/') || path.startsWith('/employer/')) {
 }
 if(isCvAppRoute || path.startsWith('/admin') || MEMBER_PATHS.includes(path)) { /* These screens load their own data. */ }
 else if(path==='/')homeContentReady=Promise.allSettled([loadTopEmployers(),loadConnectedContent()]);
-else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadCounts().then(loadLocalJobs),loadDirectoryTaxonomies());
+else if(path==='/jobs'||path==='/job-list'||path==='/job-openings'||path==='/nurse-jobs-in-uae'||path.startsWith('/category/')||path.startsWith('/job-location/'))initialLoads.push(loadLocalJobs(),loadDirectoryTaxonomies());
 else if(path==='/employers')initialLoads.push(loadLocalEmployers(),loadDirectoryTaxonomies());
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
   if (wpRecord && (wpRecord.autosaved || String(wpRecord.slug || '').startsWith('autosave-') || !['publish','published','active',''].includes(String(wpRecord.status || '').toLowerCase()))) wpRecord = null;
@@ -4743,7 +4743,8 @@ function updatePermanentJobLinks() {
   });
 }
 updatePermanentJobLinks();
-new MutationObserver(updatePermanentJobLinks).observe(document.getElementById('app') || document.body, {childList:true,subtree:true});
+let permanentLinksScheduled=false;
+new MutationObserver(()=>{if(permanentLinksScheduled)return;permanentLinksScheduled=true;requestAnimationFrame(()=>{permanentLinksScheduled=false;updatePermanentJobLinks()})}).observe(document.getElementById('app') || document.body, {childList:true,subtree:true});
 
 // Website recovery shares the same backend and account records as the mobile app.
 document.querySelectorAll('[data-password-reset]').forEach(link => link.addEventListener('click', event => {
@@ -4785,7 +4786,7 @@ function clearRevokedCandidateCache(){
   location.replace('/login');
 }
 async function refreshAccountIdentity(){if(!currentUser||document.visibilityState!=='visible')return;try{const response=await fetch('/api/auth/me', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(response.status===401){clearRevokedCandidateCache();return;}if(!response.ok)return;const {user}=await response.json();if(!user)return;const changed=currentUser.name!==user.name||currentUser.email!==user.email;Object.assign(currentUser,user);if(changed){const response=await fetch('/api/candidate/profile', {signal:AbortSignal.timeout(path === '/' ? 1500 : 3000)});if(response.ok)currentUser.profile=(await response.json()).profile;document.querySelectorAll('.nav-account-summary strong,.mobile-account-summary strong').forEach(el=>el.textContent=user.name);document.querySelectorAll('.nav-profile-initial').forEach(el=>el.textContent=user.name?.charAt(0)||'U');document.querySelectorAll('.candidate-profile-hero h1').forEach(el=>{if(el.firstChild?.nodeType===3)el.firstChild.textContent=user.name+' '});}}catch{}}
-window.addEventListener('focus',refreshAccountIdentity);setInterval(refreshAccountIdentity,15000);
+window.addEventListener('focus',refreshAccountIdentity);setInterval(refreshAccountIdentity,120000);
 // The email belongs to the same account; updating it requires verification.
 document.addEventListener('click',async event=>{
  const trigger=event.target.closest('[data-change-account-email]');if(!trigger)return;
