@@ -3233,7 +3233,9 @@ function render() {
 if (!MEMBER_PATHS.includes(path)) loadCounts().catch(()=>{});
 const isCvAppRoute = /^\/(?:resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder|services\/resume-maker)\/?$/.test(path);
 let homeContentReady;
-const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : [loadAccount(),loadSeoPages()];
+const accountReady=loadAccount();
+const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : path==='/'?[]:[accountReady,loadSeoPages()];
+if(path==='/')void accountReady.catch(()=>{});
 if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile'].includes(path)) {
   initialLoads.push(import('./website-profile.js?v=20261018-focused-profile-31').then(({ createCandidateProfile }) => {
     ({ candidateProfileWorkspace, initCandidateProfile } = createCandidateProfile({
