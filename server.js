@@ -1343,8 +1343,8 @@ const server = http.createServer(async (req, res) => {
         fileBody=injectInitialJobs(fileBody.toString(),jobs,{path,category,query:params.get('q')||'',total,page:Number(params.get('page'))||1,search:requestUrl.search});
       }catch(error){
         console.warn('Initial job list unavailable:',error.message);
-        res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Retry-After':'120','Cache-Control':'no-store'});
-        return res.end('<h1>Jobs temporarily unavailable</h1><p>Please try again shortly.</p>');
+        // Keep the usable app shell: client loading/error controls can retry.
+        res.setHeader('Cache-Control','no-store');
       }
     }
     if(target===join(root,'index.html') && path==='/employers'){
