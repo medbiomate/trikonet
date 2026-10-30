@@ -307,7 +307,7 @@ const locationPathMatch=path.match(/^\/job-location\/([^/]+)$/);
 if(locationPathMatch&&!queryParams.get('location')){
   queryParams.set('location',decodeURIComponent(locationPathMatch[1]).replace(/-/g,' ').replace(/\b\w/g,char=>char.toUpperCase()));
 }
-const pageSize=30;
+const pageSize=path==='/employers'?10:30;
 const jobsPageSize=10;
 const escapeAttr=value=>String(value||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const icons={search:'⌕',pin:'⌖',bag:'▣'};
@@ -500,11 +500,15 @@ async function loadLocalJobs(){
   }catch(error){data.jobs=[];data.jobsLoadError=true;console.warn('Job listing unavailable:',error.message);}
 }
 async function loadLocalEmployers(){
+  data.employersLoadError=false;
+  const embedded=document.getElementById('initial-employer-list');
+  if(embedded){try{const payload=JSON.parse(embedded.textContent);data.employers=payload.employers;data.employerResultTotal=payload.total;return}catch{}}
   try{
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
     for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
-    const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers').catch(()=>null),fetch('/api/local/jobs?summary=1').catch(()=>null)]);
-    const wp=wpResponse.ok?await wpResponse.json():[];
+    const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers').catch(()=>null),Promise.resolve(null)]);
+    if(!wpResponse.ok)throw Error('Employers unavailable');
+    const wp=await wpResponse.json();
     const local=localResponse?.ok?await localResponse.json():[];
     const localJobs=localJobsResponse?.ok?await localJobsResponse.json():[];
     const normalizedKey=value=>String(value||'').trim().toLowerCase();
@@ -514,7 +518,7 @@ async function loadLocalEmployers(){
       keys.forEach(key=>counts.set(key,(counts.get(key)||0)+1));
       return counts;
     },new Map());
-    const mapWp=record=>{const m=record.metas||{};return {title:record.title?.rendered||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}};
+    const mapWp=record=>{const m=record.metas||{};return {title:record.title?.rendered||record.title||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}};
     const mapLocal=record=>({title:record.title||'',slug:record.slug||'',description:record.description||'',logo:record.logo||'',categories:Array.isArray(record.categories)?record.categories:[],locations:Array.isArray(record.locations)?record.locations:[],email:record.email||'',phone:record.phone||'',website:record.website||'',openJobs:Math.max(Number(record.openJobs)||0,localJobCounts.get(normalizedKey(record.slug))||0,localJobCounts.get(normalizedKey(record.title))||0),status:record.status||'publish',local:true,source:'local'});
     const q=String(queryParams.get('q')||'').trim().toLowerCase();
     const location=String(queryParams.get('location')||'').trim().toLowerCase();
@@ -529,7 +533,7 @@ async function loadLocalEmployers(){
     const merged=[...(currentPage===1?localMatched:[]),...wpMapped];
     data.employers=[...new Map(merged.map(item=>[item.slug||item.title.toLowerCase(),item])).values()].slice(0,pageSize);
     data.employerResultTotal=q||location||category||minJobs?data.employers.length:Math.max(Number(data.counts?.employer||0)+localMatched.length,data.employers.length);
-  }catch{data.employers=[]}
+  }catch{data.employers=[];data.employersLoadError=true}
 }
 async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20', {signal:AbortSignal.timeout(10000)});if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
 function updateLiveJobCountUI(){

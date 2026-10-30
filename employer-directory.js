@@ -1,7 +1,7 @@
 import {formatCompanyName} from './company-name.js';
 const escapeAttr=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const decodeHtml=value=>String(value??'').replace(/&amp;/g,'&').replace(/&#039;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize=12,pager=()=>''}) {
+export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize=10,pager=()=>''}) {
   const employersList = (data.employers || []);
   const total = data.employerResultTotal ?? data.counts.employer ?? employersList.length;
   const start = total ? (currentPage - 1) * pageSize + 1 : 0;
@@ -248,7 +248,7 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
         <section class="emp-listing-pane" aria-label="Company Listings">
           <div class="emp-listing-top">
             <div class="emp-results-count">
-              ${total > 0 ? `Showing <strong class="emp-count-highlight">${start} – ${end}</strong> of <strong class="emp-count-highlight">${total.toLocaleString()}</strong> companies` : 'No companies found matching your filters'}
+              ${total > 0 ? `Showing <strong class="emp-count-highlight">${start} – ${end}</strong> of <strong class="emp-count-highlight">${total.toLocaleString()}</strong> companies` : (data.employersLoadError?'Companies could not be loaded. Please retry.':'No companies found matching your filters')}
             </div>
             <div class="emp-listing-sorts">
               <select onchange="window.location.href=this.value" aria-label="Sort Companies">
@@ -291,7 +291,7 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
               </a>`;
             }).join('') : `
               <div class="emp-empty-card">
-                <h3>No companies found</h3>
+                <h3>${data.employersLoadError?'Companies are temporarily unavailable':'No companies found'}</h3>
                 <p>Try adjusting your search keywords, location or company type filters.</p>
                 <div style="margin-top: 16px;">
                   <a href="/employers" class="primary" style="display:inline-block; padding:8px 20px; border-radius:10px; background:#b00008; color:#fff; text-decoration:none; font-weight:600; font-size:13.5px;">View All Companies</a>

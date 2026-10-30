@@ -1349,13 +1349,11 @@ const server = http.createServer(async (req, res) => {
     }
     if(target===join(root,'index.html') && path==='/employers'){
       try{
-        const params=new URLSearchParams(requestUrl.searchParams);params.set('per_page','12');
-        const response=await fetch(`${seoApiBase}/api/wp/employer?${params}`,{signal:AbortSignal.timeout(10000)});
-        if(!response.ok)throw Error('Employers unavailable');
-        const employers=await response.json();
+        const params=new URLSearchParams(requestUrl.searchParams);params.set('per_page','10');
+        const [employers,countData]=await Promise.all([readPublicListing(`${seoApiBase}/api/wp/employer?${params}`),readPublicListing(`${seoApiBase}/api/wp/count?${new URLSearchParams([...params].filter(([key])=>!['page','per_page'].includes(key)).concat([['type','employer']]))}`)]);
         if(!Array.isArray(employers))throw Error('Invalid employer response');
         if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>404</h1>');}
-        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams);
+        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams,countData.total);
       }catch(error){res.writeHead(503,{'Content-Type':'text/html','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Employers temporarily unavailable</h1>');}
     }
     if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
