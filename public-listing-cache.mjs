@@ -1,5 +1,5 @@
 /** Share bounded public listing reads; never cache private/account responses. */
-export function createPublicListingCache(fetcher,{now=Date.now,ttl=30000,stale=300000,max=200}={}){
+export function createPublicListingCache(fetcher,{now=Date.now,ttl=30000,stale=300000,max=40}={}){
  const entries=new Map();
  return async function read(url){
   const existing=entries.get(url),time=now();
