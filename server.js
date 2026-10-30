@@ -1,3 +1,4 @@
+import {legalPageForPath,renderLegalDocument} from './legal-pages.js';
 import {createJobLogoResolver} from './job-employer-logo.js';
 const resolveJobLogos = createJobLogoResolver(fetch, process.env.TRIKONET_API_BASE || 'https://api.trikonet.com');
 import { injectInitialEmployers } from './employer-list-ssr.js';
@@ -1267,6 +1268,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(301, { Location: '/sitemap.xml', 'Cache-Control': 'no-store' });
     return res.end();
   }
+  const legalPage=legalPageForPath(path);
+  if(legalPage){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(renderLegalDocument(legalPage));}
   let target = normalize(join(root, path === '/' ? 'index.html' : path.slice(1)));
   if (!target.startsWith(root)) {
     res.writeHead(403);
@@ -1325,13 +1328,15 @@ const server = http.createServer(async (req, res) => {
       try {
         const countParams=new URLSearchParams(params);countParams.set('type','job_listing');countParams.delete('page');countParams.delete('per_page');
         const [response,countResponse]=await Promise.all([
-          fetch(`${seoApiBase}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)}),
-          fetch(`${seoApiBase}/api/wp/count?${countParams}`,{signal:AbortSignal.timeout(8000)})
+          fetch(`${seoApiBase}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(3500)}),
+          fetch(`${seoApiBase}/api/wp/count?${countParams}`,{signal:AbortSignal.timeout(3500)})
         ]);
         if(!countResponse.ok)throw Error('Job count unavailable');
         const {total}=await countResponse.json();
         if(!response.ok)throw Error('Job listings unavailable');
-        const jobs=await resolveJobLogos(await response.json());
+        const rawJobs=await response.json();
+        // Optional logo lookups must not hold the HTML response for several seconds.
+        const jobs=await Promise.race([resolveJobLogos(rawJobs),new Promise(resolve=>setTimeout(()=>resolve(rawJobs),300))]);
         if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
           res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
           return res.end('<h1>404</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
