@@ -57,6 +57,239 @@ export const legalPages = {
   }
 };
 
+// Detailed website/mobile policies, aligned with current feature flows.
+Object.assign(legalPages['/terms'], {updated:'30 October 2026',sections:[
+  {
+    "title": "1. Operator, scope and agreement",
+    "paragraphs": [
+      "Trikonet is operated by Second Tales Solutions LLP. These terms cover the website and mobile applications, including job discovery, candidate profiles, applications, resumes, AI tools, employer information, reviews, advertising, reward points and support. Contact info@trikonet.com.",
+      "Where we request agreement, read the terms before accepting. General agreement does not substitute for a separate permission required for AI processing, device access or tracking. Features can differ by platform and release."
+    ]
+  },
+  {
+    "title": "2. Guest access and accounts",
+    "paragraphs": [
+      "In the mobile app, choose Browse jobs without signing in to search public openings and read job information. Personal features such as saved jobs, candidate activity and career tools require an account. Guest browsing does not create a candidate account.",
+      "Use accurate account information and an email you control. Keep credentials private, do not impersonate others, and report unauthorized access. Use the available profile controls to correct your information."
+    ]
+  },
+  {
+    "title": "3. Google and Apple sign-in",
+    "paragraphs": [
+      "Trikonet supports email/password, Google sign-in and Sign in with Apple on iOS. Apple may supply a private relay email if you choose Hide My Email. Return with the same provider account to access the same profile.",
+      "Accounts with the same verified email may be linked to an existing candidate profile. A private relay address is different from a personal email. Do not assume different provider emails identify the same account. Provider services have their own terms."
+    ]
+  },
+  {
+    "title": "4. Password changes and verification",
+    "paragraphs": [
+      "Account Center provides an email-verified password change. Codes expire in 10 minutes and are subject to attempt and request limits. Choose a password of 8–256 characters. A successful password reset invalidates existing sessions.",
+      "Three incorrect password-login attempts within the attempt window lock password login for that email for 24 hours. A successful verified password reset clears the lock. Apple and Google sign-in are separate methods. Never give support a password, code or reset challenge."
+    ]
+  },
+  {
+    "title": "5. Career profiles and recommendations",
+    "paragraphs": [
+      "You are responsible for accurate experience, skills, qualifications and other profile information. Initial career setup can be skipped in the mobile app and completed later. Profile strength indicates completeness, not employer approval.",
+      "Job match percentages, recommendations and visit-streak statistics are guidance based on available information and activity. They are not probabilities of hiring, recruiter views, certifications or promises of a vacancy or interview."
+    ]
+  },
+  {
+    "title": "6. Jobs and external applications",
+    "paragraphs": [
+      "Read the employer’s requirements and application instructions. Saving a listing does not submit an application. Opening an employer link or email does not confirm that the employer received an application.",
+      "Employers manage selection and replies. Listings may change, expire or contain errors. Trikonet does not guarantee jobs, interviews, salaries, responses or employment outcomes. Use Report this job for inaccurate, suspicious or inappropriate listings. Do not pay unverified recruiters or share security credentials."
+    ]
+  },
+  {
+    "title": "7. Resumes, exports and practice tools",
+    "paragraphs": [
+      "Upload only documents and images you own or are authorized to use. Review every generated resume, template, application message and export before sharing. Check contact details and remove placeholders.",
+      "Resume downloads and analysis may use points as displayed. The ATS upload tool accepts PDF or DOCX up to 5 MB. Export formats depend on the selected tool. Interview questions and sample answers are practice materials, not leaked or guaranteed employer questions."
+    ]
+  },
+  {
+    "title": "8. Optional third-party AI processing",
+    "paragraphs": [
+      "Trikonet uses Google Gemini for optional resume analysis and enhanced job matching. Analysis shares the selected resume content, including personal information it contains, for an estimated score and feedback. Enhanced matching shares career details such as role, skills, qualifications and experience, plus job information.",
+      "Before first use of each feature, explicit permission is requested. Resume analysis uses an unchecked on-page consent box; enhanced matching requests permission before transmission. Permission is remembered for the account and feature on that device. Opening a feature or accepting general terms does not grant this permission.",
+      "Withdraw remembered permission in Account → Account Center → AI preferences. This stops future requests but cannot recall data already processed. A different provider, purpose or material data-sharing change requires updated permission. Google’s practices are described in <a href=\"https://policies.google.com/privacy\">Google Privacy Policy</a>. AI output may be wrong or incomplete and is not professional advice, an employer ATS result or a hiring guarantee."
+    ]
+  },
+  {
+    "title": "9. Points, costs and referrals",
+    "paragraphs": [
+      "Review the amount shown before using a points-based feature. Points are service credits, not cash, wages, investments or a promise of redemption. This release does not provide a points-purchase checkout.",
+      "Rewarded ads and referrals depend on eligibility and successful verification. Completing an unavailable, interrupted or unverified ad does not guarantee credit. Do not create fake accounts, manipulate referrals or automate ads. For a missing reward or disputed deduction, send the feature, amount and approximate time to support. Adjustments require investigation; they are not automatically guaranteed."
+    ]
+  },
+  {
+    "title": "10. Advertising and ad concerns",
+    "paragraphs": [
+      "Ads can be supplied by Google AdMob. Availability varies; an empty placement or an unavailable rewarded ad does not guarantee an app fault. Do not repeatedly tap ads or interact with advertisements to create artificial traffic.",
+      "Use Ad privacy for available advertising choices. Tracking permission is optional and is distinct from choosing to watch a rewarded ad. Denying tracking must not require you to agree to tracking to use the app. Use Report an ad beside supported placements or in Account to describe inappropriate content. For full-screen ads, use the visible provider close or report control and return to Account to report a concern."
+    ]
+  },
+  {
+    "title": "11. Community guidelines and company reviews",
+    "paragraphs": [
+      "Only submit genuine, relevant experiences you are entitled to share. Do not publish harassment, threats, hateful or sexual content, spam, impersonation, unlawful allegations, confidential employer information, another person’s contact information or intellectual property violations. Avoid personal identifiers that are unnecessary to explain the experience.",
+      "Reviews and edits are held for human moderation before publication. Pending or rejected reviews may remain visible to their author. A public first name and rating accompany approved reviews. Legacy reviews without an approval decision are not treated as approved.",
+      "Use Report review to explain a concern. Block reviewer hides that member’s published reviews from your signed-in account; it does not remove them for everyone. Moderators can approve or reject reviews and suspend or restore review posting. Moderators should assess concerns promptly. Contact info@trikonet.com to request an explanation or appeal; publication is not guaranteed."
+    ]
+  },
+  {
+    "title": "12. Content ownership and employer permissions",
+    "paragraphs": [
+      "You retain rights in your submissions and permit Trikonet and necessary technical providers to host, format and display them for the requested services. This does not transfer ownership. Submit only content you have sufficient rights to provide.",
+      "Employer logos, vacancy text, templates and other third-party materials remain subject to their owners’ rights. Employer submissions are additionally covered by <a href=\"/employer-terms\">Employer Terms</a>. These terms do not retroactively establish rights to previously imported material. Send rights concerns with identification of the material and your authority to act."
+    ]
+  },
+  {
+    "title": "13. Privacy, permissions and email alerts",
+    "paragraphs": [
+      "Read the <a href=\"/privacy-policy\">Privacy Policy</a> for data categories, providers and choices. Camera or file selection is used for the action you request. You can decline optional permissions, manage device settings and withdraw remembered AI permission.",
+      "Manage email job alerts in Account Center or unsubscribe from alert emails. Essential security or account correspondence is separate from job alerts. Appearance offers System, Light or Dark and remembers the device preference."
+    ]
+  },
+  {
+    "title": "14. Deleting or restoring an account",
+    "paragraphs": [
+      "Open Account → Account Center → Delete account. Read the consequences, tick the confirmation and submit the deletion request. Your account is suspended and scheduled for permanent deletion after a 30-day recovery period.",
+      "To cancel deletion, sign in with the same account before the displayed deadline and explicitly choose Restore my account. Signing in alone does not cancel deletion. After permanent deletion, recovery is unavailable. Uninstalling or signing out does not delete the account. Copies already submitted to employers or saved outside Trikonet are not recalled."
+    ]
+  },
+  {
+    "title": "15. Support and reports",
+    "paragraphs": [
+      "Help provides category-based answers and search. Choose Still need help after an answer to open the contact form with the category and question included. Use an email you can receive replies at.",
+      "Describe the feature, device, approximate time and troubleshooting attempted. Do not send passwords, verification codes, financial credentials or identity documents. Successful submission provides a reference; an error does not confirm receipt. The form currently accepts text, not attachments. Support response times and outcomes are not guaranteed."
+    ]
+  },
+  {
+    "title": "16. Availability, changes and responsible use",
+    "paragraphs": [
+      "Online jobs, sign-in, rewards, analysis and submissions require connected services. Cached content may be outdated. Maintain your own copies of important exported documents. Updates can change features or costs, with applicable disclosures before use.",
+      "Do not interfere with security, scrape or republish data without permission, manipulate reviews or rewards, or use Trikonet for unlawful discrimination, fraud or harassment. Access may be restricted to protect users and service integrity. Contact support to appeal an incorrect restriction."
+    ]
+  },
+  {
+    "title": "17. Consumer rights and disputes",
+    "paragraphs": [
+      "Nothing in these terms excludes rights or remedies that cannot lawfully be excluded. Service limitations and external-service responsibilities apply only to the extent permitted by applicable law.",
+      "Contact info@trikonet.com with a clear description and relevant dates to seek resolution. These terms do not waive applicable privacy, consumer or employment protections."
+    ]
+  },
+  {
+    "title": "18. Updates and contact",
+    "paragraphs": [
+      "Updated 30 October 2026. Material changes to AI sharing require renewed permission where applicable. The published version describes current implementations; it is not an Apple approval, a guarantee against rejection or a certification of third-party content rights.",
+      "Operator: Second Tales Solutions LLP. Support and privacy contact: <a href=\"mailto:info@trikonet.com\">info@trikonet.com</a>."
+    ]
+  }
+]});
+Object.assign(legalPages['/privacy-policy'], {updated:'30 October 2026',sections:[
+  {
+    "title": "Operator and scope",
+    "paragraphs": [
+      "Second Tales Solutions LLP operates Trikonet’s website and mobile applications. Contact <a href=\"mailto:info@trikonet.com\">info@trikonet.com</a> for privacy questions. Features differ across platforms and releases."
+    ]
+  },
+  {
+    "title": "Information you provide",
+    "paragraphs": [
+      "Account name, email and password credentials; optional career profile details; selected photos and resume documents; saved content, application activity and preferences; review text and ratings; support messages and submitted reports may be processed for the features you use. Passwords are stored using derived hashes rather than as readable account passwords.",
+      "Guest job browsing does not require a candidate profile. Network requests and public-site browsing can still generate ordinary service or provider logs. Do not submit another person’s private data without appropriate authority."
+    ]
+  },
+  {
+    "title": "Sign-in providers",
+    "paragraphs": [
+      "Google and Apple supply sign-in information, including provider identity and verified email where available. Apple can provide a private relay email instead of your personal address. The native Apple flow requests name and email.",
+      "Apple authorization information is verified by the backend; refresh credentials needed for revocation are encrypted server-side. Same verified email can link supported sign-in methods to an existing candidate account. Different email addresses are not automatically treated as the same identity."
+    ]
+  },
+  {
+    "title": "Purposes and technical providers",
+    "paragraphs": [
+      "Account information supports authentication, career tools, saved content and account recovery. Job and profile information supports discovery and recommendations. Reward events support points validation and fraud prevention. Reports support moderation and safety.",
+      "Hosting and email delivery providers process the relevant request data. The in-app support form sends the account identifier, chosen reply email, topic, question context and message to Trikonet support through the configured email provider, Resend. We do not use the reply email to send arbitrary third-party messages."
+    ]
+  },
+  {
+    "title": "Optional AI: Google Gemini",
+    "paragraphs": [
+      "Resume analysis sends selected resume content, including personal information it contains, through Trikonet to Google Gemini for scoring and feedback. Enhanced matching can send career profile details and job information.",
+      "Explicit feature-specific permission is required before the request. A tick and affirmative use of the analysis action grants permission; opening a feature or accepting general terms does not. Permission is remembered for the account and purpose on that device. Manage or withdraw it in Account Center → AI preferences. Clearing local storage or using a different device may require consent again.",
+      "Withdrawal stops future requests but cannot recall previously submitted data. Provider processing follows <a href=\"https://policies.google.com/privacy\">Google Privacy Policy</a>. We do not promise provider retention, model-training exclusions or international-transfer arrangements beyond verified provider terms. Remove unnecessary personal details before submitting a resume."
+    ]
+  },
+  {
+    "title": "Advertising, tracking and rewards",
+    "paragraphs": [
+      "The website may use advertising services; iOS and Android mobile advertising integrations can use Google AdMob. Depending on platform, permission and configuration, ad providers can process IP address, device or advertising identifiers, ad interactions and diagnostics for delivery, measurement, reward verification and fraud prevention.",
+      "App Tracking Transparency permission is requested where applicable. Denying tracking does not itself deny core app access. Watching a rewarded ad does not itself grant tracking permission. Available Ad privacy controls manage provider choices; device settings manage system permissions. <a href=\"https://policies.google.com/technologies/ads\">Google advertising information</a> explains provider practices.",
+      "Use Report an ad to send a text description and placement to the moderation queue. Do not include unrelated private information. Ad availability and verified rewards are not guaranteed."
+    ]
+  },
+  {
+    "title": "Public reviews, blocking and moderation",
+    "paragraphs": [
+      "Approved company reviews display a first name, rating, text and dates. Reviews and edits are held for moderation; pending or rejected text can be visible to its author. Do not include sensitive or confidential information.",
+      "Reporting stores the reporting account, review reference, reason and time. Blocking stores the account-to-reviewer preference so that reviewer’s content can be hidden from your account. Authorized moderators can inspect reports and pending reviews and restrict abusive review posting."
+    ]
+  },
+  {
+    "title": "Jobs, employers and external recipients",
+    "paragraphs": [
+      "Applications, emails or documents you intentionally send to employers are received under those recipients’ own policies. Trikonet cannot recall or delete their independent copies. Opening an external link can disclose ordinary network information to that destination.",
+      "Public employer contact information and imported listings must be used lawfully with appropriate rights. Terms do not independently establish permission to collect or republish third-party personal information. Contact us about a listing or rights concern."
+    ]
+  },
+  {
+    "title": "Files, camera and device preferences",
+    "paragraphs": [
+      "Files and photos you select support resume or profile actions. Use the system picker where available. Permissions can be declined or changed in device settings; the specific action may then be unavailable.",
+      "Local storage or app caches can hold sessions, profiles, resume drafts, public catalogue data, points snapshots, appearance and AI preferences. Clearing storage can remove local drafts and remembered choices. Downloaded files remain in your chosen device or external storage until you remove them."
+    ]
+  },
+  {
+    "title": "Email preferences and account security",
+    "paragraphs": [
+      "Job alerts are managed in Account Center and by the unsubscribe link in alert emails. Security codes, account changes and support responses are separate account correspondence.",
+      "Password and email changes require verification. Reset codes expire and are rate-limited. Password-login failures are recorded under a hashed email key to enforce the three-attempt, 24-hour lock; a successful verified reset clears that lock. Security controls do not guarantee immunity from unauthorized access."
+    ]
+  },
+  {
+    "title": "Retention and deletion",
+    "paragraphs": [
+      "Account data is retained to provide the service and address support, abuse, security and applicable legal obligations. In-app deletion suspends the account and schedules permanent removal after 30 days, with explicit restoration available before the deadline.",
+      "Removal covers account-owned profile and resume data, saved jobs, application history, reviews, review reports/block preferences and associated reward records handled by the account-deletion service. Copies held by employers or exported to your device are outside that deletion operation.",
+      "Service logs, backups, support email and legally required records can have different retention periods. A universal 90-day backup-erasure guarantee has not been established. Contact us for the actual retention applicable to your records and any lawful reason for retaining them. Do not assume signing out or uninstalling deletes server records."
+    ]
+  },
+  {
+    "title": "Access, correction and withdrawal",
+    "paragraphs": [
+      "Edit available profile fields in Account. Withdraw AI permission through AI preferences, change optional device permissions in Settings and manage job alerts in Account Center. Request account deletion within the app.",
+      "For a data-access copy, correction not available in the app, privacy complaint or other deletion request, email info@trikonet.com. We may verify account ownership without asking you to disclose passwords or sign-in codes."
+    ]
+  },
+  {
+    "title": "International processing and children",
+    "paragraphs": [
+      "Providers may process data where their infrastructure operates. Relevant provider notices describe their practices. We do not claim a particular residency guarantee without a documented arrangement.",
+      "Trikonet is a career service, not a Kids Category product. Applicable age, consent and employment rules differ by location. If a child has submitted personal data without appropriate authorization, contact support so the situation can be investigated."
+    ]
+  },
+  {
+    "title": "Policy updates",
+    "paragraphs": [
+      "Updated 30 October 2026. We update notices when relevant features or processing changes. A materially different AI recipient or purpose requires updated disclosure and permission where applicable. Questions: <a href=\"mailto:info@trikonet.com\">info@trikonet.com</a>."
+    ]
+  }
+]});
+
 export function legalPageForPath(path) {
   const normalized = path.replace(/\/+$/, '') || '/';
   const canonical = normalized === '/terms-and-conditions' ? '/terms' : normalized === '/privacy' ? '/privacy-policy' : normalized;

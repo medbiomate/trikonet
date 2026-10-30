@@ -4519,7 +4519,7 @@ window.renderEmployerUserReviews = function(slug) {
                 <span class="emp-reviewer-badge" style="background:#16a34a; color:#ffffff;">★ ${Number(r.ratingScore || 5).toFixed(1)}</span>
                 <div>
                   <strong>${escHtml(formatJobTitle(r.jobTitle || 'Employee'))}</strong>
-                  <span class="emp-review-meta">${escHtml(r.employmentStatus || 'Employee')}${r.location ? ' • ' + escHtml(r.location) : ''} • Verified Community Submission</span>
+                  <span class="emp-review-meta">${escHtml(r.employmentStatus || 'Employee')}${r.location ? ' • ' + escHtml(r.location) : ''} • Local draft · not published</span>
                 </div>
               </div>
               <span class="emp-review-date" style="color:#16a34a; font-weight:600;">Recent</span>
