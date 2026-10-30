@@ -1,3 +1,5 @@
+import {createPublicListingCache} from './public-listing-cache.mjs';
+const readPublicListing=createPublicListingCache(fetch);
 import {legalPageForPath,renderLegalDocument} from './legal-pages.js';
 import {createJobLogoResolver} from './job-employer-logo.js';
 const resolveJobLogos = createJobLogoResolver(fetch, process.env.TRIKONET_API_BASE || 'https://api.trikonet.com');
@@ -186,6 +188,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(308, { Location: `https://www.trikonet.com${requestUrl.pathname}${requestUrl.search}` });
     return res.end();
   }
+  const legalPage=legalPageForPath(path);
+  if(legalPage){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(renderLegalDocument(legalPage));}
   // Only our public raster media can be read for logo whitespace fitting.
   // Keep this same-origin; the CDN intentionally has no canvas CORS headers.
   if (path === '/logo-source' && req.method === 'GET') {
@@ -1242,7 +1246,7 @@ const server = http.createServer(async (req, res) => {
     } catch {res.writeHead(503);return res.end('Sitemap temporarily unavailable');}
   }
   const isResumeAppRoute = /^\/(resume-library|resume-maker|resume-builder|ats-resume-builder|cv-builder)\/?$/.test(path);
-  if (!isResumeAppRoute && /^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|job-categories|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
+  if (!isPublicAppRoute(path) && !isResumeAppRoute && /^\/[^/.]+\/?$/.test(path) && !/^\/(admin|admin-login|login|signin|register|signup|logout|profile|jobs|job-categories|employers|blog|about|contact|faq|services|resume|cv|saved-jobs|applied-jobs|followed-companies|email-campaigns|submit-job|nurse-jobs-in-uae)\/?$/.test(path)) {
     try {
       const slug=path.replace(/^\/|\/$/g,'');
       const pageNumber=Math.max(1,Math.floor(Number(requestUrl.searchParams.get('page'))||1));
@@ -1268,8 +1272,6 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(301, { Location: '/sitemap.xml', 'Cache-Control': 'no-store' });
     return res.end();
   }
-  const legalPage=legalPageForPath(path);
-  if(legalPage){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'public, max-age=300'});return res.end(renderLegalDocument(legalPage));}
   let target = normalize(join(root, path === '/' ? 'index.html' : path.slice(1)));
   if (!target.startsWith(root)) {
     res.writeHead(403);
@@ -1327,14 +1329,11 @@ const server = http.createServer(async (req, res) => {
       if(path.startsWith('/job-location/'))params.set('location',path.slice('/job-location/'.length).replace(/-/g,' '));
       try {
         const countParams=new URLSearchParams(params);countParams.set('type','job_listing');countParams.delete('page');countParams.delete('per_page');
-        const [response,countResponse]=await Promise.all([
-          fetch(`${seoApiBase}/api/public/jobs?${params}`,{signal:AbortSignal.timeout(8000)}),
-          fetch(`${seoApiBase}/api/wp/count?${countParams}`,{signal:AbortSignal.timeout(8000)})
+        const [rawJobs,countData]=await Promise.all([
+          readPublicListing(`${seoApiBase}/api/public/jobs?${params}`),
+          readPublicListing(`${seoApiBase}/api/wp/count?${countParams}`).catch(()=>({total:null}))
         ]);
-        if(!countResponse.ok)throw Error('Job count unavailable');
-        const {total}=await countResponse.json();
-        if(!response.ok)throw Error('Job listings unavailable');
-        const rawJobs=await response.json();
+        const {total}=countData;
         // Optional logo lookups must not hold the HTML response for several seconds.
         const jobs=await Promise.race([resolveJobLogos(rawJobs),new Promise(resolve=>setTimeout(()=>resolve(rawJobs),300))]);
         if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
