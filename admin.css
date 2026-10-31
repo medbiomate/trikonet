@@ -8462,3 +8462,13 @@ mark.wp-highlight {
 #view-job-editor .modern-editor-header-right { position:relative; z-index:1; }
 #view-job-editor #publish-job-btn, #view-job-editor #save-draft-btn { position:relative; z-index:2; cursor:pointer!important; user-select:none; -webkit-user-select:none; pointer-events:auto!important; }
 #view-job-editor #publish-job-btn[aria-busy="true"], #view-job-editor #save-draft-btn[aria-busy="true"] { cursor:progress!important; }
+
+/* Job editor count, grouped with the primary creation action. */
+.job-launch-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px!important;padding:8px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 3px 10px #0f172a05}
+.job-launch-count-label{display:flex;align-items:center;gap:12px;padding-left:10px;font-size:13px;font-weight:600;color:#475569;white-space:nowrap}
+.job-launch-count{box-sizing:border-box;width:68px;height:44px;padding:8px 10px;border:1px solid #dbe3ee;border-radius:9px;background:#f8fafc;color:#172033;font:inherit;font-size:16px;text-align:center}
+.job-launch-count:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.job-launch-actions #new-job-top{min-height:44px;border-radius:10px;white-space:nowrap}
+.job-launch-help{text-align:right;color:#64748b;font-size:12px;margin:8px 0 16px}
+#job-launch-status:empty,#job-launch-links:empty{display:none}
+@media(max-width:640px){.job-launch-actions{width:100%;justify-content:space-between}.job-launch-help{text-align:left}.job-launch-actions #new-job-top{padding:12px 14px}.job-launch-count-label{gap:8px;padding-left:4px}}

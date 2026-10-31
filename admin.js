@@ -1,3 +1,4 @@
+import {initJobEditorLauncher} from './job-editor-launcher.js';
 import {jobEditorRecord} from './job-editor-record.js';
 import {newJobDates, oneYearFromToday} from './job-date-defaults.js';
 import { jobWorkCredit } from './job-work-credit.js';
@@ -375,7 +376,10 @@ export function renderAdmin() {
               <p class="modern-page-subtitle">Track, filter, and manage all published job listings across the portal.</p>
             </div>
           </div>
-          <div class="modern-heading-actions">
+          <div class="modern-heading-actions job-launch-actions">
+            <label for="job-launch-count" class="job-launch-count-label">Number of jobs
+              <input id="job-launch-count" type="number" min="1" max="10" step="1" value="1" required aria-describedby="job-launch-help" class="job-launch-count">
+            </label>
             <a href="#job-new" class="modern-btn-primary-header" id="new-job-top">
               <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               <span>Add New Job</span>
@@ -384,6 +388,8 @@ export function renderAdmin() {
           </div>
         </div>
 
+        <p id="job-launch-help" class="job-launch-help">Choose 1–10 jobs. Each opens in a separate editor with a unique URL.</p>
+        <p id="job-launch-status" role="status"></p><div id="job-launch-links"></div>
         <p id="admin-job-date-scope" role="status">Today’s jobs · All statuses · India time</p><p id="admin-job-load-notice" role="status" hidden></p>
         <div class="modern-card modern-table-card">
           <!-- 1. Integrated Status Tabs Navigation -->
@@ -7186,6 +7192,8 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     currentPage = 1;
     renderJobRows();
   });
+
+  initJobEditorLauncher();
 
   // Search & Filters
   function searchAllJobDates() {
