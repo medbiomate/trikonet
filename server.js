@@ -1,4 +1,4 @@
-import {adminDomainRedirect} from './admin-domain.mjs';
+import {adminDomainRedirect,isPublicAdminLogin} from './admin-domain.mjs';
 import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
 const readPublicListing=createPublicListingCache(fetch);
@@ -174,6 +174,10 @@ const server = http.createServer(async (req, res) => {
   let path;
   try { path = decodeURIComponent(requestUrl.pathname); }
   catch { res.writeHead(400, {'Content-Type':'text/plain'}); return res.end('Invalid URL'); }
+  if(isPublicAdminLogin(path)){
+    res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow'});
+    return res.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>404 — Page not found</title><main><h1>404 — Page not found</h1><p>The requested page could not be found.</p><a href="/">Return to homepage</a></main></html>');
+  }
   const adminDestination=adminDomainRedirect(path,requestUrl.search);
   if(adminDestination){res.writeHead(302,{Location:adminDestination,'Cache-Control':'no-store'});return res.end();}
   if (path.length > 1 && path.endsWith('/') && !extname(path)) {
