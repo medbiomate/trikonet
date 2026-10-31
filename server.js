@@ -1,3 +1,4 @@
+import {adminDomainRedirect} from './admin-domain.mjs';
 import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
 const readPublicListing=createPublicListingCache(fetch);
@@ -173,6 +174,8 @@ const server = http.createServer(async (req, res) => {
   let path;
   try { path = decodeURIComponent(requestUrl.pathname); }
   catch { res.writeHead(400, {'Content-Type':'text/plain'}); return res.end('Invalid URL'); }
+  const adminDestination=adminDomainRedirect(path,requestUrl.search);
+  if(adminDestination){res.writeHead(302,{Location:adminDestination,'Cache-Control':'no-store'});return res.end();}
   if (path.length > 1 && path.endsWith('/') && !extname(path)) {
     res.writeHead(301, {Location:requestUrl.pathname.replace(/\/+$/, '') + requestUrl.search});
     return res.end();
