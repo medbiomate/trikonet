@@ -1,3 +1,4 @@
+import {jobEditorRecord} from './job-editor-record.js';
 import {newJobDates, oneYearFromToday} from './job-date-defaults.js';
 import { jobWorkCredit } from './job-work-credit.js';
 import { formatJobTitle, formatCompanyName } from './company-name.js?v=20261021-title-trash-1';
@@ -8,7 +9,7 @@ import {fillAppProfile,readAppProfile} from './admin-app-profile.js?v=20261018-r
 import { createJobPageCache } from './admin-job-cache.js?v=20261021-day-scoped';
 import {candidateProfileView} from './candidate-profile-view.js';
 import { signalAdminSessionChange } from './admin-session.js?v=20261021-fast-admin-1';
-import { createFormRecovery } from './admin-recovery.js?v=20261021-publish-feedback-6';
+import { createFormRecovery } from './admin-recovery.js?v=20261031-manual-job-save';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 import { initSeoAdmin } from './seo-admin.js?v=1';
 const defaults = {
@@ -5028,6 +5029,7 @@ export async function initAdmin(verifiedSession = null) {
   });
 
   function fillJob(job = {}) {
+    job = jobEditorRecord(job, wordpressJob);
     job = newJobDates(job);
     job={...job,salaryType:!job.salaryType||job.salaryType==='Not specified'?'Monthly':job.salaryType,minSalary:job.minSalary==null||job.minSalary===''?0:job.minSalary,maxSalary:job.maxSalary==null||job.maxSalary===''?0:job.maxSalary};
     queueMicrotask(() => jobRecovery.open(job.slug || '', job.id || ''));
@@ -6215,7 +6217,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
   async function editReportedJob(slug, keepRoute = false) {
     let job;
     try {
-      const response = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}?admin=1`, {cache:'no-store'});
+      const response = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}?admin=1`, {cache:'no-store',signal:AbortSignal.timeout(15000)});
       if (response.ok) job = await response.json();
       else if (response.status !== 404) throw new Error('Saved job unavailable');
     } catch {
@@ -6224,7 +6226,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     }
     if (!job) {
       try {
-        const res = await fetch(`/api/wp/job_listing?slug=${encodeURIComponent(slug)}`);
+        const res = await fetch(`/api/wp/job_listing?slug=${encodeURIComponent(slug)}`, {signal:AbortSignal.timeout(15000)});
         if (res.ok) {
           const records = await res.json();
           if (records.length) {
@@ -6236,7 +6238,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
     }
     if (!job) {
       try {
-        const res = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}?admin=1`);
+        const res = await fetch(`/api/local/jobs/${encodeURIComponent(slug)}?admin=1`, {signal:AbortSignal.timeout(15000)});
         if (res.ok) job = await res.json();
       } catch {}
     }
@@ -6244,7 +6246,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       fillJob(job);
       if (!keepRoute) location.hash = 'job-editor';
       switchView('job-edit');
-      showAdminNotice(`Loaded “${job.title || slug}” into editor.`);
+      showAdminNotice(`Loaded “${jobEditorRecord(job, wordpressJob).title || slug}” into editor.`);
     } else {
       showAdminNotice(`Could not load job “${slug}” for editing.`, 'error');
     }
@@ -7186,8 +7188,17 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
   });
 
   // Search & Filters
-  document.querySelector('#admin-search').addEventListener('input', () => { currentPage = 1; renderJobRows(); });
-  document.querySelector('#admin-search-button').addEventListener('click', () => { currentPage = 1; renderJobRows(); });
+  function searchAllJobDates() {
+    currentPage = 1;
+    if (document.querySelector('#admin-search').value.trim() && dayMode.value !== 'all') {
+      selectJobDay('all');
+    } else renderJobRows();
+  }
+  document.querySelector('#admin-search').addEventListener('input', searchAllJobDates);
+  document.querySelector('#admin-search-button').addEventListener('click', searchAllJobDates);
+  document.querySelector('#admin-search').addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); searchAllJobDates(); }
+  });
   document.querySelector('#post-query-submit').addEventListener('click', () => { currentPage = 1; renderJobRows(); });
 
   // Top Header Quick Search (Sync with main searches)
@@ -7200,8 +7211,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       const empInput = document.querySelector('#employer-search');
       if (empInput) empInput.value = q;
 
-      currentPage = 1;
-      renderJobRows();
+      searchAllJobDates();
       renderEmployerRows();
     });
 
@@ -7418,6 +7428,7 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       const message = error?.name==='TimeoutError'||error?.name==='AbortError'?'The server is taking too long. Your content is still here. Check All Jobs before retrying to avoid duplicates.':error?.message || 'Could not save the job.';
       jobStatusState.textContent = message;
       showAdminNotice(message, 'error');
+      showJobPublishFeedback(message, 'error');
     } finally {
       if (pubBtn) {
         pubBtn.disabled = false;
@@ -7426,7 +7437,13 @@ ${!x.autosaved && !String(x.slug || '').startsWith('autosave-') && ['publish','p
       }
       if (draftBtn) { draftBtn.disabled = false; draftBtn.textContent = originalDraftText; }
     }
+    } catch (error) {
+      const message = error?.message || 'Could not prepare the job for saving. Please check the form and retry.';
+      jobStatusState.textContent = message;
+      showJobPublishFeedback(message, 'error');
+      showAdminNotice(message, 'error');
     } finally {
+      if (publishFeedback.dataset.type === 'saving') showJobPublishFeedback(jobStatusState.textContent || 'Job was not saved. Check the required fields.', 'error');
       jobSubmissionPending = false;
       submitButtons.forEach(button => { button.disabled = false;button.removeAttribute('aria-busy'); });
       jobRecovery.resume();

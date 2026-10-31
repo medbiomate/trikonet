@@ -1,3 +1,4 @@
+import {initSearchCategoryPickers} from './category-picker.js';
 import {recentEmployerPage} from './recent-employers.js';
 import {createJobLogoResolver} from './job-employer-logo.js';
 const resolveJobLogos = createJobLogoResolver((...args) => fetch(...args));
@@ -3273,7 +3274,7 @@ else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
 if (path.startsWith('/admin')) {
-  initialLoads.push(adminSessionReady, import('./admin.js?v=20261028-company-picker-load-1').then(module => {
+  initialLoads.push(adminSessionReady, import('./admin.js?v=20261031-manual-job-save').then(module => {
     renderAdmin = module.renderAdmin;
     initAdmin = module.initAdmin;
   }));
@@ -3450,6 +3451,7 @@ if (isResumeBuilderPath(path)) {
   const { initCVBuilder } = await import('./cvBuilder.js?v=20260930-bottom-icons-v44');
   initCVBuilder('#cv-builder-root');
 }
+initSearchCategoryPickers();
 initCategoryAutocomplete();
 initBlogDirectory();
 initRecentArticlesAutoSlider();

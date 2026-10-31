@@ -1,5 +1,6 @@
 export function createFormRecovery(form, type, account) {
   const view = form.closest('.admin-view');
+  const autosaveEnabled = type !== 'job';
   let key, dirty = false, restoring = false, timer, pending, draftId, sourceSlug = '';
   // Never reuse another tab's new-job recovery identity (including duplicated tabs).
   let newDraftScope = crypto.randomUUID();
@@ -37,7 +38,7 @@ export function createFormRecovery(form, type, account) {
   }
   async function sync() {
     clearTimeout(timer);
-    if (paused || !dirty || !key || pending) return pending;
+    if (!autosaveEnabled || paused || !dirty || !key || pending) return pending;
     const snapshotKey = key, snapshotId = draftId, snapshotSlug = sourceSlug, snapshotGeneration = generation;
     const data = record();
     if (!data.title.trim() && !data.description.trim()) return;
@@ -67,7 +68,7 @@ export function createFormRecovery(form, type, account) {
   notice.style.cssText = 'padding:10px 16px;background:#eff6ff;color:#334155;font-size:13px;display:none';
   view.prepend(notice);
   function save() {
-    if (!key || !dirty || restoring) return;
+    if (!autosaveEnabled || !key || !dirty || restoring) return;
     try {
       const values = fields().map((el, i) => ({ key: id(el, i), value: el.isContentEditable ? el.innerHTML : el.value, checked: el.checked, rich: el.isContentEditable }));
       localStorage.setItem(key, JSON.stringify({ values, draftId, date: Date.now(), status: 'draft' }));
@@ -96,6 +97,13 @@ export function createFormRecovery(form, type, account) {
       if (!slug) newDraftScope = crypto.randomUUID();
       key = `trikonet-recovery:${encodeURIComponent(account)}:${type}:${encodeURIComponent(slug || `new:${newDraftScope}`)}`;
       notice.style.display = 'none';
+      if (!autosaveEnabled) {
+        // Manual saves retain a stable identity without writing recovery drafts.
+        draftId = crypto.randomUUID();
+        setJobId(id || (slug ? '' : draftId));
+        if (slug) presence();
+        return;
+      }
       let draft;
       try { draft = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
       draftId = draft?.draftId || (slug.startsWith(`autosave-${type}-`) ? slug.slice(`autosave-${type}-`.length) : crypto.randomUUID());
