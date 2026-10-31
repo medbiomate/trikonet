@@ -1,4 +1,4 @@
-import {initJobEditorLauncher} from './job-editor-launcher.js';
+import {initJobEditorLauncher} from './job-editor-launcher.js?v=20261031-all-entry-2';
 import {jobEditorRecord} from './job-editor-record.js';
 import {newJobDates, oneYearFromToday} from './job-date-defaults.js';
 import { jobWorkCredit } from './job-work-credit.js';
@@ -4260,6 +4260,10 @@ export async function initAdmin(verifiedSession = null) {
   async function handleRoute() {
     const hash = location.hash.replace(/^#/, '');
     if (hash === 'job-new') {
+      if (!new URL(location.href).searchParams.has('editor')) {
+        const editorUrl=new URL(location.href);editorUrl.searchParams.set('editor',crypto.randomUUID());
+        history.replaceState(history.state,'',editorUrl);
+      }
       if (!restoreJobAfterCompany()) fillJob({});
       switchView('job-new');
     } else if (hash === 'employer-new') {

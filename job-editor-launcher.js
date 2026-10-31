@@ -11,12 +11,19 @@ export function initJobEditorLauncher() {
   const status=document.getElementById('job-launch-status');
   const links=document.getElementById('job-launch-links');
   if(!count||!status||!links)return;
+  const triggers='#new-job-top,#new-job-link,#header-add-job-btn';
+  for(const trigger of document.querySelectorAll(triggers)) trigger.href=jobEditorUrls(location.href,1)[0];
+  document.addEventListener('pointerdown',event=>{
+    const trigger=event.target.closest(triggers);
+    if(trigger)trigger.href=jobEditorUrls(location.href,1)[0];
+  },true);
   document.addEventListener('click',event=>{
-    const trigger=event.target.closest('#new-job-top');
+    const trigger=event.target.closest(triggers);
     if(!trigger||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();event.stopImmediatePropagation();
-    if(!count.reportValidity()){count.focus();return;}
-    const urls=jobEditorUrls(location.href,Number(count.value));
+    const useCount=trigger.id==='new-job-top';
+    if(useCount&&!count.reportValidity()){count.focus();return;}
+    const urls=jobEditorUrls(location.href,useCount?Number(count.value):1);
     status.textContent='';links.replaceChildren();
     if(urls.length===1){location.assign(urls[0]);return;}
     let blocked=0;

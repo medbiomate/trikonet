@@ -10,3 +10,8 @@ test('one editor is supported and invalid counts rejected',()=>{
  assert.equal(jobEditorUrls('https://trikonet.com/admin',1,()=> 'one').length,1);
  for(const count of [0,-1,11,1.5,NaN])assert.throws(()=>jobEditorUrls('https://trikonet.com/admin',count));
 });
+test('separate launches always get fresh editor identities',()=>{
+ let n=0;const id=()=>String(++n);
+ const first=jobEditorUrls('https://trikonet.com/admin#job-new',1,id)[0];
+ const second=jobEditorUrls(first,1,id)[0];assert.notEqual(first,second);
+});
