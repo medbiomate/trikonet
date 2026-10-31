@@ -1,3 +1,4 @@
+import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
 const readPublicListing=createPublicListingCache(fetch);
 import {legalPageForPath,renderLegalDocument} from './legal-pages.js';
@@ -1350,7 +1351,8 @@ const server = http.createServer(async (req, res) => {
     if(target===join(root,'index.html') && path==='/employers'){
       try{
         const params=new URLSearchParams(requestUrl.searchParams);params.set('per_page','10');
-        const [employers,countData]=await Promise.all([readPublicListing(`${seoApiBase}/api/wp/employer?${params}`),readPublicListing(`${seoApiBase}/api/wp/count?${new URLSearchParams([...params].filter(([key])=>!['page','per_page'].includes(key)).concat([['type','employer']]))}`)]);
+        const recent=params.get('sort')==='recent' ? await recentEmployerPage(path=>readPublicListing(seoApiBase+path),params) : null;
+        const [employers,countData]=recent ? [recent.employers,{total:recent.total}] : await Promise.all([readPublicListing(`${seoApiBase}/api/wp/employer?${params}`),readPublicListing(`${seoApiBase}/api/wp/count?${new URLSearchParams([...params].filter(([key])=>!['page','per_page'].includes(key)).concat([['type','employer']]))}`)]);
         if(!Array.isArray(employers))throw Error('Invalid employer response');
         if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>404</h1>');}
         fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams,countData.total);

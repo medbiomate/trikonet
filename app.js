@@ -1,6 +1,7 @@
+import {recentEmployerPage} from './recent-employers.js';
 import {createJobLogoResolver} from './job-employer-logo.js';
 const resolveJobLogos = createJobLogoResolver((...args) => fetch(...args));
-import {renderEmployerDirectory} from './employer-directory.js?v=20261021-category-reset-11';
+import {renderEmployerDirectory} from './employer-directory.js?v=20261031-recent-companies';
 import {isClosedJob} from './job-availability.js';
 import {renderHomeHero} from './home-hero.js';
 import {initDisplayAds} from './display-ads.js?v=20261021-pagination';
@@ -504,6 +505,11 @@ async function loadLocalEmployers(){
   const embedded=document.getElementById('initial-employer-list');
   if(embedded){try{const payload=JSON.parse(embedded.textContent);data.employers=payload.employers;data.employerResultTotal=payload.total;return}catch{}}
   try{
+    if(queryParams.get('sort')==='recent'){
+      const result=await recentEmployerPage(async path=>{const response=await fetch(path);if(!response.ok)throw Error('Companies unavailable');return response.json();},queryParams,pageSize);
+      data.employers=result.employers.map(record=>({...record,title:record.title?.rendered??record.title??'',logo:record.logo||record.metas?._employer_logo||record.metas?._employer_featured_image||'',categories:record.categories||Object.values(record.metas?._employer_category||{}),locations:record.locations||Object.values(record.metas?._employer_location||{}),openJobs:Number(record.openJobs??record.metas?._employer_open_jobs)||0}));
+      data.employerResultTotal=result.total;return;
+    }
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
     for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
     const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers').catch(()=>null),Promise.resolve(null)]);

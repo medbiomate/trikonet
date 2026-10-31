@@ -1,3 +1,4 @@
+import {employerAddedTime} from './recent-employers.js';
 import {formatCompanyName} from './company-name.js';
 const escapeAttr=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const decodeHtml=value=>String(value??'').replace(/&amp;/g,'&').replace(/&#039;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
@@ -14,7 +15,9 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
   const sort = queryParams.get('sort') || 'default';
 
   let list = [...employersList];
-  if (sort === 'jobs') {
+  if (sort === 'recent') {
+    list.sort((a,b) => employerAddedTime(b)-employerAddedTime(a));
+  } else if (sort === 'jobs') {
     list.sort((a, b) => (b.openJobs || 0) - (a.openJobs || 0));
   } else if (sort === 'az') {
     list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
@@ -253,6 +256,7 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
             <div class="emp-listing-sorts">
               <select onchange="window.location.href=this.value" aria-label="Sort Companies">
                 <option value="${buildFilterUrl({ sort: null })}"${sort === 'default' ? ' selected' : ''}>Sort by: Recommended</option>
+                <option value="${buildFilterUrl({ sort: 'recent' })}"${sort === 'recent' ? ' selected' : ''}>Recently Added</option>
                 <option value="${buildFilterUrl({ sort: 'jobs' })}"${sort === 'jobs' ? ' selected' : ''}>Most Open Jobs</option>
                 <option value="${buildFilterUrl({ sort: 'az' })}"${sort === 'az' ? ' selected' : ''}>Company Name (A - Z)</option>
                 <option value="${buildFilterUrl({ sort: 'za' })}"${sort === 'za' ? ' selected' : ''}>Company Name (Z - A)</option>
