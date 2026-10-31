@@ -1,4 +1,4 @@
-import {initSearchCategoryPickers} from './category-picker.js';
+import {initSearchCategoryPickers} from './category-picker.js?v=20261031-both-2';
 import {recentEmployerPage} from './recent-employers.js';
 import {createJobLogoResolver} from './job-employer-logo.js';
 const resolveJobLogos = createJobLogoResolver((...args) => fetch(...args));
