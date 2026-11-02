@@ -1,0 +1,127 @@
+{
+  "note": "One cold-cache run per page/device. No throttling. Lab observations; not field p75. Cross-origin transfer sizes may be unavailable.",
+  "results": [
+    {
+      "mobile": false,
+      "path": "/",
+      "status": 403,
+      "lcp": 2260,
+      "cls": 0,
+      "longTasks": 1,
+      "blockingMs": 16,
+      "ttfbMs": 310.5,
+      "domContentLoadedMs": 1727.5,
+      "fcpMs": 2256,
+      "resources": 73,
+      "reportedTransferBytes": 483974,
+      "appModules": [
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261030-employer-pages-3",
+          "transfer": 71728
+        },
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261031-all-entry-2",
+          "transfer": 71728
+        }
+      ],
+      "canonical": "https://www.trikonet.com/",
+      "title": "Trikonet: Your Gateway to Exciting Careers in the UAE",
+      "bodyChars": 4176,
+      "errors": []
+    },
+    {
+      "mobile": false,
+      "path": "/jobs",
+      "error": "page.evaluate: Execution context was destroyed, most likely because of a navigation"
+    },
+    {
+      "mobile": false,
+      "path": "/employers",
+      "status": 403,
+      "lcp": 0,
+      "cls": 0,
+      "longTasks": 0,
+      "blockingMs": 0,
+      "ttfbMs": 1944.5,
+      "domContentLoadedMs": 2453.400000035763,
+      "fcpMs": 2664,
+      "resources": 75,
+      "reportedTransferBytes": 852162,
+      "appModules": [
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261030-employer-pages-3",
+          "transfer": 71728
+        },
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261031-all-entry-2",
+          "transfer": 71728
+        }
+      ],
+      "canonical": "https://www.trikonet.com/employers",
+      "title": "Trikonet: Your Gateway to Exciting Careers in the UAE",
+      "bodyChars": 3150,
+      "errors": []
+    },
+    {
+      "mobile": true,
+      "path": "/",
+      "status": 403,
+      "lcp": 740,
+      "cls": 0,
+      "longTasks": 0,
+      "blockingMs": 0,
+      "ttfbMs": 70.20000004768372,
+      "domContentLoadedMs": 617,
+      "fcpMs": 736,
+      "resources": 53,
+      "reportedTransferBytes": 396699,
+      "appModules": [
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261030-employer-pages-3",
+          "transfer": 71728
+        },
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261031-all-entry-2",
+          "transfer": 71728
+        }
+      ],
+      "canonical": "https://www.trikonet.com/",
+      "title": "Trikonet: Your Gateway to Exciting Careers in the UAE",
+      "bodyChars": 4069,
+      "errors": []
+    },
+    {
+      "mobile": true,
+      "path": "/jobs",
+      "error": "page.evaluate: Execution context was destroyed, most likely because of a navigation"
+    },
+    {
+      "mobile": true,
+      "path": "/employers",
+      "status": 403,
+      "lcp": 0,
+      "cls": 0,
+      "longTasks": 0,
+      "blockingMs": 0,
+      "ttfbMs": 426.30000001192093,
+      "domContentLoadedMs": 1034.8999999761581,
+      "fcpMs": 988,
+      "resources": 66,
+      "reportedTransferBytes": 390723,
+      "appModules": [
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261030-employer-pages-3",
+          "transfer": 71728
+        },
+        {
+          "url": "https://www.trikonet.com/app.js?v=20261031-all-entry-2",
+          "transfer": 71728
+        }
+      ],
+      "canonical": "https://www.trikonet.com/employers",
+      "title": "Trikonet: Your Gateway to Exciting Careers in the UAE",
+      "bodyChars": 2458,
+      "errors": []
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+[
+  {
+    "path": "/",
+    "run": 0,
+    "status": 200,
+    "ttfbMs": 615,
+    "totalMs": 622,
+    "decodedBytes": 44388,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/",
+    "run": 1,
+    "status": 200,
+    "ttfbMs": 230,
+    "totalMs": 236,
+    "decodedBytes": 44388,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/",
+    "run": 2,
+    "status": 200,
+    "ttfbMs": 212,
+    "totalMs": 222,
+    "decodedBytes": 44388,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/jobs",
+    "run": 0,
+    "status": 200,
+    "ttfbMs": 2851,
+    "totalMs": 2860,
+    "decodedBytes": 69610,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/jobs",
+    "run": 1,
+    "status": 200,
+    "ttfbMs": 206,
+    "totalMs": 219,
+    "decodedBytes": 69610,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/jobs",
+    "run": 2,
+    "status": 200,
+    "ttfbMs": 109,
+    "totalMs": 119,
+    "decodedBytes": 69610,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/employers",
+    "run": 0,
+    "status": 200,
+    "ttfbMs": 339,
+    "totalMs": 351,
+    "decodedBytes": 106216,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/employers",
+    "run": 1,
+    "status": 200,
+    "ttfbMs": 864,
+    "totalMs": 1036,
+    "decodedBytes": 106216,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/employers",
+    "run": 2,
+    "status": 200,
+    "ttfbMs": 242,
+    "totalMs": 251,
+    "decodedBytes": 106216,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/job-categories",
+    "run": 0,
+    "status": 200,
+    "ttfbMs": 257,
+    "totalMs": 269,
+    "decodedBytes": 148037,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/job-categories",
+    "run": 1,
+    "status": 200,
+    "ttfbMs": 368,
+    "totalMs": 379,
+    "decodedBytes": 148037,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/job-categories",
+    "run": 2,
+    "status": 200,
+    "ttfbMs": 168,
+    "totalMs": 179,
+    "decodedBytes": 148037,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/blog",
+    "run": 0,
+    "status": 200,
+    "ttfbMs": 407,
+    "totalMs": 410,
+    "decodedBytes": 27195,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/blog",
+    "run": 1,
+    "status": 200,
+    "ttfbMs": 116,
+    "totalMs": 118,
+    "decodedBytes": 27195,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/blog",
+    "run": 2,
+    "status": 200,
+    "ttfbMs": 163,
+    "totalMs": 163,
+    "decodedBytes": 27195,
+    "cache": "no-cache",
+    "encoding": "br"
+  },
+  {
+    "path": "/privacy-policy",
+    "run": 0,
+    "status": 200,
+    "ttfbMs": 393,
+    "totalMs": 405,
+    "decodedBytes": 32208,
+    "cache": "public, max-age=300",
+    "encoding": "br"
+  },
+  {
+    "path": "/privacy-policy",
+    "run": 1,
+    "status": 200,
+    "ttfbMs": 133,
+    "totalMs": 138,
+    "decodedBytes": 32208,
+    "cache": "public, max-age=300",
+    "encoding": "br"
+  },
+  {
+    "path": "/privacy-policy",
+    "run": 2,
+    "status": 200,
+    "ttfbMs": 180,
+    "totalMs": 187,
+    "decodedBytes": 32208,
+    "cache": "public, max-age=300",
+    "encoding": "br"
+  }
+]

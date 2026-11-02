@@ -1,0 +1,120 @@
+{
+  "frontend": {
+    "before": {
+      "stats": {
+        "tests": 242,
+        "pass": 208,
+        "fail": 34,
+        "skipped": 0
+      },
+      "failed": [
+        "./app.js: counts share pending work, throttle focus, and skip hidden tabs",
+        "./app.js: ordinary routes skip detail downloads; detail routes wait for their renderer",
+        "1 jobs get spaced ad spots with no duplicates",
+        "10 jobs get spaced ad spots with no duplicates",
+        "30 jobs get spaced ad spots with no duplicates",
+        "a fresh tab restores its admin session using the server cookie",
+        "a missing job does not repeat the same saved-record request",
+        "a saved job remains authoritative without fetching its imported original",
+        "a superseded page request cannot overwrite the newest page",
+        "admin logout removes the bar and preserves normal member storage",
+        "admin pages retain campaign loading",
+        "backend failure leaves candidate visible for retry",
+        "cancelled confirmation does not mutate or send a request",
+        "client waits for listing count before replacing server pagination",
+        "company selector excludes recovery drafts and retains saved company identity",
+        "confirmed candidate deletion awaits shared backend and only then removes local row",
+        "employer HTML includes meaningful content and safe names without JavaScript",
+        "failed batch retries and reports incomplete list",
+        "frontend server delivers crawlable SEO metadata, noindex and real draft 404",
+        "imported content remains available in both content and description",
+        "imported jobs still load when no saved override exists",
+        "loads every batch and stops at final short page",
+        "local job cards retain the full formatted description and detail fields",
+        "overlapping checks reuse one request",
+        "page metadata starts without waiting for related links and preserves both results",
+        "profile fetch failure prevents rendering an empty editable profile",
+        "public signed-in visitors do not wait for campaign data",
+        "requests exactly the selected page with server-side filters",
+        "return from company preserves unsaved job on #job-new",
+        "verified admins can edit the exact employer",
+        "verified admins can edit the exact job",
+        "verified admins can edit the exact post",
+        "verified admins get shortcuts and safely rendered account names",
+        "website loads saved app profile separately from the login session"
+      ]
+    },
+    "after": {
+      "stats": {
+        "tests": 247,
+        "pass": 213,
+        "fail": 34,
+        "skipped": 0
+      },
+      "failed": [
+        "./app.js: counts share pending work, throttle focus, and skip hidden tabs",
+        "./app.js: ordinary routes skip detail downloads; detail routes wait for their renderer",
+        "1 jobs get spaced ad spots with no duplicates",
+        "10 jobs get spaced ad spots with no duplicates",
+        "30 jobs get spaced ad spots with no duplicates",
+        "a fresh tab restores its admin session using the server cookie",
+        "a missing job does not repeat the same saved-record request",
+        "a saved job remains authoritative without fetching its imported original",
+        "a superseded page request cannot overwrite the newest page",
+        "admin logout removes the bar and preserves normal member storage",
+        "admin pages retain campaign loading",
+        "backend failure leaves candidate visible for retry",
+        "cancelled confirmation does not mutate or send a request",
+        "client waits for listing count before replacing server pagination",
+        "company selector excludes recovery drafts and retains saved company identity",
+        "confirmed candidate deletion awaits shared backend and only then removes local row",
+        "employer HTML includes meaningful content and safe names without JavaScript",
+        "failed batch retries and reports incomplete list",
+        "frontend server delivers crawlable SEO metadata, noindex and real draft 404",
+        "imported content remains available in both content and description",
+        "imported jobs still load when no saved override exists",
+        "loads every batch and stops at final short page",
+        "local job cards retain the full formatted description and detail fields",
+        "overlapping checks reuse one request",
+        "page metadata starts without waiting for related links and preserves both results",
+        "profile fetch failure prevents rendering an empty editable profile",
+        "public signed-in visitors do not wait for campaign data",
+        "requests exactly the selected page with server-side filters",
+        "return from company preserves unsaved job on #job-new",
+        "verified admins can edit the exact employer",
+        "verified admins can edit the exact job",
+        "verified admins can edit the exact post",
+        "verified admins get shortcuts and safely rendered account names",
+        "website loads saved app profile separately from the login session"
+      ]
+    },
+    "new_failures": []
+  },
+  "backend": {
+    "before": {
+      "stats": {
+        "tests": 283,
+        "pass": 278,
+        "fail": 2,
+        "skipped": 3
+      },
+      "failed": [
+        "MySQL persistence, API permissions, threshold, sitemap and draft routing",
+        "durable repository merges local and imported jobs once and preserves manual status across a reload"
+      ]
+    },
+    "after": {
+      "stats": {
+        "tests": 292,
+        "pass": 286,
+        "fail": 2,
+        "skipped": 4
+      },
+      "failed": [
+        "MySQL persistence, API permissions, threshold, sitemap and draft routing",
+        "durable repository merges local and imported jobs once and preserves manual status across a reload"
+      ]
+    },
+    "new_failures": []
+  }
+}

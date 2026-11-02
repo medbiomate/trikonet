@@ -1,0 +1,40 @@
+{
+  "fixture": "local MariaDB; synthetic users only; no production connection",
+  "results": [
+    {
+      "run": 0,
+      "beforeMs": 48.30895900000007,
+      "afterMs": 50.948666,
+      "fullPayloadBytes": 9703371,
+      "projectedBytes": 204
+    },
+    {
+      "run": 1,
+      "beforeMs": 34.584082999999964,
+      "afterMs": 49.30158300000005,
+      "fullPayloadBytes": 9703371,
+      "projectedBytes": 204
+    },
+    {
+      "run": 2,
+      "beforeMs": 27.868125000000077,
+      "afterMs": 51.77133300000003,
+      "fullPayloadBytes": 9703371,
+      "projectedBytes": 204
+    },
+    {
+      "run": 3,
+      "beforeMs": 31.31291699999997,
+      "afterMs": 51.900292000000036,
+      "fullPayloadBytes": 9703371,
+      "projectedBytes": 204
+    },
+    {
+      "run": 4,
+      "beforeMs": 29.376499999999965,
+      "afterMs": 42.575000000000045,
+      "fullPayloadBytes": 9703371,
+      "projectedBytes": 204
+    }
+  ]
+}

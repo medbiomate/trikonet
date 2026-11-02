@@ -1,0 +1,70 @@
+{
+  "benchmark": "public-directory-synthetic",
+  "node": "v26.8.2",
+  "baselineRef": "c49024a",
+  "records": 10000,
+  "descriptionBytes": 4050,
+  "runs": 5,
+  "results": [
+    {
+      "query": "",
+      "baselineMedianMs": 198.21183399999995,
+      "candidateMedianMs": 47.027458000000024,
+      "baselineRunsMs": [
+        238.81620899999996,
+        577.823791,
+        198.21183399999995,
+        123.66266700000006,
+        149.53391599999986
+      ],
+      "candidateRunsMs": [
+        210.27499999999998,
+        332.975875,
+        44.14520800000014,
+        36.99237499999981,
+        47.027458000000024
+      ],
+      "equivalent": true
+    },
+    {
+      "query": "q=registered+nurse+patient+care",
+      "baselineMedianMs": 6384.181208999999,
+      "candidateMedianMs": 322.41095900000073,
+      "baselineRunsMs": [
+        6384.181208999999,
+        6879.867249999999,
+        19402.443625000004,
+        4411.771792,
+        4540.321917000001
+      ],
+      "candidateRunsMs": [
+        322.41095900000073,
+        351.8055000000004,
+        321.733917000005,
+        507.283583000004,
+        207.43475000000035
+      ],
+      "equivalent": true
+    },
+    {
+      "query": "q=Registered+Nurse&location=Dubai&category=Nursing",
+      "baselineMedianMs": 3618.6708330000038,
+      "candidateMedianMs": 207.64662500000122,
+      "baselineRunsMs": [
+        3618.6708330000038,
+        4077.379584000002,
+        4454.899916999995,
+        2898.9608339999977,
+        3572.4554590000043
+      ],
+      "candidateRunsMs": [
+        206.1610409999994,
+        207.64662500000122,
+        251.2987920000014,
+        218.57270900000003,
+        201.34070899999642
+      ],
+      "equivalent": true
+    }
+  ]
+}

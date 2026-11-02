@@ -1,0 +1,22 @@
+{
+  "note": "Controlled browser request-count fixture. Timing and payload are not representative website load metrics.",
+  "results": [
+    {
+      "aligned": false,
+      "appRequests": 2,
+      "urls": [
+        "/app.js?v=old",
+        "/app.js?v=current"
+      ],
+      "executions": 1
+    },
+    {
+      "aligned": true,
+      "appRequests": 1,
+      "urls": [
+        "/app.js?v=current"
+      ],
+      "executions": 1
+    }
+  ]
+}

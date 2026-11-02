@@ -1,0 +1,782 @@
+[
+  {
+    "path": "frontend/profile-field-options.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/public-job-page.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-work-credit.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/imported-description.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-recovery.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-domain.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/article-images.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/home-hero.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-editor-record.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-posted-time.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-job-cache.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/recent-employers.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/company-name.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/initial-page.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/site-header.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-urls.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/indexing-policy.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/detail-pages.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/employer-directory.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/server.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/profile-field-editor.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/page-stamp.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/legacy-routes.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/bootstrap.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-navigation.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-app-profile.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/public-listing-cache.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-import-matching.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/legal-navigation.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/website-profile.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/page-ready.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/google-sign-in.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/config.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/article-image-paths.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-ssr.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/candidate-app-fields.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/candidate-profile-view.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/cvBuilder.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-list-ssr.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/category-picker.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-availability.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/dev-server.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/seo-public.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/asset-response.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/site-footer.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/sitemap-policy.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-date-defaults.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-editor-launcher.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/jobs-seo.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-session.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-list-identity.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-job-tabs.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/category-links.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/display-ads.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/legal-pages.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/employer-link.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/content-record.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/social-preview.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/admin-team-activity.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/employer-list-ssr.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/job-employer-logo.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/app.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/seo-admin.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/candidate-profile-editor.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/scripts/build-legal-pages.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/cv-builder-plugin/app-embed.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/cv-builder-plugin/assets/js/cv-builder-v2.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/cv-builder-plugin/assets/js/html2canvas.min.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "frontend/cv-builder-plugin/assets/js/jspdf.umd.min.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/candidate-account.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/employer-jobs.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/ats-upload.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/registration-verification.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-job-index.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/gemini-recommendations.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/company-reviews.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-summary.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/employer-options.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-employer-index.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/google-account-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/apple-sign-in.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-user-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/employer-repair.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/state-changes.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/google-sign-in.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/category-spelling.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-views.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/coordinated-task.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/persistent-sessions.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/public-job-page.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/ats-check.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/candidate-file.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/media-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/record-order.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/ems-sync.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-session-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/database-read-retry.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-job-filters.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-urls.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/team-activity.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/ems-state-reader.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/alert-users.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-page-access.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/employer-job-address.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-url-lookup.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/public-response-cache.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/public-directory.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/support-contact.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/editor-state.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/password-login-security.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/seo-api.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-list-identity.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/import-wordpress-snapshot.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-login-account.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/account-deletion.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-employer.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/password-reset.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-job-pagination.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/public-record.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-trash.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/ssr-engine.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-identity.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/server.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/candidate-admin-profile.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admin-media-library.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/candidate-profile-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-email-alerts.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/account-identity.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/admob-rewards.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/post-summary.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/seo-job-pages.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/company-profile-audit.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/candidate-profile.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-digest.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/points-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-attribution.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/google-indexing.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/password-account-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/catalogue-reader.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/social-account-store.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/gemini-ats.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-link-import.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-reports.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/job-import-lookup.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/sign-in-platform.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/state-media.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/ad-reports.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/employer-identity.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/public/admin.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/public/app.js",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/scripts/sync-employer-logos.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/scripts/repair-approved-access.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/scripts/sync-wordpress-media.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/scripts/audit-public-directory-bench.mjs",
+    "ok": true,
+    "error": ""
+  },
+  {
+    "path": "backend/scripts/audit-login-projection-bench.mjs",
+    "ok": true,
+    "error": ""
+  }
+]

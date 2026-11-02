@@ -1,0 +1,36 @@
+✔ admin login transfers credential projection only, never entire account state (1.1165ms)
+✔ missing account stays unauthenticated and storage errors propagate (0.497291ms)
+✔ sessions survive restart, expire, and remain revoked after logout (0.706ms)
+✔ expired session records are pruned from memory and cannot reappear in iteration (9.421917ms)
+✔ pruning does not change active sessions or hashed-key revocation (0.241458ms)
+✔ unauthenticated admin read rejects before catalogue SQL: /api/local/jobs (1.032958ms)
+✔ unauthenticated admin read rejects before catalogue SQL: /api/local/jobs/fixture (1.814917ms)
+✔ only requested page leaves server, with full-description search and no detail payload (24.692875ms)
+✔ merges remote jobs without duplicates and retains filters (0.494916ms)
+✔ ranking preserves exact, prefix, substring, company and description matches across pages (0.295459ms)
+✔ empty query, blank titles, date ties and duplicate slugs preserve legacy ordering (0.14125ms)
+✔ memoized text is scoped to one call so edits are searchable immediately (0.124542ms)
+✔ remote pagination begins after locally matching jobs and excludes all public local identities (0.117708ms)
+✔ compressed assets round trip and respect encoding quality (9.40475ms)
+✔ ETags revalidate the selected representation and HEAD omits body (0.279875ms)
+✔ HTML revalidates and already compressed images are not recompressed (0.11525ms)
+✔ matches exact employer name despite a different slug and shares card lookups (1.407459ms)
+✔ preserves explicit logos and rejects ambiguous matches (0.75025ms)
+✔ temporary errors preserve jobs and can be retried (0.281792ms)
+✔ a stale employer slug cannot replace the displayed company logo (0.163958ms)
+✔ sequential lazy logo loads fit only the completed image without rescanning the page (4.08425ms)
+✔ repeated setup binds one pending handler per image and leaves lazy sources untouched (0.591917ms)
+✔ non-square logo keeps existing crop calculation and preserves the original source (10.731584ms)
+✔ preloaded runtime matches executed module URL: ./ (1.416208ms)
+✔ preloaded runtime matches executed module URL: ../backend/public/admin-web/ (2.736334ms)
+✔ shares in-flight reads and isolates caller mutations (0.756875ms)
+✔ serves recent stale public data while refreshing, then expires on failure (0.8595ms)
+✔ large responses are not retained and total cached bytes stay bounded (0.453667ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95.244625
