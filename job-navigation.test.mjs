@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initJobNavigation} from './job-navigation.js';
+import {initJobNavigation,waitForJobNavigationIdle} from './job-navigation.js';
 function fixture({href='/jobs/sample',target='',interactive=false,card=false}={}) {
  const calls=[],attributes={},classes=new Set();
  const link={target,getAttribute:()=>href,hasAttribute:()=>false,setAttribute:(key,value)=>attributes[key]=value,removeAttribute:key=>delete attributes[key],classList:{add:name=>classes.add(name),remove:name=>classes.delete(name)}};
@@ -39,5 +39,22 @@ test('scroll and cancelled gestures never open a job',()=>{
   f.root.pointerdown(touch);f.root.pointermove({...touch,clientY:100});f.root.pointerup(touch);
   f.root.pointerdown(touch);f.root.pointercancel(touch);f.root.pointerup(touch);
   assert.equal(f.calls.length,0);
+ }finally{f.restore();}
+});
+
+test('initializing again does not install a second set of handlers',()=>{
+ const f=fixture();try{
+  f.root.addEventListener=()=>{throw Error('duplicate handler');};
+  initJobNavigation(f.root);
+ }finally{f.restore();}
+});
+test('render waits for the active touch and its synthetic click window',async()=>{
+ const f=fixture();try{
+  const touch={...f.event,pointerType:'touch',pointerId:1,clientX:40,clientY:50};
+  f.root.pointerdown(touch);let ready=false;
+  const pending=waitForJobNavigationIdle().then(()=>{ready=true});
+  await Promise.resolve();assert.equal(ready,false);
+  f.root.pointerup(touch);assert.equal(ready,false);
+  await pending;assert.equal(ready,true);
  }finally{f.restore();}
 });
