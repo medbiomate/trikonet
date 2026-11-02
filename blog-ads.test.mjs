@@ -33,3 +33,12 @@ test('blog ad requests wait until their placement approaches the viewport', () =
   enterViewport([{ isIntersecting: true }]); measure();
   assert.equal(queue.length, 1);
 });
+test('multiple layout observers enqueue each manual ad only once',()=>{
+ const measures=[],queue=[];
+ class ResizeObserver{constructor(callback){measures.push(callback)}observe(){}disconnect(){}}
+ const context=vm.createContext({ResizeObserver,window:{adsbygoogle:queue},console});
+ vm.runInContext(source.slice(source.indexOf('function initializeAd(')),context);
+ const ad={isConnected:true,getBoundingClientRect:()=>({width:320})};
+ context.initializeAd(ad);context.initializeAd(ad);
+ measures.forEach(measure=>measure());assert.equal(queue.length,1);
+});

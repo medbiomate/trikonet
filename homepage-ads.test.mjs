@@ -23,3 +23,16 @@ test('job pages retain the Google loader', () => {
   assert.match(scripts[0].src, /adsbygoogle/);
   assert.equal(scripts[0].async, true);
 });
+test('production ad script starts with the early navigation core without waiting for bootstrap',()=>{
+ const scripts=[];
+ vm.runInNewContext(loader,{window:{TrikonetJobNavigation:{}},location:{pathname:'/job/sample',hostname:'www.trikonet.com'},document:{createElement:()=>({}),head:{append:script=>scripts.push(script)}}});
+ assert.equal(scripts.length,1);
+});
+for(const hostname of ['api.trikonet.com','localhost','127.0.0.1'])test(`production ad requests are excluded on ${hostname}`,()=>{
+ const context=vm.createContext({window:{TrikonetJobNavigation:{}},location:{pathname:'/job/sample',hostname},document:{createElement:()=>{throw Error('No ads outside public website')}}});
+ vm.runInContext(loader,context);vm.runInContext(ads,context);context.initDisplayAds();
+});
+
+for(const pathname of ['/admin','/admin-login','/profile','/login','/saved-jobs'])test(`private route does not load ads: ${pathname}`,()=>{
+ vm.runInNewContext(loader,{window:{TrikonetJobNavigation:{}},location:{pathname,hostname:'www.trikonet.com'},document:{createElement:()=>{throw Error('Private pages must not request ads')}}});
+});
