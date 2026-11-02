@@ -10,7 +10,7 @@ function harness({ mobile = true, search = '', job = true } = {}) {
   const ad = {};
   const style = {};
   const description = { querySelector: selector => selector === '.detail-about-company-card' ? { before: value => { placements.push(value); locations.push('after-description'); } } : null };
-  const main = { querySelector: selector => selector.startsWith('.detail-grid') ? {} : selector === '.job-description' ? description : placements[0] };
+  const main = { querySelector: selector => selector.startsWith('.detail-grid') ? {} : selector === '.job-description' ? description : selector === '.overview' ? { after: value => { placements.push(value); locations.push('after-overview'); } } : placements[0] };
   const context = vm.createContext({
     window: { matchMedia: () => ({ matches: mobile }) },
     location: { pathname: '/job/sample', search }, URLSearchParams, isPrivatePage,
@@ -20,11 +20,11 @@ function harness({ mobile = true, search = '', job = true } = {}) {
   vm.runInContext(helper, context);
   return { run: () => context.initJobDetailAd(), placements, requested, locations };
 }
-test('mobile job ad follows the description and is requested only once', () => {
+test('mobile job ad follows the overview and is requested only once', () => {
   const h = harness(); h.run(); h.run();
   assert.equal(h.placements.length, 1);
   assert.equal(h.requested.length, 1);
-  assert.deepEqual(h.locations, ['after-description']);
+  assert.deepEqual(h.locations, ['after-overview']);
   assert.match(h.placements[0].innerHTML, /data-ad-slot="9017818388"/);
 });
 for (const [name, options] of [['preview', { search: '?preview=1' }], ['draft', { search: '?draft=1' }], ['other page', { job: false }]]) {
