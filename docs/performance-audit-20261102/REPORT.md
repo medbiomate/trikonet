@@ -1,5 +1,7 @@
 # Trikonet website performance audit
 
+> Historical initial audit. The later approved deployment and fully passing regression results are recorded in [RELEASE-FOLLOWUP.md](RELEASE-FOLLOWUP.md).
+
 2 November 2026 — **Local review release; not deployed.**
 
 ## Outcome and scope

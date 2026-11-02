@@ -6,7 +6,7 @@ const source = readFileSync(new URL('./app.js',import.meta.url),'utf8');
 const mapping = source.slice(source.indexOf('function mapJob(record)'),source.indexOf('async function loadLocalJobs()'));
 const mapJob = runInNewContext(`${mapping}; mapJob`, {
   resolveJobDate:record=>record.date, resolveJobDeadline:record=>record.deadline,
-  fieldValues:()=>'', formatCompanyName:value=>value, decodeHtml:value=>value
+  formatJobTitle:value=>value,fieldValues:()=>'', formatCompanyName:value=>value, decodeHtml:value=>value
 });
 test('local job cards retain the full formatted description and detail fields',()=>{
   const description='<p>Responsibilities</p><ol><li>First duty</li><li>Second duty</li></ol>';

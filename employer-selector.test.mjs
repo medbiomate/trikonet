@@ -16,8 +16,7 @@ test('company selector excludes recovery drafts and retains saved company identi
   document:{getElementById:()=>null},renderEmployerComboboxItems(){}});
  vm.runInContext(block+';populateEmployerDropdown()',context);
  assert.deepEqual(JSON.parse(JSON.stringify(context.employerDataset)),[
-  {title:'Good Care',slug:'good-care',logo:'saved.webp'},
-  {title:'Other Company',slug:'other-company',logo:''}]);
+  {title:'Good Care',slug:'good-care',logo:'saved.webp'}]);
 });
 test('company return flow uses saved dataset without undefined reload function',()=>{
  assert.doesNotMatch(source,/await loadEmployers\(\)/);

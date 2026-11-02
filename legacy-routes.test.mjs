@@ -16,7 +16,7 @@ test('filters excluded while clean directories and pagination remain eligible',(
 });
 test('employer HTML includes meaningful content and safe names without JavaScript',()=>{
  const shell='<head></head><div id="app"></div><style></style>';
- assert.match(injectInitialEmployers(shell,[]),/No employers match these filters/);
+ assert.match(injectInitialEmployers(shell,[]),/No companies found/);
  const result=injectInitialEmployers(shell,[{slug:'hospital',title:{rendered:'Hospital <script>'}}]);
  assert.match(result,/href="\/employer\/hospital"/);assert.doesNotMatch(result,/<script>/);
 });

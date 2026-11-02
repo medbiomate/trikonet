@@ -11,7 +11,7 @@ for (const hash of ['#job-new','#job-editor','#job-editor/existing-job']) {
   const draft={title:'Unsaved updated title',description:'Unsaved responsibilities',originalSlug:'existing-job',categories:['Nurse Jobs']};
   const context={job:draft,returnHash:hash,selectedEmployer:{title:'New Clinic',slug:'new-clinic',logo:'/clinic.png'}};
   let stored=JSON.stringify(context),filled,selected,view;
-  const sandbox={location:{hash},sessionStorage:{getItem:()=>stored,removeItem:()=>{stored=null;}},fillJob:value=>{filled=value;},selectEmployerOption:(...args)=>{selected=args;},switchView:value=>{view=value;},editReportedJob:()=>{throw Error('Must not reload saved job over unsaved draft');}};
+  const sandbox={URL,crypto:{randomUUID:()=> 'editor-fixture'},history:{state:null,replaceState(){}},location:{hash,href:'https://fixture.invalid/admin?editor=fixture'+hash},sessionStorage:{getItem:()=>stored,removeItem:()=>{stored=null;}},fillJob:value=>{filled=value;},selectEmployerOption:(...args)=>{selected=args;},switchView:value=>{view=value;},editReportedJob:()=>{throw Error('Must not reload saved job over unsaved draft');}};
   vm.createContext(sandbox);vm.runInContext(restore+route,sandbox);await sandbox.handleRoute();
   assert.equal(filled.title,draft.title);assert.equal(filled.originalSlug,'existing-job');assert.deepEqual(Array.from(selected),['New Clinic','/clinic.png','new-clinic',true]);assert.equal(stored,null);assert.equal(view,hash==='#job-new'?'job-new':'job-edit');
  });

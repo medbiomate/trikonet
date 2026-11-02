@@ -7,7 +7,7 @@ const source = readFileSync(new URL('./admin-session.js', import.meta.url), 'utf
 function harness(response) {
   const local = new Map(), session = new Map(), calls = [];
   const storage = values => ({ getItem: key => values.get(key), setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) });
-  const context = vm.createContext({ Date, Math, localStorage: storage(local), sessionStorage: storage(session), fetch: async (url, options) => { calls.push({ url, options }); return response; } });
+  const context = vm.createContext({ Date, Math, window:{}, localStorage: storage(local), sessionStorage: storage(session), fetch: async (url, options) => { calls.push({ url, options }); return response; } });
   vm.runInContext(source, context);
   return { context, local, session, calls, refresh: () => vm.runInContext('refreshAdminSession()', context), current: () => vm.runInContext('getVerifiedAdmin()', context) };
 }

@@ -3,15 +3,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const source = readFileSync(new URL('./admin.js', import.meta.url), 'utf8');
-const start = source.indexOf('  async function loadRemoteJobs()');
-const loader = source.slice(start, source.indexOf('  // Load all data', start));
+const start = source.indexOf('  async function loadRemoteJobs(quiet = false)');
+const loader = source.slice(start, source.indexOf('  function updateImportedEmployers', start));
 function harness(fetch) {
   const values = { '#admin-search': 'clinic', '#filter-by-type': 'Full Time', '#filter-by-category': 'Healthcare' };
-  const context = vm.createContext({ fetch, URLSearchParams, AbortController, Set, console,
+  const context = vm.createContext({ fetch:(url,options)=>url.startsWith('/api/admin/jobs?')?fetch(url,options):Promise.resolve({ok:true,json:async()=>({})}), URLSearchParams, AbortController, Set, console, setTimeout,clearTimeout, window:{}, localJobs:[], displayedJobsPage:0,jobsRefreshing:false,jobPageCache:{write(){}},Option:class {constructor(label,value){this.label=label;this.value=value;}},
     currentPage: 3, pageSize: 20, currentStatus: 'publish', jobsRequest: 0, jobsController: null,
     jobsLoading: true, jobsLoadError: false, remoteJobs: [], pageJobs: [], jobTotal: 0,
     renderJobRows() {}, wordpressJob: job => job,
-    document: { querySelector: selector => ({ value: values[selector] }) }
+    document: { querySelector: selector => ({ value: values[selector] }),getElementById:()=>({value:'',replaceChildren(){},textContent:''}) }
   });
   vm.runInContext(loader, context);
   return { context, load: () => vm.runInContext('loadRemoteJobs()', context) };

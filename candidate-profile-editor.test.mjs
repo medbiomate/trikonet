@@ -22,7 +22,7 @@ test('page metadata starts without waiting for related links and preserves both 
   const source=readFileSync(new URL('./app.js',import.meta.url),'utf8');
   const block=source.slice(source.indexOf('async function loadSeoPages()'),source.indexOf('const defaultTopCategories'));
   const calls=[];let releaseLinks;
-  const context=vm.createContext({path:'/category/healthcare',seoPagePayload:null,seoInternalLinks:[],URLSearchParams,AbortSignal,
+  const context=vm.createContext({legalPageForPath:()=>null,MEMBER_PATHS:[],path:'/category/healthcare',seoPagePayload:null,seoInternalLinks:[],URLSearchParams,AbortSignal,
     document:{getElementById:()=>null},location:{search:'',hash:''},history:{replaceState(){}},
     fetch:async url=>{calls.push(url);if(url==='/api/job-category-links')return new Promise(resolve=>{releaseLinks=()=>resolve({ok:true,json:async()=>[{slug:'related'}]})});return {ok:true,json:async()=>({page:{slug:'healthcare-jobs'}})};}});
   vm.runInContext(block,context);

@@ -61,7 +61,7 @@ test('frontend server delivers crawlable SEO metadata, noindex and real draft 40
     assert.equal((await fetch(`${origin}/jobs/missing-999`)).status,404);
     assert.equal((await fetch(`${origin}/missing-page`)).status,404);
     assert.equal((await fetch(`${origin}/employers?q=api-failure`)).status,503);
-    const filtered=await fetch(`${origin}/employers?q=Hospital`);assert.equal(filtered.status,200);assert.equal(filtered.headers.get('x-robots-tag'),'noindex,follow');assert.match(await filtered.text(),/No employers match these filters/);
+    const filtered=await fetch(`${origin}/employers?q=Hospital`);assert.equal(filtered.status,200);assert.equal(filtered.headers.get('x-robots-tag'),'noindex,follow');assert.match(await filtered.text(),/No companies found/);
     assert.equal((await fetch(`${origin}/jobs?page=9999`)).status,404);
     const migratedCategory=await fetch(`${origin}/job-category/mathematics-teacher-jobs`,{redirect:'manual'});assert.equal(migratedCategory.status,301);assert.equal(migratedCategory.headers.get('location'),'/category/mathematics-teacher-jobs');
     const legacyMap=await fetch(`${origin}/sitemap_index.xml`,{redirect:'manual'});

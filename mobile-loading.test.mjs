@@ -7,7 +7,7 @@ for (const file of ['./app.js', '../public/app.js']) {
   const source = readFileSync(new URL(file, import.meta.url), 'utf8');
   const start = source.indexOf("if (path.startsWith('/job/') || path.startsWith('/employer/')) {");
   const end = source.indexOf('\n}', start) + 2;
-  const loader = source.slice(start, end).replace("import('./detail-pages.js?v=20261009-info-first')", 'loadDetailModule()');
+  const loader = source.slice(start, end).replace(/import\('\.\/detail-pages\.js\?v=[^']+'\)/, 'loadDetailModule()');
   test(`${file}: ordinary routes skip detail downloads; detail routes wait for their renderer`, async () => {
     for (const path of ['/', '/jobs', '/blog', '/profile', '/job/sample', '/employer/sample']) {
       let release, requests = 0;
