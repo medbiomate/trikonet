@@ -1,3 +1,4 @@
+import {withOptionalBudget} from './optional-work.js';
 import {adminDomainRedirect,isPublicAdminLogin} from './admin-domain.mjs';
 import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
@@ -1206,7 +1207,10 @@ const server = http.createServer(async (req, res) => {
       let published = false;
       let contentRecord;
       contentRecord = resolvedJobUrl?.job || await loadContentRecord(fetch, seoApiBase, contentType, slug);
-      if (contentType === 'job_listing' && contentRecord) [contentRecord] = await resolveJobLogos([contentRecord]);
+      if (contentType === 'job_listing' && contentRecord) {
+        const original = contentRecord;
+        [contentRecord] = await withOptionalBudget(resolveJobLogos([original]),[original],200);
+      }
       publicContentRecord = contentRecord;
       published = Boolean(contentRecord && isPublishedRecord(contentRecord));
       if (!published) { res.writeHead(404, {'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex, nofollow','Cache-Control':'no-store'}); return res.end('<h1>404</h1>'); }
@@ -1216,21 +1220,6 @@ const server = http.createServer(async (req, res) => {
       }
       if (['job_listing','employer'].includes(contentType)) {
         let logo=logoFor(contentRecord,contentType);
-        if(contentType==='job_listing' && !logo) {
-          const m=contentRecord.metas || {};
-          const employerSlug=contentRecord.employerSlug || String(contentRecord.employerUrl || m._job_employer_url || '').split('/').filter(Boolean).pop();
-          const params=new URLSearchParams();
-          if(employerSlug)params.set('slug',employerSlug);
-          else if(m._job_employer_posted_by)params.set('id',m._job_employer_posted_by);
-          if(params.size) {
-            try {
-              const r=await fetch(`${seoApiBase}/api/wp/employer?${params}`,{signal:AbortSignal.timeout(1500)});
-              let employer=r.ok?(await r.json())[0]:null;
-              if(!employer && employerSlug){const local=await fetch(`${seoApiBase}/api/local/employers/${encodeURIComponent(employerSlug)}`,{signal:AbortSignal.timeout(1500)});if(local.ok)employer=await local.json();}
-              logo=logoFor(employer,'employer');
-            }catch(error){console.warn('Share logo unavailable:',error.message);}
-          }
-        }
         shareHead=socialHead(contentRecord,contentType,resolvedJobUrl?.publicPath || path,logo);
       }
 

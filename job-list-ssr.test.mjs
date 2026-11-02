@@ -24,7 +24,7 @@ test('pagination preserves filters and supports first, middle and last pages',()
 });
 test('client loads listing rows independently of badge counts and retains embedded totals',()=>{
  const source=readFileSync(new URL('./app.js',import.meta.url),'utf8');
- assert.match(source,/initialLoads.push\(loadLocalJobs\(\),loadDirectoryTaxonomies\(\)\)/);
+ assert.match(source,/initialLoads.push\(loadLocalJobs\(\),prepareDirectoryTaxonomies\(\)\)/);
  assert.match(source,/const total=Number\(embedded.dataset.total\)/);
  assert.match(source,/data.counts.job_listing=total/);
 });
