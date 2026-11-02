@@ -105,3 +105,13 @@ for (const desktop of [true, false]) {
     assert.deepEqual(positions, [desktop ? 'below-about' : 'above-tabs']);
   });
 }
+
+const companyHelper = source.slice(source.indexOf('function initJobCompanyAd()'), source.indexOf('function initAdditionalFeedAd()'));
+for (const mobile of [true, false]) test(`company ad adds one mobile slot without duplicating desktop placement: ${mobile}`,()=>{
+ const placements=[],requests=[];
+ const company={before:value=>placements.push(value)};
+ const main={querySelector:selector=>selector.startsWith('.job-description')?company:placements[0]};
+ const context=vm.createContext({window:{matchMedia:()=>({matches:mobile})},document:{querySelector:()=>main,createElement:()=>({dataset:{},style:{},setAttribute(){},querySelector:()=>({})})},initializeAd:(ad,lazy)=>requests.push(lazy)});
+ vm.runInContext(companyHelper,context);context.initJobCompanyAd();context.initJobCompanyAd();
+ assert.equal(placements.length,mobile?1:0);assert.deepEqual(requests,mobile?[true]:[]);
+});
