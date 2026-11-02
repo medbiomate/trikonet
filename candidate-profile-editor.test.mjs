@@ -20,7 +20,7 @@ test('lazy editor preserves complete profile markup and reads current account id
 
 test('page metadata starts without waiting for related links and preserves both results', async () => {
   const source=readFileSync(new URL('./app.js',import.meta.url),'utf8');
-  const block=source.slice(source.indexOf('async function loadSeoPages()'),source.indexOf('const defaultTopCategories'));
+  const block=source.slice(source.indexOf('async function loadSeoPages()'),source.indexOf('function slugifyCategory'));
   const calls=[];let releaseLinks;
   const context=vm.createContext({legalPageForPath:()=>null,MEMBER_PATHS:[],path:'/category/healthcare',seoPagePayload:null,seoInternalLinks:[],URLSearchParams,AbortSignal,
     document:{getElementById:()=>null},location:{search:'',hash:''},history:{replaceState(){}},
