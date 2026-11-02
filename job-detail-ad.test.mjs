@@ -9,7 +9,8 @@ function harness({ mobile = true, search = '', job = true } = {}) {
   const placements = [], requested = [], locations = [];
   const ad = {};
   const style = {};
-  const main = { querySelector: selector => selector.startsWith('.detail-grid') ? { before: value => { placements.push(value); locations.push('above-grid'); } } : selector === '.job-description .job-desc-heading' ? { after: value => { placements.push(value); locations.push('below-heading'); } } : placements[0] };
+  const description = { querySelector: selector => selector === '.detail-about-company-card' ? { before: value => { placements.push(value); locations.push('after-description'); } } : null };
+  const main = { querySelector: selector => selector.startsWith('.detail-grid') ? {} : selector === '.job-description' ? description : placements[0] };
   const context = vm.createContext({
     window: { matchMedia: () => ({ matches: mobile }) },
     location: { pathname: '/job/sample', search }, URLSearchParams, isPrivatePage,
@@ -19,11 +20,11 @@ function harness({ mobile = true, search = '', job = true } = {}) {
   vm.runInContext(helper, context);
   return { run: () => context.initJobDetailAd(), placements, requested, locations };
 }
-test('mobile job ad is inserted before overview content and requested only once', () => {
+test('mobile job ad follows the description and is requested only once', () => {
   const h = harness(); h.run(); h.run();
   assert.equal(h.placements.length, 1);
   assert.equal(h.requested.length, 1);
-  assert.deepEqual(h.locations, ['above-grid']);
+  assert.deepEqual(h.locations, ['after-description']);
   assert.match(h.placements[0].innerHTML, /data-ad-slot="9017818388"/);
 });
 for (const [name, options] of [['preview', { search: '?preview=1' }], ['draft', { search: '?draft=1' }], ['other page', { job: false }]]) {
@@ -34,10 +35,10 @@ for (const [name, options] of [['preview', { search: '?preview=1' }], ['draft', 
   });
 }
 
-test('desktop ad sits below Job Description without moving the sidebar', () => {
+test('desktop ad follows description without moving sidebar', () => {
   const h = harness({ mobile: false }); h.run();
   assert.equal(h.requested.length, 1);
-  assert.deepEqual(h.locations, ['below-heading']);
+  assert.deepEqual(h.locations, ['after-description']);
   assert.equal(h.placements[0].style.cssText.includes('width:100%'), true);
   assert.match(h.placements[0].innerHTML, /data-ad-format="auto"/);
   assert.match(h.placements[0].innerHTML, /min-height:250px/);
