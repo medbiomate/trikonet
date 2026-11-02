@@ -7,7 +7,7 @@ const start=source.indexOf('function fitEmployerLogos()');
 const fitter=source.slice(start,source.indexOf('\nfunction render()',start));
 function image(width=100,height=100) {
  const listeners=new Set(),classes=new Set();
- return {complete:false,naturalWidth:width,naturalHeight:height,dataset:{},style:{},parentElement:{style:{}},src:'https://example.com/logo.png',classList:{add:value=>classes.add(value)},classes,
+ return {complete:false,naturalWidth:width,naturalHeight:height,dataset:{},style:{},parentElement:{style:{}},src:'https://example.com/logo.png',classList:{add:value=>classes.add(value),contains:value=>classes.has(value)},classes,
  addEventListener(type,fn){if(type==='load')listeners.add(fn);},get pending(){return listeners.size;},
  load(){this.complete=true;for(const fn of [...listeners]){listeners.delete(fn);fn();}}
  };
@@ -41,4 +41,16 @@ test('non-square logo keeps existing crop calculation and preserves the original
  assert.equal(item.style.width,`${200/46*100}%`);assert.equal(item.style.height,`${100/46*100}%`);
  assert.equal(item.src,'https://example.com/logo.png');
  fixture.run();assert.equal(fixture.stats().probes,1);
+});
+
+test('job detail logos also trim padding in square uploads',()=>{
+ const item=image(100,100);item.classes.add('detail-logo');
+ const pixels=new Uint8ClampedArray(200*100*4);
+ for(let y=0;y<100;y++)for(let x=0;x<200;x++){
+  const offset=(y*200+x)*4;const ink=x>=80&&x<120&&y>=40&&y<60;
+  pixels[offset]=pixels[offset+1]=pixels[offset+2]=ink?0:255;pixels[offset+3]=255;
+ }
+ const fixture=context([item],pixels);fixture.run();item.load();
+ assert.ok(item.classes.has('is-trimmed-logo'));
+ assert.equal(item.src,'https://example.com/logo.png');
 });
