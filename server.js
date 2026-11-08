@@ -1,6 +1,7 @@
 import {withOptionalBudget} from './optional-work.js';
 import {createResilientHandler} from './http-resilience.mjs';
 import {streamAsset} from './stream-asset.mjs';
+import {isPrivateStaticPath} from './private-static-path.mjs';
 import {adminDomainRedirect,isPublicAdminLogin} from './admin-domain.mjs';
 import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
@@ -177,6 +178,10 @@ const requestHandler = createResilientHandler(async (req, res) => {
   let path;
   try { path = decodeURIComponent(requestUrl.pathname); }
   catch { res.writeHead(400, {'Content-Type':'text/plain'}); return res.end('Invalid URL'); }
+  if(isPrivateStaticPath(path)) {
+    res.writeHead(404,{'Content-Type':'text/plain','Cache-Control':'no-store','X-Robots-Tag':'noindex'});
+    return res.end('Not found');
+  }
   if(isPublicAdminLogin(path)){
     res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow'});
     return res.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>404 — Page not found</title><main><h1>404 — Page not found</h1><p>The requested page could not be found.</p><a href="/">Return to homepage</a></main></html>');
