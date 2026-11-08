@@ -1,4 +1,6 @@
 import {withOptionalBudget} from './optional-work.js';
+import {createResilientHandler} from './http-resilience.mjs';
+import {streamAsset} from './stream-asset.mjs';
 import {adminDomainRedirect,isPublicAdminLogin} from './admin-domain.mjs';
 import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
@@ -170,7 +172,7 @@ function dataUrlBytes(value) {
 const legacyRedirects = JSON.parse(readFileSync(join(root,'legacy-redirects.json'),'utf8'));
 const migrationTaxonomies = (()=>{try{return JSON.parse(readFileSync(join(dataDir,'taxonomies.json'),'utf8'));}catch{return {};}})();
 
-const server = http.createServer(async (req, res) => {
+const requestHandler = createResilientHandler(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   let path;
   try { path = decodeURIComponent(requestUrl.pathname); }
@@ -1292,6 +1294,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    if(['.png','.jpg','.jpeg','.webp','.gif','.avif','.mp4','.woff','.woff2','.ttf','.ico','.pdf'].includes(extname(target))) {
+      return await streamAsset(req,res,target,types[extname(target)]||'application/octet-stream',{
+        immutable:requestUrl.searchParams.has('v'),
+        versioned:requestUrl.searchParams.has('v')||['.png','.jpg','.jpeg','.webp','.gif','.avif','.mp4','.woff','.woff2'].includes(extname(target))
+      });
+    }
     let fileBody = await readFile(target);
     if (path === '/sitemap.xml') fileBody = cleanSitemapIndex(fileBody.toString());
     if (path === '/' && target === join(root,'index.html')) {
@@ -1383,11 +1391,23 @@ const server = http.createServer(async (req, res) => {
       versioned: requestUrl.searchParams.has('v') || ['.png','.jpg','.jpeg','.webp','.gif','.avif','.svg','.mp4','.woff','.woff2'].includes(extname(target))
     });
   } catch {
+    if(res.headersSent || res.destroyed){res.destroy();return;}
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not found');
   }
-});
+}, {maxActive:32,livePath:'/_health/live'});
 
+const server = http.createServer({requestTimeout:120000,headersTimeout:60000},requestHandler);
 server.listen(port, host, () => {
   console.log(`Trikonet Server listening on http://${host}:${port}`);
 });
+
+const logResourceUsage=()=>{
+  const {rss,heapUsed,external}=process.memoryUsage();
+  const mib=bytes=>Math.round(bytes/1048576);
+  console.log(JSON.stringify({event:'resource_usage',service:'frontend',pid:process.pid,
+    uptimeSeconds:Math.round(process.uptime()),rssMiB:mib(rss),heapUsedMiB:mib(heapUsed),
+    externalMiB:mib(external),...requestHandler.metrics()}));
+};
+logResourceUsage();
+setInterval(logResourceUsage,60000).unref();

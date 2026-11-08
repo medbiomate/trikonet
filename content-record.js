@@ -3,7 +3,11 @@ export async function fetchContentResponse(fetcher, url) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const response = await fetcher(url, {signal:AbortSignal.timeout(30000)});
-      if (response.status >= 500 && attempt === 0) continue;
+      if (response.status >= 500 && attempt === 0) {
+        // Release the failed response before retrying so its connection is reusable.
+        if (response.body) await response.body.cancel().catch(()=>{});
+        continue;
+      }
       return response;
     } catch (error) { if (attempt === 1) throw error; }
   }
