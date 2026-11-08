@@ -14,3 +14,9 @@ test('a final 503 is returned to the caller without a retry storm',async()=>{
   const result=await fetchContentResponse(async()=>{calls++;return {status:503};},'https://example.test/job');
   assert.equal(result.status,503);assert.equal(calls,2);
 });
+test('explicit overload backoff is respected instead of immediately retrying',async()=>{
+  let calls=0;
+  const response={status:503,headers:new Headers({'Retry-After':'5'})};
+  const result=await fetchContentResponse(async()=>{calls++;return response;},'https://example.test/job');
+  assert.equal(result,response);assert.equal(calls,1);
+});
