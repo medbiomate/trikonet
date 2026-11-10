@@ -1339,13 +1339,14 @@ const requestHandler = createResilientHandler(async (req, res) => {
       if(path.startsWith('/job-location/'))params.set('location',path.slice('/job-location/'.length).replace(/-/g,' '));
       try {
         const countParams=new URLSearchParams(params);countParams.set('type','job_listing');countParams.delete('page');countParams.delete('per_page');
-        const [rawJobs,countData]=await Promise.all([
+        const listing=await withOptionalBudget(Promise.all([
           readPublicListing(`${seoApiBase}/api/public/jobs?${params}`),
           readPublicListing(`${seoApiBase}/api/wp/count?${countParams}`).catch(()=>({total:null}))
-        ]);
-        const {total}=countData;
+        ]),null,2000);
+        if(!listing)throw Error('Job listing unavailable within the page response budget');
+        const [rawJobs,{total}]=listing;
         // Optional logo lookups must not hold the HTML response for several seconds.
-        const jobs=await Promise.race([resolveJobLogos(rawJobs),new Promise(resolve=>setTimeout(()=>resolve(rawJobs),300))]);
+        const jobs=await withOptionalBudget(resolveJobLogos(rawJobs),rawJobs,300);
         if(Number(requestUrl.searchParams.get('page')||1)>1 && jobs.length===0){
           res.writeHead(404,{'Content-Type':'text/html; charset=utf-8','X-Robots-Tag':'noindex,follow','Cache-Control':'no-store'});
           return res.end('<h1>404</h1><p>This results page does not exist.</p><a href="/jobs">Browse current jobs</a>');
