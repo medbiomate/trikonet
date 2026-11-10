@@ -236,14 +236,14 @@ const requestHandler = createResilientHandler(async (req, res) => {
   }
   if (/^\/(job|jobs)\/[^/]+\/?$/.test(path) && ['GET','HEAD'].includes(req.method) && !requestUrl.searchParams.has('preview') && !requestUrl.searchParams.has('draft')) {
     try {
-      const response = await fetchContentResponse(fetch, `${process.env.TRIKONET_API_BASE || 'https://api.trikonet.com'}/api/job-url?path=${encodeURIComponent(path)}`);
+      const response = await fetchContentResponse(fetch, `${process.env.TRIKONET_API_BASE || 'https://api.trikonet.com'}/api/job-url?path=${encodeURIComponent(path)}`, AbortSignal.timeout(5000));
       if (response.ok) {
         resolvedJobUrl = await response.json();
         if (path !== resolvedJobUrl.publicPath) { res.writeHead(301,{Location:resolvedJobUrl.publicPath}); return res.end(); }
         path = `/job/${resolvedJobUrl.slug}`;
       } else if (response.status === 404) { res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex'}); return res.end('<h1>404</h1>'); }
       else throw new Error('Job URL service unavailable');
-    } catch { res.writeHead(503,{'Content-Type':'text/html','Cache-Control':'no-store'}); return res.end('<h1>Page temporarily unavailable</h1>'); }
+    } catch { res.writeHead(503,{'Content-Type':'text/html','Cache-Control':'no-store','Retry-After':'5'}); return res.end('<h1>Job temporarily unavailable</h1><p>Reload this page in a moment to try again.</p><a href="/jobs">Browse jobs</a>'); }
   }
   const legacyJob = path.match(/^\/jobs\/([^/]+)\/?$/);
   if (legacyJob && ['GET','HEAD'].includes(req.method)) {
