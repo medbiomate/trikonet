@@ -53,6 +53,7 @@ function jobsRetryNotice() {
   return `<span role="status">Jobs could not load. <a href="${escapeAttr(location.pathname + location.search)}">Retry</a></span>`;
 }
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
+let listingLinksReady;
 async function loadSeoPages() {
   if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || path === '/employers' || legalPageForPath(path)) return;
   if (MEMBER_PATHS.includes(path) || document.getElementById('public-content-data')) return;
@@ -65,6 +66,8 @@ async function loadSeoPages() {
     else {const linksResponse=await fetch('/api/job-category-links',{signal:AbortSignal.timeout(3000)});if(linksResponse.ok)seoInternalLinks=await linksResponse.json();}
     } catch {}
   })();
+  const jobListing = path === '/jobs' || path.startsWith('/category/');
+  if (jobListing) listingLinksReady = linksReady;
   try {
     const destinationSlug=path.startsWith('/category/') ? path.slice('/category/'.length) : path.slice(1);
     if(['/', '/jobs','/job-list','/job-openings','/job-categories','/employers'].includes(path) || destinationSlug.includes('/'))return;
@@ -78,7 +81,7 @@ async function loadSeoPages() {
       }
     }
     else if(payload.seoPage)seoPageDraft=true;
-  }catch{} finally { await linksReady; }
+  }catch{} finally { if (!jobListing) await linksReady; }
 }
 function slugifyCategory(cat) {
   const str = (typeof cat === 'object' && cat !== null) ? (cat.slug || cat.name) : String(cat || '');
@@ -3227,8 +3230,22 @@ restoreEmployerTab();
 window.addEventListener('popstate', restoreEmployerTab);
 document.querySelector('#app').removeAttribute('data-seo-pending');
 document.getElementById('seo-loading')?.remove();
-if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
+function appendListingCategoryLinks() {
+  if (seoPagePayload || !(path.startsWith('/category/') || path==='/jobs')) return;
   const category=path.startsWith('/category/')?findCategoryBySlug(path.slice('/category/'.length))?.name:queryParams.get('category');
+  const mainPages = new Map(seoInternalLinks.filter(page => page.pageType === 'main_category').map(page => [page.category, page.href]));
+  for (const tag of document.querySelectorAll('.nurse-tag-category')) {
+    const href = mainPages.get(tag.textContent);
+    if (!href) continue;
+    if (tag.tagName === 'A') tag.setAttribute('href', href);
+    else {
+      const link = document.createElement('a');
+      link.className = tag.className;
+      link.textContent = tag.textContent;
+      link.setAttribute('href', href);
+      tag.replaceWith(link);
+    }
+  }
   const links=seoInternalLinks.filter(p=>!category || p.category===category);
   if(links.length){
     const module=document.createElement('section');module.className='container';module.style.padding='24px 0';
@@ -3236,6 +3253,7 @@ if(!seoPagePayload && (path.startsWith('/category/') || path==='/jobs')){
     document.querySelector('#app main')?.append(module);
   }
 }
+if (listingLinksReady) void listingLinksReady.then(appendListingCategoryLinks);
 fitEmployerLogos();
 initMobileEmployerFollow();
 initMobileApplyAfterCompany();
