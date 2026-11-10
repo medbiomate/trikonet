@@ -1382,6 +1382,9 @@ const requestHandler = createResilientHandler(async (req, res) => {
     if (shareHead && target === join(root,'index.html')) {
       fileBody=fileBody.toString().replace(/<title>[\s\S]*?<\/title>/gi,'').replace(/<meta[^>]+(?:name=["'](?:description|twitter:[^"']+)|property=["']og:[^"']+)["'][^>]*>/gi,'').replace(/<link[^>]+rel=["']canonical["'][^>]*>/gi,'').replace('</head>',shareHead+'</head>');
     }
+    if (publicContentRecord && ['job_listing','employer'].includes(contentType) && target === join(root,'index.html')) {
+      fileBody = fileBody.toString().replace('</head>', '<link rel="modulepreload" href="/detail-pages.js?v=20261110-detail-loading"></head>');
+    }
     if (publicContentRecord && contentType === 'job_listing' && target === join(root,'index.html')) fileBody = injectInitialJob(fileBody.toString(),publicContentRecord,resolvedJobUrl?.publicPath || path);
     if (publicContentRecord && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="public-content-data" type="application/json">${JSON.stringify(publicContentRecord).replace(/</g,'\u003c')}</script></head>`);
     if (resolvedJobUrl && target === join(root,'index.html')) fileBody = fileBody.toString().replace('</head>', `<script id="job-url-data" type="application/json">${JSON.stringify(resolvedJobUrl).replace(/</g,'\u003c')}</script></head>`);

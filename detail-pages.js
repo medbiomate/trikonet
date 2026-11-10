@@ -662,7 +662,7 @@ export function renderEmployerDetail(record, path, jobs = []) {
       ];
     });
   }
-  if (!positions.length && isBateel && !record.jobPagination && !record.jobsLoadError) positions = bateelJobs;
+  if (!positions.length && isBateel && !record.jobPagination && !record.jobsLoadError && !record.jobsLoading) positions = bateelJobs;
 
   // Count only the vacancies actually matched to this employer. API page-size
   // limits and stale employer metadata must never be shown as a job count.
@@ -812,7 +812,7 @@ export function renderEmployerDetail(record, path, jobs = []) {
       <!-- Navigation Tabs Bar -->
       <div class="emp-profile-tabs-strip">
         <button type="button" class="emp-profile-tab-item active" data-tab="overview">Overview</button>
-        <button type="button" class="emp-profile-tab-item" data-tab="jobs">Jobs <span class="emp-tab-badge">${totalOpenJobs}</span></button>
+        <button type="button" class="emp-profile-tab-item" data-tab="jobs">Jobs <span class="emp-tab-badge">${record.jobsLoading ? '…' : totalOpenJobs}</span></button>
         <button type="button" class="emp-profile-tab-item" data-tab="reviews">Reviews <span class="emp-tab-badge" id="empTabReviewsBadge">${reviewCount || 0}</span></button>
       </div>
 
@@ -890,13 +890,13 @@ export function renderEmployerDetail(record, path, jobs = []) {
           <div class="emp-tab-panel" id="panel-jobs" data-panel="jobs">
             <section class="emp-card-block">
               <div class="emp-card-header-flex">
-                <h2 class="emp-card-title">Open Positions at ${esc(title)} (${totalOpenJobs})</h2>
+                <h2 class="emp-card-title">Open Positions at ${esc(title)} ${record.jobsLoading ? '' : `(${totalOpenJobs})`}</h2>
                 <a href="/jobs?q=${encodeURIComponent(title)}" class="emp-card-sublink">View all on search portal →</a>
               </div>
               <div class="emp-positions-list">
                 ${positions.length ? pagePositions.map(item => jobCard(item, logo)).join('') : `
                   <div class="emp-no-jobs-box">
-                    <p>${record.jobsLoadError ? 'Openings could not be loaded. Reload the page to try again.' : `No active openings currently published for ${esc(title)}. Check back regularly for new vacancies.`}</p>
+                    <p>${record.jobsLoading ? 'Loading openings…' : record.jobsLoadError ? 'Openings could not be loaded. Reload the page to try again.' : `No active openings currently published for ${esc(title)}. Check back regularly for new vacancies.`}</p>
                   </div>
                 `}
               </div>

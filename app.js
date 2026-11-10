@@ -327,6 +327,7 @@ async function loadAccount(){
     if(path.startsWith('/admin') && currentUser){const campaigns=await fetch('/api/email-campaigns');if(campaigns.ok)emailCampaigns=await campaigns.json()}
   }catch{if(currentUser)currentUser.profileLoadError=true;}
 }
+let employerJobsReady;
 let jobExtrasReady;
 async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{const embedded=document.getElementById('public-content-data');
 wpRecord=embedded?JSON.parse(embedded.textContent):await loadContentRecord(fetch,'',type,slug);if(type==='job_listing'){jobExtrasReady=(async()=>{try{let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){wpEmployer=await loadContentRecord(fetch,'','employer',employerSlug);}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
@@ -358,6 +359,7 @@ if (cats.length) {
 const fieldValues=value=>value&&typeof value==='object'?Object.values(value).join(', '):'';
 async function loadEmployerJobPage() {
   if (!wpRecord?.slug) return;
+  wpRecord.jobsLoading = true;
   const page = new URLSearchParams(location.search).get('jobsPage') || '1';
   try {
     const response = await fetch(`/api/employer-jobs/${encodeURIComponent(wpRecord.slug)}?page=${encodeURIComponent(page)}`);
@@ -366,6 +368,7 @@ async function loadEmployerJobPage() {
     profileJobs = result.jobs.map(mapJob);
     wpRecord.jobPagination = {total:result.total,page:result.page};
   } catch { profileJobs = []; wpRecord.jobsLoadError = true; }
+  finally { wpRecord.jobsLoading = false; }
 }
 export function formatJobDate(value) {
   if (!value) return '';
@@ -3160,7 +3163,7 @@ if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sig
 // Detail renderers are only needed on job and employer pages. Fetch them
 // alongside page data instead of blocking every page's module startup.
 if (path.startsWith('/job/') || path.startsWith('/employer/')) {
-  initialLoads.push(import('./detail-pages.js?v=20261110-public-directory').then(module => {
+  initialLoads.push(import('./detail-pages.js?v=20261110-detail-loading').then(module => {
     renderJobDetail = module.renderJobDetail;
     renderEmployerDetail = module.renderEmployerDetail;
   }));
@@ -3172,7 +3175,9 @@ else if(path==='/employers')initialLoads.push(loadLocalEmployers(),prepareDirect
 else if(path.startsWith('/job/'))initialLoads.push(loadWordPressRecord().then(() => {
   if (wpRecord && (wpRecord.autosaved || String(wpRecord.slug || '').startsWith('autosave-') || !['publish','published','active',''].includes(String(wpRecord.status || '').toLowerCase()))) wpRecord = null;
 }));
-else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord().then(loadEmployerJobPage));
+else if(path.startsWith('/employer/'))initialLoads.push(loadWordPressRecord().then(() => {
+  if (wpRecord) employerJobsReady = loadEmployerJobPage();
+}));
 else if(path==='/blog'||path.startsWith('/blog/')||POST_SLUG_PREFIXES[path.split('/').filter(Boolean).at(-1)])initialLoads.push(loadConnectedContent());
 else if (!['/about','/contact','/faq','/services/medical-coder-class','/medical-coder-class'].includes(path)) initialLoads.push(loadConnectedContent());
 const adminSessionReady = refreshAdminSession();
@@ -4767,6 +4772,15 @@ if (homeContentReady) {
 
 // Supplemental sections must not hold the description or Apply controls behind
 // the full-page loader. Replace only these sections after their data arrives.
+if (employerJobsReady) employerJobsReady.then(() => {
+  const updated = new DOMParser().parseFromString(renderEmployerDetail(wpRecord,path,profileJobs), 'text/html');
+  for (const selector of ['#panel-jobs .emp-card-block', '[data-tab="jobs"] .emp-tab-badge']) {
+    const next = updated.querySelector(selector);
+    if (next) document.querySelector(selector)?.replaceWith(next);
+  }
+  protectJobNavigation();
+}).catch(error => console.warn('Company openings refresh unavailable:', error));
+
 if (jobExtrasReady) jobExtrasReady.then(() => {
   if (!wpRecord) return;
   const updated = new DOMParser().parseFromString(render(), 'text/html');
