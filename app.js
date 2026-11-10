@@ -49,6 +49,9 @@ const resolvedJobUrl = JSON.parse(document.getElementById('job-url-data')?.textC
 let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.replace(/\/$/,'')||'/';
 const SITE_ORIGIN='https://www.trikonet.com';
 const MEMBER_PATHS=['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile','/saved-jobs','/applied-jobs','/followed-companies'];
+function jobsRetryNotice() {
+  return `<span role="status">Jobs could not load. <a href="${escapeAttr(location.pathname + location.search)}">Retry</a></span>`;
+}
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 async function loadSeoPages() {
   if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || path === '/employers' || legalPageForPath(path)) return;
@@ -461,15 +464,6 @@ async function loadLocalJobs(){
   if(embedded){try{const total=Number(embedded.dataset.total);if(Number.isFinite(total)){data.counts.job_listing=total;data.counts.category=total;data.counts.nurse=total;}data.jobs=JSON.parse(embedded.textContent).map(mapJob);return;}catch{}}
   try{
     const isCategoryPage = path.startsWith('/category/');
-    if (isCategoryPage && (!data.taxonomies?.categories || data.taxonomies.categories.length <= defaultTopCategories.length)) {
-      try {
-        const taxRes = await fetchTaxonomies();
-        if (taxRes.ok) {
-          data.taxonomies = await taxRes.json();
-          if (Array.isArray(data.taxonomies?.locations)) data.taxonomies.locations = sortUaeLocations(data.taxonomies.locations);
-        }
-      } catch {}
-    }
     const catSlug = isCategoryPage ? path.replace('/category/', '').split('/')[0].split('?')[0] : '';
     const catObj = isCategoryPage ? findCategoryBySlug(catSlug) : null;
     const pageLimit = jobsPageSize;
@@ -481,9 +475,11 @@ async function loadLocalJobs(){
       const val=queryParams.get(key);
       if(val&&val!=='Country or City'&&val!=='All Categories')filters.set(key,val);
     }
+    filters.sort();
     const response=await fetch(`/api/public/jobs?${filters}`, {signal:AbortSignal.timeout(12000)});
     if(!response.ok)throw Error('Jobs unavailable');
     const jobs=await response.json();
+    if(!Array.isArray(jobs))throw Error('Invalid jobs response');
     data.jobs=(await withOptionalBudget(resolveJobLogos(jobs),jobs,300)).map(mapJob);
   }catch(error){data.jobs=[];data.jobsLoadError=true;console.warn('Job listing unavailable:',error.message);}
 }
@@ -1198,7 +1194,7 @@ function jobs(){
       <section class="jobs-main-content nurse-results-main">
         <div class="listing-top-bar nurse-results-tools">
           <div class="nurse-tools-top">
-            <span class="listing-top-sub nurse-tools-count">${total ? `Showing <b>${start} – ${end}</b> ${qTerm ? `jobs for “${escapeAttr(qTerm)}”` : 'database jobs'}` : 'No jobs found for these filters'}</span>
+            <span class="listing-top-sub nurse-tools-count">${data.jobsLoadError ? 'Jobs could not load' : total ? `Showing <b>${start} – ${end}</b> ${qTerm ? `jobs for “${escapeAttr(qTerm)}”` : 'database jobs'}` : 'No jobs found for these filters'}</span>
             <div class="listing-top-actions nurse-tools-actions">
               <select class="jobs-sort-select nurse-sort-select" aria-label="Sort jobs">
                 <option value="default">Most Relevant</option>
@@ -1219,6 +1215,7 @@ function jobs(){
           </div>
         ` : ''}
 
+        ${data.jobsLoadError ? jobsRetryNotice() : ''}
         <div class="job-grid">${data.jobs.map(j => {
           const cleanTitle = decodeHtml(typeof j.title === 'string' ? j.title : j.title?.rendered || '').trim();
           const rawCompany = (j.company || j.employerName || '').trim();
@@ -1458,7 +1455,7 @@ function nurseJobsPage(){
       <section class="nurse-results-main">
         <div class="nurse-results-tools">
           <div class="nurse-tools-top">
-            <span class="nurse-tools-count">Showing <b>${start} – ${end}</b> Nurse Jobs</span>
+            <span class="nurse-tools-count">${data.jobsLoadError ? jobsRetryNotice() : `Showing <b>${start} – ${end}</b> Nurse Jobs`}</span>
             <div class="nurse-tools-actions">
               <select class="nurse-sort-select" aria-label="Sort listings">
                 <option>Most Relevant</option>

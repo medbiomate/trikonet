@@ -12,7 +12,7 @@ function renderJobFallback(jobs,{path='/jobs',category='',query='',total=jobs.le
  return `<article class="nurse-job-card standard-job-card"><div class="nurse-card-top">${job.logo || job.metas?._job_logo ? `<div class="nurse-card-logo"><img src="${esc(job.logo || job.metas._job_logo)}" alt="${esc(company)}" width="80" height="80" style="object-fit:contain"></div>` : ''}<div class="nurse-card-info"><a class="nurse-job-title-link" data-google-vignette="false" href="${esc(publicJobPath(job))}"><h2>${esc(job.title)}</h2></a><p>${esc(company)}</p><p>${esc(location)}</p><p class="nurse-job-excerpt">${esc(job.excerpt).slice(0,280)}</p></div></div><div class="nurse-card-footer"><a class="nurse-view-job-btn" data-google-vignette="false" href="${esc(publicJobPath(job))}">View Job →</a></div></article>`;
  }).join('')}</div>${!jobs.length?'<p>No jobs match these filters.</p>':''}${pagination}</section></main>`;
 }
-export function renderInitialJobs(jobs,options={}) {
+export function renderListingSkeleton(path='/jobs', label='Loading jobs') {
  const bar=(width='100%')=>`<span class="jobs-skeleton-bar" style="width:${width}"></span>`;
  const cards=Array.from({length:5},()=>`<div class="jobs-skeleton-card"><div class="jobs-skeleton-row"><span class="jobs-skeleton-logo"></span><div class="jobs-skeleton-copy">${bar('65%')}${bar('40%')}${bar('50%')}</div></div>${bar()}${bar('85%')}<div class="jobs-skeleton-row">${bar('25%')}${bar('25%')}</div></div>`).join('');
  return `<style>
@@ -25,7 +25,10 @@ export function renderInitialJobs(jobs,options={}) {
  @keyframes jobs-skeleton-pulse{50%{opacity:.45}}
  @media(max-width:850px){.jobs-loading-shell{padding:20px 16px}.jobs-skeleton-layout{grid-template-columns:1fr}.jobs-skeleton-filters{display:none}.jobs-skeleton-card{padding:20px}}
  @media(prefers-reduced-motion:reduce){.jobs-skeleton-bar,.jobs-skeleton-logo{animation:none}}
- </style>${renderSiteHeader({path:options.path||'/jobs'})}<main class="jobs-loading-shell" role="status" aria-label="Loading jobs" aria-busy="true"><div aria-hidden="true"><div class="jobs-skeleton-hero">${bar('35%')}${bar()}</div><div class="jobs-skeleton-layout"><aside class="jobs-skeleton-filters">${Array.from({length:9},()=>bar('80%')).join('')}</aside><div>${cards}</div></div></div></main><div class="jobs-loading-fallback" hidden>${renderJobFallback(jobs,options)}</div><noscript><style>#app>.topbar:has(~.jobs-loading-shell),.jobs-loading-shell{display:none!important}.jobs-loading-fallback[hidden]{display:block!important}</style></noscript><script>(()=>{const app=document.getElementById('app');const restore=()=>{const fallback=app?.querySelector('.jobs-loading-fallback');if(fallback)app.replaceChildren(...fallback.childNodes)};window.addEventListener('trikonet:failed',restore,{once:true});setTimeout(restore,12000)})()</script>`;
+ </style>${renderSiteHeader({path:path})}<main class="jobs-loading-shell" role="status" aria-label="${esc(label)}" aria-busy="true"><div aria-hidden="true"><div class="jobs-skeleton-hero">${bar('35%')}${bar()}</div><div class="jobs-skeleton-layout"><aside class="jobs-skeleton-filters">${Array.from({length:9},()=>bar('80%')).join('')}</aside><div>${cards}</div></div></div></main>`;
+}
+export function renderInitialJobs(jobs,options={}) {
+ return `${renderListingSkeleton(options.path)}<div class="jobs-loading-fallback" hidden>${renderJobFallback(jobs,options)}</div><noscript><style>#app>.topbar:has(~.jobs-loading-shell),.jobs-loading-shell{display:none!important}.jobs-loading-fallback[hidden]{display:block!important}</style></noscript><script>(()=>{const app=document.getElementById('app');const restore=()=>{const fallback=app?.querySelector('.jobs-loading-fallback');if(fallback)app.replaceChildren(...fallback.childNodes)};window.addEventListener('trikonet:failed',restore,{once:true});setTimeout(restore,12000)})()</script>`;
 }
 export function injectInitialJobs(html,jobs,options) {
  const start=html.indexOf('<div id="app">'),end=html.indexOf('<style>',start);

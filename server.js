@@ -1337,6 +1337,7 @@ const requestHandler = createResilientHandler(async (req, res) => {
       if(path==='/nurse-jobs-in-uae'&&!params.get('q'))params.set('q','nurse');
       if(path.startsWith('/job-location/'))params.set('location',path.slice('/job-location/'.length).replace(/-/g,' '));
       try {
+        params.sort();
         const countParams=new URLSearchParams(params);countParams.set('type','job_listing');countParams.delete('page');countParams.delete('per_page');
         const listing=await withOptionalBudget(Promise.all([
           readPublicListing(`${seoApiBase}/api/public/jobs?${params}`),
