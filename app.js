@@ -2,7 +2,6 @@ import {withOptionalBudget} from './optional-work.js';
 import {renderHomeCategories, defaultTopCategories} from './home-categories.js';
 import {initMobileEmployerFollow, initMobileApplyAfterCompany} from './mobile-job-actions.js?v=20261102-mobile-card-only';
 import {initSearchCategoryPickers} from './category-picker.js?v=20261031-both-2';
-import {recentEmployerPage} from './recent-employers.js';
 import {createJobLogoResolver} from './job-employer-logo.js';
 const resolveJobLogos = createJobLogoResolver((...args) => fetch(...args));
 import {renderEmployerDirectory} from './employer-directory.js?v=20261031-recent-companies';
@@ -345,18 +344,12 @@ const extractJobCats = (rec) => {
 const cats = extractJobCats(wpRecord).filter(c => c && c.toLowerCase() !== 'all categories');
 if (cats.length) {
   try {
-    const catPromises = cats.slice(0, 2).map(c =>
-      fetch(`/api/wp/job_listing?category=${encodeURIComponent(c)}&per_page=25&_fields=id,slug,title,status,date,metas`)
-        .then(r => r.ok ? r.json() : [])
+    const catResults = await Promise.all(cats.slice(0, 2).map(category =>
+      fetch('/api/public/jobs?' + new URLSearchParams({category,per_page:'12'}))
+        .then(response => response.ok ? response.json() : [])
         .catch(() => [])
-    );
-    const catResults = await Promise.all(catPromises);
-    const localResponse=await fetch('/api/local/jobs');
-    const localCandidates=localResponse.ok?await localResponse.json():[];
-    const localRelated=localCandidates.filter(job=>extractJobCats(job).some(category=>cats.some(c=>c.toLowerCase()===category.toLowerCase())));
-    const overrides=new Map(localCandidates.map(job=>[job.slug,job]));
-    const publishedTime=job=>Date.parse(job.publishedAt||job.publishedDate || job.datePosted || job.postedDate || job.date || job.createdAt || '') || 0;
-    categoryJobs=uniqueJobs([...catResults.flat().map(job=>overrides.get(job.slug)||job),...localRelated]).filter(job=>job && job.slug).sort((a,b)=>publishedTime(b)-publishedTime(a));
+    ));
+    categoryJobs=uniqueJobs(catResults.flat()).filter(job=>job?.slug);
   } catch {}
 }}catch(error){console.warn('Related job data unavailable:',error);}})();}}catch{wpRecord=null}}
 const fieldValues=value=>value&&typeof value==='object'?Object.values(value).join(', '):'';
@@ -482,14 +475,16 @@ async function loadLocalJobs(){
     const pageLimit = jobsPageSize;
     const filters=new URLSearchParams({per_page:String(pageLimit),page:String(currentPage)});
     if(path==='/nurse-jobs-in-uae'&&!queryParams.get('q'))filters.set('q','nurse');
-    if(isCategoryPage && catObj && !queryParams.get('category')) filters.set('category', catObj.name);
+    if(isCategoryPage && !queryParams.get('category')) filters.set('category', catObj?.name || catSlug.replace(/-/g,' '));
+    if(path.startsWith('/job-location/'))filters.set('location',path.slice('/job-location/'.length).replace(/-/g,' '));
     for(const key of ['q','location','category','job_type']){
       const val=queryParams.get(key);
       if(val&&val!=='Country or City'&&val!=='All Categories')filters.set(key,val);
     }
     const response=await fetch(`/api/public/jobs?${filters}`, {signal:AbortSignal.timeout(12000)});
     if(!response.ok)throw Error('Jobs unavailable');
-    data.jobs=(await resolveJobLogos(await response.json())).map(mapJob);
+    const jobs=await response.json();
+    data.jobs=(await withOptionalBudget(resolveJobLogos(jobs),jobs,300)).map(mapJob);
   }catch(error){data.jobs=[];data.jobsLoadError=true;console.warn('Job listing unavailable:',error.message);}
 }
 async function loadLocalEmployers(){
@@ -497,40 +492,14 @@ async function loadLocalEmployers(){
   const embedded=document.getElementById('initial-employer-list');
   if(embedded){try{const payload=JSON.parse(embedded.textContent);data.employers=payload.employers;data.employerResultTotal=payload.total;return}catch{}}
   try{
-    if(queryParams.get('sort')==='recent'){
-      const result=await recentEmployerPage(async path=>{const response=await fetch(path);if(!response.ok)throw Error('Companies unavailable');return response.json();},queryParams,pageSize);
-      data.employers=result.employers.map(record=>({...record,title:record.title?.rendered??record.title??'',logo:record.logo||record.metas?._employer_logo||record.metas?._employer_featured_image||'',categories:record.categories||Object.values(record.metas?._employer_category||{}),locations:record.locations||Object.values(record.metas?._employer_location||{}),openJobs:Number(record.openJobs??record.metas?._employer_open_jobs)||0}));
-      data.employerResultTotal=result.total;return;
-    }
     const filters=new URLSearchParams({per_page:String(pageSize),page:String(currentPage)});
-    for(const key of ['q','location','category','min_jobs'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
-    const [wpResponse,localResponse,localJobsResponse]=await Promise.all([fetch(`/api/wp/employer?${filters}`),fetch('/api/local/employers').catch(()=>null),Promise.resolve(null)]);
-    if(!wpResponse.ok)throw Error('Employers unavailable');
-    const wp=await wpResponse.json();
-    const local=localResponse?.ok?await localResponse.json():[];
-    const localJobs=localJobsResponse?.ok?await localJobsResponse.json():[];
-    const normalizedKey=value=>String(value||'').trim().toLowerCase();
-    const localJobCounts=localJobs.reduce((counts,job)=>{
-      if((job.status||'publish')!=='publish'||job.filled===true)return counts;
-      const keys=new Set([normalizedKey(job.employerSlug),normalizedKey(job.company)].filter(Boolean));
-      keys.forEach(key=>counts.set(key,(counts.get(key)||0)+1));
-      return counts;
-    },new Map());
-    const mapWp=record=>{const m=record.metas||{};return {title:record.title?.rendered||record.title||'',slug:record.slug,description:record.content?.rendered||'',logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',categories:Object.values(m._employer_category||{}),locations:Object.values(m._employer_location||{}),email:m._employer_email||'',phone:m._employer_phone||'',website:m._employer_website||'',openJobs:Number(m._employer_open_jobs)||0,source:'database'}};
-    const mapLocal=record=>({title:record.title||'',slug:record.slug||'',description:record.description||'',logo:record.logo||'',categories:Array.isArray(record.categories)?record.categories:[],locations:Array.isArray(record.locations)?record.locations:[],email:record.email||'',phone:record.phone||'',website:record.website||'',openJobs:Math.max(Number(record.openJobs)||0,localJobCounts.get(normalizedKey(record.slug))||0,localJobCounts.get(normalizedKey(record.title))||0),status:record.status||'publish',local:true,source:'local'});
-    const q=String(queryParams.get('q')||'').trim().toLowerCase();
-    const location=String(queryParams.get('location')||'').trim().toLowerCase();
-    const category=String(queryParams.get('category')||'').trim().toLowerCase();
-    const minJobs=Number(queryParams.get('min_jobs')||0);
-    const matches=employer=>{
-      const text=[employer.title,employer.description,employer.email,employer.website,...(employer.categories||[]),...(employer.locations||[])].filter(Boolean).join(' ').toLowerCase();
-      return (!q||text.includes(q))&&(!location||(employer.locations||[]).some(item=>String(item).toLowerCase().includes(location)))&&(!category||(employer.categories||[]).some(item=>String(item).toLowerCase().includes(category)))&&(!minJobs||Number(employer.openJobs||0)>=minJobs);
-    };
-    const wpMapped=wp.map(mapWp).filter(matches);
-    const localMatched=local.map(mapLocal).filter(item=>item.status==='publish').filter(matches);
-    const merged=[...(currentPage===1?localMatched:[]),...wpMapped];
-    data.employers=[...new Map(merged.map(item=>[item.slug||item.title.toLowerCase(),item])).values()].slice(0,pageSize);
-    data.employerResultTotal=q||location||category||minJobs?data.employers.length:Math.max(Number(data.counts?.employer||0)+localMatched.length,data.employers.length);
+    for(const key of ['q','location','category','min_jobs','sort'])if(queryParams.get(key))filters.set(key,queryParams.get(key));
+    const response=await fetch(`/api/public/employers?${filters}`,{signal:AbortSignal.timeout(8000)});
+    if(!response.ok)throw Error('Companies unavailable');
+    const {employers,total}=await response.json();
+    if(!Array.isArray(employers)||!Number.isFinite(total))throw Error('Invalid company response');
+    data.employers=employers;
+    data.employerResultTotal=total;
   }catch{data.employers=[];data.employersLoadError=true}
 }
 async function loadTopEmployers(){try{const res=await fetch('/api/wp/top-employers?min_jobs=20&limit=20', {signal:AbortSignal.timeout(10000)});if(res.ok){const list=await res.json();if(Array.isArray(list)&&list.length>0){data.topEmployers=list.map(record=>{const m=record.metas||{};const rawText=(record.content?.rendered||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();return {title:record.title?.rendered||'',slug:record.slug,excerpt:rawText.slice(0,120),logo:m._employer_logo||m._employer_featured_image_img||m._employer_featured_image||'',logoBackup:record.logoBackup||'',locations:Array.isArray(m._employer_location)?m._employer_location:Object.values(m._employer_location||{}),categories:Array.isArray(m._employer_category)?m._employer_category:Object.values(m._employer_category||{}),openJobs:Number(m._employer_open_jobs)||0,source:'database'}})}}}catch{}}
@@ -3194,7 +3163,7 @@ if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sig
 // Detail renderers are only needed on job and employer pages. Fetch them
 // alongside page data instead of blocking every page's module startup.
 if (path.startsWith('/job/') || path.startsWith('/employer/')) {
-  initialLoads.push(import('./detail-pages.js?v=20261102-rounded-apply').then(module => {
+  initialLoads.push(import('./detail-pages.js?v=20261110-public-directory').then(module => {
     renderJobDetail = module.renderJobDetail;
     renderEmployerDetail = module.renderEmployerDetail;
   }));

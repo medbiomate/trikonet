@@ -896,7 +896,7 @@ export function renderEmployerDetail(record, path, jobs = []) {
               <div class="emp-positions-list">
                 ${positions.length ? pagePositions.map(item => jobCard(item, logo)).join('') : `
                   <div class="emp-no-jobs-box">
-                    <p>No active openings currently published for ${esc(title)}. Check back regularly for new vacancies.</p>
+                    <p>${record.jobsLoadError ? 'Openings could not be loaded. Reload the page to try again.' : `No active openings currently published for ${esc(title)}. Check back regularly for new vacancies.`}</p>
                   </div>
                 `}
               </div>

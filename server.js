@@ -3,7 +3,6 @@ import {createResilientHandler} from './http-resilience.mjs';
 import {streamAsset} from './stream-asset.mjs';
 import {isPrivateStaticPath} from './private-static-path.mjs';
 import {adminDomainRedirect,isPublicAdminLogin} from './admin-domain.mjs';
-import {recentEmployerPage} from './recent-employers.js';
 import {createPublicListingCache} from './public-listing-cache.mjs';
 const readPublicListing=createPublicListingCache(fetch);
 import {legalPageForPath,renderLegalDocument} from './legal-pages.js';
@@ -1361,12 +1360,13 @@ const requestHandler = createResilientHandler(async (req, res) => {
     if(target===join(root,'index.html') && path==='/employers'){
       try{
         const params=new URLSearchParams(requestUrl.searchParams);params.set('per_page','10');
-        const recent=params.get('sort')==='recent' ? await recentEmployerPage(path=>readPublicListing(seoApiBase+path),params) : null;
-        const [employers,countData]=recent ? [recent.employers,{total:recent.total}] : await Promise.all([readPublicListing(`${seoApiBase}/api/wp/employer?${params}`),readPublicListing(`${seoApiBase}/api/wp/count?${new URLSearchParams([...params].filter(([key])=>!['page','per_page'].includes(key)).concat([['type','employer']]))}`)]);
+        const listing=await withOptionalBudget(readPublicListing(`${seoApiBase}/api/public/employers?${params}`),null,2000);
+        if(!listing)throw Error('Company directory unavailable within the page response budget');
+        const {employers,total}=listing;
         if(!Array.isArray(employers))throw Error('Invalid employer response');
         if(Number(params.get('page')||1)>1&&!employers.length){res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex,follow'});return res.end('<h1>404</h1>');}
-        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams,countData.total);
-      }catch(error){res.writeHead(503,{'Content-Type':'text/html','Retry-After':'120','Cache-Control':'no-store'});return res.end('<h1>Employers temporarily unavailable</h1>');}
+        fileBody=injectInitialEmployers(fileBody.toString(),employers.filter(isPublishedRecord),requestUrl.searchParams,total);
+      }catch(error){console.warn('Initial company directory unavailable:',error.message);res.setHeader('Cache-Control','no-store');}
     }
     if(target===join(root,'index.html') && ['/jobs','/job-list','/job-openings'].includes(path)){
       fileBody=fileBody.toString()

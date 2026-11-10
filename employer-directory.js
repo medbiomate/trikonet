@@ -4,7 +4,7 @@ const escapeAttr=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 const decodeHtml=value=>String(value??'').replace(/&amp;/g,'&').replace(/&#039;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
 export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize=10,pager=()=>''}) {
   const employersList = (data.employers || []);
-  const total = data.employerResultTotal ?? data.counts.employer ?? employersList.length;
+  const total = data.employersLoadError ? 0 : (data.employerResultTotal ?? data.counts.employer ?? employersList.length);
   const start = total ? (currentPage - 1) * pageSize + 1 : 0;
   const end = Math.min(start + employersList.length - 1, total);
   
@@ -296,9 +296,9 @@ export function renderEmployerDirectory({data,queryParams,currentPage=1,pageSize
             }).join('') : `
               <div class="emp-empty-card">
                 <h3>${data.employersLoadError?'Companies are temporarily unavailable':'No companies found'}</h3>
-                <p>Try adjusting your search keywords, location or company type filters.</p>
+                <p>${data.employersLoadError?'Reload this page to try again.':'Try adjusting your search keywords, location or company type filters.'}</p>
                 <div style="margin-top: 16px;">
-                  <a href="/employers" class="primary" style="display:inline-block; padding:8px 20px; border-radius:10px; background:#b00008; color:#fff; text-decoration:none; font-weight:600; font-size:13.5px;">View All Companies</a>
+                  <a href="${data.employersLoadError ? escapeAttr('/employers?'+queryParams) : '/employers'}" class="primary" style="display:inline-block; padding:8px 20px; border-radius:10px; background:#b00008; color:#fff; text-decoration:none; font-weight:600; font-size:13.5px;">${data.employersLoadError?'Retry':'View All Companies'}</a>
                 </div>
               </div>
             `}
