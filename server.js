@@ -243,7 +243,12 @@ const requestHandler = createResilientHandler(async (req, res) => {
         path = `/job/${resolvedJobUrl.slug}`;
       } else if (response.status === 404) { res.writeHead(404,{'Content-Type':'text/html','X-Robots-Tag':'noindex'}); return res.end('<h1>404</h1>'); }
       else throw new Error('Job URL service unavailable');
-    } catch { res.writeHead(503,{'Content-Type':'text/html','Cache-Control':'no-store','Retry-After':'5'}); return res.end('<h1>Job temporarily unavailable</h1><p>Reload this page in a moment to try again.</p><a href="/jobs">Browse jobs</a>'); }
+    } catch {
+      const template = await readFile(join(root,'index.html'),'utf8');
+      const html = template.replace('<div id="app"></div>', `<div id="app" data-recover-job-url>${initialPage(path)}</div>`);
+      res.writeHead(503,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Retry-After':'5'});
+      return res.end(html);
+    }
   }
   const legacyJob = path.match(/^\/jobs\/([^/]+)\/?$/);
   if (legacyJob && ['GET','HEAD'].includes(req.method)) {

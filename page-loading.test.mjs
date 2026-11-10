@@ -9,6 +9,7 @@ const loaders = source.slice(source.indexOf('async function loadAccount()'), sou
 function harness(path, responses) {
   const calls = [];
   const context = vm.createContext({
+    resolvedJobUrl: null,
     AbortSignal, loadContentRecord, document:{getElementById:()=>null}, path, wpRecord: null, wpEmployer: null, currentUser: null, emailCampaigns: [],
     orgJobs: [], categoryJobs: [], profileJobs: [], URL, URLSearchParams,
     fetch: async url => {

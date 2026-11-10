@@ -45,7 +45,16 @@ const seed = {
 };
 const store = {get(){try{return JSON.parse(localStorage.getItem('trikonetCMS'))||structuredClone(seed)}catch{return structuredClone(seed)}},set(v){localStorage.setItem('trikonetCMS',JSON.stringify(v))},reset(){localStorage.removeItem('trikonetCMS');location.reload()}};
 const data=store.get();
-const resolvedJobUrl = JSON.parse(document.getElementById('job-url-data')?.textContent || 'null');
+let resolvedJobUrl = JSON.parse(document.getElementById('job-url-data')?.textContent || 'null');
+if (document.querySelector('[data-recover-job-url]')) {
+  const url = new URLSearchParams({path: location.pathname});
+  const response = await fetch(`/api/job-url?${url}`, {signal:AbortSignal.timeout(8000)});
+  if (response.status === 404) throw new Error('Job is no longer available');
+  if (!response.ok) throw new Error('Job lookup is temporarily unavailable');
+  resolvedJobUrl = await response.json();
+  if (!resolvedJobUrl?.job || !/^\/(?:job|jobs)\/[^/]+$/.test(resolvedJobUrl.publicPath)) throw new Error('Invalid job response');
+  history.replaceState(null,'',resolvedJobUrl.publicPath + location.search + location.hash);
+}
 let path=resolvedJobUrl ? `/job/${resolvedJobUrl.slug}` : location.pathname.replace(/\/$/,'')||'/';
 const SITE_ORIGIN='https://www.trikonet.com';
 const MEMBER_PATHS=['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile','/saved-jobs','/applied-jobs','/followed-companies'];
@@ -54,7 +63,7 @@ function jobsRetryNotice() {
 }
 let seoPagePayload=null, seoPageDraft=false, seoInternalLinks=[];
 let listingLinksReady;
-async function loadSeoPages() {
+async function loadSeoPages(redirectCategory = false) {
   if (path === '/' || path.startsWith('/admin') || path.startsWith('/job/') || path.startsWith('/employer/') || path === '/employers' || legalPageForPath(path)) return;
   if (MEMBER_PATHS.includes(path) || document.getElementById('public-content-data')) return;
   // Related links and page metadata are independent; avoid a network waterfall.
@@ -74,6 +83,10 @@ async function loadSeoPages() {
     const response=await fetch(`/api/seo-job-pages/${encodeURIComponent(destinationSlug)}?page=${Math.max(1,Number(new URLSearchParams(location.search).get('page'))||1)}`, {signal:AbortSignal.timeout(3000)});
     const payload=await response.json();
     if(response.ok && payload.page){
+      if (redirectCategory) {
+        if (payload.page.slug && `/${payload.page.slug}` !== path) location.replace(`/${payload.page.slug}` + location.search + location.hash);
+        return;
+      }
       seoPagePayload=payload;
       if(path.startsWith('/category/')){
         path=`/${payload.page.slug}`;
@@ -333,7 +346,7 @@ async function loadAccount(){
 let employerJobsReady;
 let jobExtrasReady;
 async function loadWordPressRecord(){const match=path.match(/^\/(job|employer)\/([^/]+)$/);if(!match)return;const type=match[1]==='job'?'job_listing':'employer',slug=match[2];try{const embedded=document.getElementById('public-content-data');
-wpRecord=embedded?JSON.parse(embedded.textContent):await loadContentRecord(fetch,'',type,slug);if(type==='job_listing'){jobExtrasReady=(async()=>{try{let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){wpEmployer=await loadContentRecord(fetch,'','employer',employerSlug);}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
+wpRecord=embedded?JSON.parse(embedded.textContent):(type==='job_listing' && resolvedJobUrl?.job) || await loadContentRecord(fetch,'',type,slug);if(type==='job_listing'){jobExtrasReady=(async()=>{try{let employerSlug='';if(wpRecord?.metas?._job_employer_url){try{employerSlug=new URL(wpRecord.metas._job_employer_url).pathname.split('/').filter(Boolean).pop()||'';}catch{}}if(!employerSlug&&wpRecord?.employerSlug){employerSlug=wpRecord.employerSlug;}if(!employerSlug&&(wpRecord?.metas?._job_employer_name||wpRecord?.company)){const comp=wpRecord.metas?._job_employer_name||wpRecord.company;employerSlug=comp.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}if(employerSlug){wpEmployer=await loadContentRecord(fetch,'','employer',employerSlug);}if(!wpEmployer&&wpRecord?.metas?._job_employer_posted_by){const employerResponse=await fetch(`/api/wp/employer?id=${encodeURIComponent(wpRecord.metas._job_employer_posted_by)}`);if(employerResponse.ok){const emps=await employerResponse.json();wpEmployer=emps[0]||null;}}if(wpEmployer){try{const query=wpEmployer.id?`employer_id=${wpEmployer.id}`:`employer_slug=${encodeURIComponent(wpEmployer.slug)}`;const jobsRes=await fetch(`/api/wp/job_listing?${query}&per_page=20`);if(jobsRes.ok){const list=await jobsRes.json();orgJobs=list.filter(j=>j.slug!==slug);}}catch{}}if(!orgJobs.length&&(wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company)){const cName=wpEmployer?.title?.rendered||wpEmployer?.title||wpRecord?.metas?._job_employer_name||wpRecord?.company;try{const searchRes=await fetch(`/api/wp/job_listing?q=${encodeURIComponent(cName)}&per_page=20`);if(searchRes.ok){const sList=await searchRes.json();orgJobs=sList.filter(j=>j.slug!==slug&&((j.metas?._job_employer_name&&j.metas._job_employer_name.toLowerCase()===cName.toLowerCase())||(j.company&&j.company.toLowerCase()===cName.toLowerCase())));}}catch{}}
 categoryJobs=[];
 const extractJobCats = (rec) => {
   if (!rec) return [];
@@ -3154,7 +3167,14 @@ function prepareDirectoryTaxonomies() {
   return withOptionalBudget(directoryTaxonomiesReady, undefined, 150);
 }
 const accountReady=loadAccount();
-const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : path==='/'?[]:[accountReady,loadSeoPages()];
+const initialLoads=isCvAppRoute || path.startsWith('/admin') ? [] : path==='/'?[]:[accountReady];
+const categoryWithListings = path.startsWith('/category/') && document.getElementById('initial-job-list');
+if (!isCvAppRoute && path !== '/' && !path.startsWith('/admin')) {
+  if (categoryWithListings) {
+    // The server already returned the category's jobs. Check for a configured alias separately.
+    void loadSeoPages(true);
+  } else initialLoads.push(loadSeoPages());
+}
 if(path==='/')void accountReady.catch(()=>{});
 if (['/login','/signin','/sign-in','/login-register','/register','/signup','/sign-up','/profile'].includes(path)) {
   initialLoads.push(import('./website-profile.js?v=20261018-focused-profile-31').then(({ createCandidateProfile }) => {
