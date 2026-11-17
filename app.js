@@ -49,7 +49,7 @@ let resolvedJobUrl = JSON.parse(document.getElementById('job-url-data')?.textCon
 if (document.querySelector('[data-recover-job-url]')) {
   const url = new URLSearchParams({path: location.pathname});
   const response = await fetch(`/api/job-url?${url}`, {signal:AbortSignal.timeout(8000)});
-  if (response.status === 404) throw new Error('Job is no longer available');
+  if (response.status === 404) throw Object.assign(new Error('Job is no longer available'), {code:'JOB_NOT_FOUND'});
   if (!response.ok) throw new Error('Job lookup is temporarily unavailable');
   resolvedJobUrl = await response.json();
   if (!resolvedJobUrl?.job || !/^\/(?:job|jobs)\/[^/]+$/.test(resolvedJobUrl.publicPath)) throw new Error('Invalid job response');
